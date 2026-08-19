@@ -1,0 +1,54 @@
+{
+  "name": "nibble",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lehký WYSIWYG editor HTML ve vanilla TypeScriptu. Načtený obsah se uloží znak po znaku stejně, dokud se ho někdo nedotkne.",
+  "keywords": [
+    "wysiwyg",
+    "editor",
+    "html",
+    "richtext",
+    "contenteditable",
+    "tinymce",
+    "typescript",
+    "vanilla"
+  ],
+  "license": "MIT",
+  "author": "Rudolf Svatek",
+  "homepage": "https://svatekr70.github.io/nibble/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/svatekr70/nibble.git"
+  },
+  "bugs": {
+    "url": "https://github.com/svatekr70/nibble/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "demo": "node tools/serve.mjs",
+    "fixtures": "python3 tools/extract-fixtures.py packages/core/test/fixtures",
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "test:all": "vitest run && playwright test",
+    "site:build": "node tools/build-site.mjs",
+    "site:dev": "node tools/serve.mjs dist-site"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.2.0",
+    "esbuild": "^0.28.2",
+    "linkedom": "^0.18.11",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

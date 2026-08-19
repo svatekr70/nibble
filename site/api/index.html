@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API dokumentace — Nibble</title>
+<meta name="description" content="Kompletní API reference Nibble: konfigurace, metody editoru, události, registr ovládání, dialogy, nastavení uživatele, pluginy, CSS proměnné a klávesové zkratky.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f6f68'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M9 11h14M9 16h14M9 21h7'/%3E%3C/g%3E%3Crect x='19' y='18' width='2.6' height='8' rx='1.3' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap wrap-wide nav">
+    <a class="brand" href="../">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="6" fill="var(--accent)"/>
+        <g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M9 11h14M9 16h14M9 21h7"/>
+        </g>
+        <rect x="19" y="18" width="2.6" height="8" rx="1.3" fill="#fff"/>
+      </svg>
+      Nibble
+    </a>
+    <span class="ver">v0.1.0</span>
+    <span class="spacer"></span>
+    <a class="navlink" href="../demo/">Demo</a>
+    <a class="navlink" href="../guide/">Příručka</a>
+    <a class="navlink" href="./" aria-current="page">API</a>
+    <a class="navlink" href="https://github.com/svatekr70/nibble">GitHub</a>
+  </div>
+</header>
+
+<main class="wrap wrap-wide">
+  <div class="docs">
+
+    <nav class="toc" id="toc">
+      <strong>Začátek</strong>
+      <a href="#instalace">Instalace</a>
+      <a href="#cdn">Bez balíčkovače (CDN)</a>
+      <a href="#rychly-start">Rychlý start</a>
+      <a href="#create">Nibble.create()</a>
+
+      <strong>Konfigurace</strong>
+      <a href="#volby">Přehled voleb</a>
+      <a href="#schema">Schema</a>
+      <a href="#vkladani">Vkládání</a>
+      <a href="#embed">Vložené rámce</a>
+
+      <strong>Editor</strong>
+      <a href="#obsah">Obsah</a>
+      <a href="#sluzby">Stav a služby</a>
+      <a href="#akce">Akce a dotazy</a>
+      <a href="#udalosti">Události</a>
+
+      <strong>Ovládání</strong>
+      <a href="#attach">attachToolbar()</a>
+      <a href="#registr">Registr ovládání</a>
+      <a href="#dialogy">Dialogy a hlášky</a>
+      <a href="#nastaveni">Nastavení uživatele</a>
+
+      <strong>Pluginy</strong>
+      <a href="#dodavane">Dodávané pluginy</a>
+      <a href="#vlastni-plugin">Vlastní plugin</a>
+
+      <strong>Ostatní</strong>
+      <a href="#serializace">Serializace a round-trip</a>
+      <a href="#css">CSS proměnné</a>
+      <a href="#zkratky">Klávesové zkratky</a>
+    </nav>
+
+    <article class="prose">
+
+      <h1>API dokumentace</h1>
+      <p>Nibble je rozdělený do tří balíčků: <code>@nibble/core</code> (model, výběr,
+        historie, příkazy, registr ovládání), <code>@nibble/ui</code> (lišta, nabídka,
+        dialogy, CSS) a <code>@nibble/plugins</code> (odkazy, obrázky, tabulky, videa,
+        nástroje, písma). Jádro běží i bez lišty — hodí se to v testech a při dávkovém
+        zpracování obsahu.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="instalace">Instalace</h2>
+
+      <pre class="code">git clone https://github.com/svatekr70/nibble
+npm install
+npm run build</pre>
+
+      <p>Build vytvoří ESM bundly a stylopis. Do stránky se vkládají takhle:</p>
+
+      <pre class="code"><span class="k">import</span> { Nibble } <span class="k">from</span> <span class="s">'@nibble/core'</span>
+<span class="k">import</span> { attachToolbar } <span class="k">from</span> <span class="s">'@nibble/ui'</span>
+<span class="k">import</span> <span class="s">'@nibble/ui/nibble.css'</span></pre>
+
+      <div class="callout">
+        <strong>Styly se importují zvlášť</strong>
+        <p>Knihovna do stránky sama nic nevkládá. Buď načtěte <code>nibble.css</code>,
+          nebo si napište vlastní — všechno používá jen třídy s prefixem
+          <code>nb-</code> a proměnné <code>--nb-*</code>.</p>
+      </div>
+
+      <!-- ============================================================ -->
+      <h2 id="cdn">Bez balíčkovače (CDN)</h2>
+
+      <p>Vedle dokumentace se na tuhle adresu publikuje i sestavená knihovna — jeden
+        soubor se vším, co je v <code>core</code>, <code>ui</code> i
+        <code>plugins</code>. Nic se neinstaluje a nic se nesestavuje:</p>
+
+      <pre class="code">&lt;<span class="t">link</span> rel=<span class="s">"stylesheet"</span>
+      href=<span class="s">"https://svatekr70.github.io/nibble/dist/nibble.css"</span>&gt;
+
+&lt;<span class="t">div</span> id=<span class="s">"obsah"</span>&gt;&lt;<span class="t">p</span>&gt;Ahoj.&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">div</span>&gt;
+
+&lt;<span class="t">script</span> type=<span class="s">"module"</span>&gt;
+  <span class="k">import</span> { Nibble, attachToolbar, link, image, table }
+    <span class="k">from</span> <span class="s">'https://svatekr70.github.io/nibble/dist/nibble.min.js'</span>
+
+  <span class="k">const</span> editor = <span class="k">await</span> Nibble.<span class="t">create</span>({
+    target: <span class="s">'#obsah'</span>,
+    plugins: [link, image, table],
+  })
+  <span class="t">attachToolbar</span>(editor, { menubar: <span class="k">true</span> })
+&lt;/<span class="t">script</span>&gt;</pre>
+
+      <p>Je to modul, takže <code>&lt;script&gt;</code> musí mít
+        <code>type="module"</code>. Jednotlivé balíčky jdou načíst i zvlášť —
+        <code>dist/core/src/index.js</code>, <code>dist/ui/src/index.js</code>,
+        <code>dist/plugins/src/index.js</code> — když nechcete tahat všechno.</p>
+
+      <div class="callout">
+        <strong>Na téhle adrese je vždycky poslední verze</strong>
+        <p>Publikuje se z hlavní větve, takže se obsah může změnit. Pro ostrý provoz si
+          soubor stáhněte k sobě, nebo si ho vezměte z přílohy konkrétního
+          <a href="https://github.com/svatekr70/nibble/releases">vydání</a> — tam už se
+          nezmění.</p>
+      </div>
+
+      <!-- ============================================================ -->
+      <h2 id="rychly-start">Rychlý start</h2>
+
+      <pre class="code"><span class="k">import</span> { Nibble } <span class="k">from</span> <span class="s">'@nibble/core'</span>
+<span class="k">import</span> { attachToolbar } <span class="k">from</span> <span class="s">'@nibble/ui'</span>
+<span class="k">import</span> { link, createImagePlugin, table } <span class="k">from</span> <span class="s">'@nibble/plugins'</span>
+<span class="k">import</span> <span class="s">'@nibble/ui/nibble.css'</span>
+
+<span class="k">const</span> editor = <span class="k">await</span> Nibble.<span class="t">create</span>({
+  target: <span class="s">'#obsah'</span>,
+  schema: <span class="s">'legacy'</span>,
+  plugins: [
+    link,
+    <span class="t">createImagePlugin</span>({
+      <span class="c">// Bez adaptéru se obrázek vloží jako data: URL.</span>
+      upload: <span class="k">async</span> (file) =&gt; {
+        <span class="k">const</span> body = <span class="k">new</span> <span class="t">FormData</span>()
+        body.<span class="t">append</span>(<span class="s">'file'</span>, file)
+        <span class="k">const</span> res = <span class="k">await</span> <span class="t">fetch</span>(<span class="s">'/api/upload'</span>, { method: <span class="s">'POST'</span>, body })
+        <span class="k">return</span> (<span class="k">await</span> res.<span class="t">json</span>()).url
+      },
+    }),
+    table,
+  ],
+})
+
+<span class="t">attachToolbar</span>(editor)
+
+editor.<span class="t">on</span>(<span class="s">'change'</span>, ({ html }) =&gt; <span class="t">uloz</span>(html))</pre>
+
+      <p>Při napojení na <code>&lt;textarea&gt;</code> zůstává textarea zdrojem pravdy pro
+        odeslání formuláře — stačí vyměnit jeden řádek a odesílání funguje dál.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="create">Nibble.create()</h2>
+
+      <div class="sig">Nibble.create(config: NibbleConfig): Promise&lt;Editor&gt;</div>
+
+      <p>Vrací <code>Promise</code>, protože pluginy smí mít asynchronní přípravu (třeba
+        načtení seznamu písem). Existuje i pojmenovaný export <code>create()</code> se
+        stejným chováním.</p>
+
+      <p><code>target</code> je CSS selektor, prvek nebo <code>&lt;textarea&gt;</code>.
+        U textarey se převezme její obsah, textarea se schová a při každé změně se do ní
+        zapisuje výsledek — odeslání formuláře pak funguje beze změny v backendu.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="volby">Přehled voleb</h2>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Volba</th><th>Typ</th><th>Význam</th></tr></thead>
+        <tbody>
+          <tr><td><code>target</code></td><td><code>string | HTMLElement</code></td><td>Kam se editor postaví. Povinné.</td></tr>
+          <tr><td><code>content</code></td><td><code>string</code></td><td>Počáteční HTML. Bez něj se převezme obsah cílového prvku.</td></tr>
+          <tr><td><code>schema</code></td><td><code>'strict' | 'legacy'</code></td><td>Jak přísně se hlídá tvar obsahu. Výchozí <code>legacy</code>.</td></tr>
+          <tr><td><code>entityEncoding</code></td><td><code>'named' | 'utf8' | 'auto'</code></td><td>Jak se zapisují entity. <code>auto</code> se řídí tím, co bylo v původním obsahu.</td></tr>
+          <tr><td><code>height</code></td><td><code>number</code></td><td>Minimální výška plochy s obsahem v pixelech.</td></tr>
+          <tr><td><code>readonly</code></td><td><code>boolean</code></td><td>Editor se otevře jen ke čtení. Jde přepnout přes <code>setMode()</code>.</td></tr>
+          <tr><td><code>autofocus</code></td><td><code>boolean</code></td><td>Zaostřit obsah hned po vytvoření.</td></tr>
+          <tr><td><code>plugins</code></td><td><code>Plugin[]</code></td><td>Hodnoty, ne jména. Bundler tak vidí, co se opravdu použije.</td></tr>
+          <tr><td><code>paste</code></td><td><code>PasteOptions</code></td><td>Chování při vkládání ze schránky — viz níž.</td></tr>
+          <tr><td><code>allowedEmbedHosts</code></td><td><code>string[]</code></td><td>Hostitelé, jejichž <code>&lt;iframe&gt;</code> smí být v obsahu.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <!-- ============================================================ -->
+      <h2 id="schema">Schema</h2>
+
+      <p>Schema říká, co smí kde být. Dva režimy:</p>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Režim</th><th>Chování</th></tr></thead>
+        <tbody>
+          <tr><td><code>legacy</code></td><td>Pouští dál i značky a atributy, které by dnes nikdo nenapsal — <code>&lt;font&gt;</code>, <code>align</code>, <code>&lt;center&gt;</code>. Pro obsah, který vznikal roky v jiných nástrojích.</td></tr>
+          <tr><td><code>strict</code></td><td>Sémantické značky a inline styly. Pro nový obsah a nové projekty.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p>Srovnávání tvaru je <strong>líné</strong>: běží jen na tom bloku, do kterého
+        uživatel opravdu zasáhl. Načtený dokument se nikdy nepřepisuje jen proto, že by
+        se dnes zapsal jinak.</p>
+
+      <div class="sig">editor.audit(html?: string): SchemaViolation[]</div>
+      <p>Zkontroluje obsah proti schématu, aniž by cokoli měnil. Bez argumentu kontroluje
+        aktuální obsah editoru. Hodí se na dávkovou revizi databáze před migrací.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="vkladani">Vkládání</h2>
+
+      <pre class="code"><span class="k">await</span> Nibble.<span class="t">create</span>({
+  target: <span class="s">'#obsah'</span>,
+  paste: {
+    keepStyles: [<span class="s">'color'</span>, <span class="s">'background-color'</span>, <span class="s">'text-align'</span>],
+    markdown: <span class="k">true</span>,
+  },
+})</pre>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Volba</th><th>Typ</th><th>Význam</th></tr></thead>
+        <tbody>
+          <tr><td><code>keepStyles</code></td><td><code>string[]</code></td><td>Které vlastnosti stylu si z vloženého obsahu nechat.</td></tr>
+          <tr><td><code>allowedTags</code></td><td><code>Set&lt;string&gt;</code></td><td>Povolené značky. Co v seznamu není, se rozbalí a text zůstane.</td></tr>
+          <tr><td><code>markdown</code></td><td><code>boolean</code></td><td>Převádět Markdown, když přijde čistý text. Výchozí <code>true</code>.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p>Zdroj vloženého obsahu se rozpoznává a čistí se podle něj. Událost
+        <code>pasteclean</code> nese, co se stalo:</p>
+
+      <pre class="code">editor.<span class="t">on</span>(<span class="s">'pasteclean'</span>, ({ source, removed }) =&gt; {
+  <span class="c">// source: 'word' | 'gdocs' | 'libreoffice' | 'html' | 'text'</span>
+  console.<span class="t">log</span>(source, removed)
+})</pre>
+
+      <!-- ============================================================ -->
+      <h2 id="embed">Vložené rámce</h2>
+
+      <p><code>&lt;iframe&gt;</code> je jediná značka, která do stránky pouští cizí kód.
+        Nibble ho proto neřeší seznamem zakázaného, ale seznamem povoleného —
+        co v něm není, se zahodí:</p>
+
+      <pre class="code"><span class="k">await</span> Nibble.<span class="t">create</span>({
+  target: <span class="s">'#obsah'</span>,
+  <span class="c">// Prázdné pole zakáže rámce úplně.</span>
+  allowedEmbedHosts: [<span class="s">'youtube.com'</span>, <span class="s">'youtube-nocookie.com'</span>, <span class="s">'vimeo.com'</span>],
+})</pre>
+
+      <p>Bez uvedení platí <code>DEFAULT_EMBED_HOSTS</code> — běžné videoslužby. Kontrola
+        porovnává hostitele včetně poddomén, ne podřetězec v URL.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="obsah">Obsah</h2>
+
+      <div class="sig">editor.getHTML(): string</div>
+      <p>Serializovaný obsah. Bloky, kterých se nikdo nedotkl, se vypíšou
+        <strong>v původním znění</strong> — proto je výsledek po pouhém načtení znak po
+        znaku shodný se vstupem.</p>
+
+      <div class="sig">editor.setHTML(html: string, entityEncoding?: EntityEncoding): void</div>
+      <p>Nahradí obsah. Zahodí historii oblastí a založí nové snímky, takže záruka
+        round-tripu platí i pro nově nastavený obsah.</p>
+
+      <div class="sig">editor.getText(): string</div>
+      <div class="sig">editor.insertHTML(html: string): boolean</div>
+      <p>Vloží HTML na pozici kurzoru. Obsah projde sanitizací, takže je bezpečné sem
+        poslat i něco, co přišlo zvenčí.</p>
+
+      <div class="sig">editor.isDirty(): boolean</div>
+      <div class="sig">editor.getDirtyBlocks(): Node[]</div>
+      <p>Které uzly nejvyšší úrovně se od načtení změnily. Užitečné při ladění i v testech
+        — demo na tomhle webu jimi ukazuje, kolik bloků úprava opravdu zasáhla.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="sluzby">Stav a služby</h2>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Vlastnost</th><th>K čemu je</th></tr></thead>
+        <tbody>
+          <tr><td><code>editor.root</code></td><td>Prvek s <code>contenteditable</code>. Sem míří všechno, co se dotýká DOMu.</td></tr>
+          <tr><td><code>editor.document</code></td><td>Dokument, ve kterém editor žije. Příkazy z něj vytvářejí uzly.</td></tr>
+          <tr><td><code>editor.selection</code></td><td><code>getRange()</code>, <code>setRange()</code>, <code>collapseTo()</code>, <code>save()</code>, <code>restore()</code>.</td></tr>
+          <tr><td><code>editor.schema</code></td><td>Kontrola tvaru obsahu.</td></tr>
+          <tr><td><code>editor.history</code></td><td><code>undo()</code>, <code>redo()</code>, <code>canUndo()</code>.</td></tr>
+          <tr><td><code>editor.formatter</code></td><td><code>apply()</code>, <code>remove()</code>, <code>toggle()</code>, <code>match()</code>, <code>queryStyle()</code>.</td></tr>
+          <tr><td><code>editor.commands</code></td><td>Registr příkazů: <code>add()</code>, <code>has()</code>.</td></tr>
+          <tr><td><code>editor.ui</code></td><td>Registr ovládání, dialogy, hlášky, stavový řádek.</td></tr>
+          <tr><td><code>editor.plugins</code></td><td>Jména načtených pluginů v pořadí, ve kterém se nastavovaly.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <!-- ============================================================ -->
+      <h2 id="akce">Akce a dotazy</h2>
+
+      <pre class="code">editor.<span class="t">exec</span>(<span class="s">'link'</span>, { href })   <span class="c">// → boolean (šlo to?)</span>
+editor.<span class="t">can</span>(<span class="s">'link'</span>)              <span class="c">// smí se to teď? → stav tlačítka</span>
+editor.<span class="t">is</span>(<span class="s">'bold'</span>)               <span class="c">// je výběr tučný? → aktivní tlačítko</span>
+editor.<span class="t">focus</span>()
+editor.<span class="t">setMode</span>(<span class="s">'design'</span>)        <span class="c">// 'design' | 'readonly'</span>
+editor.<span class="t">destroy</span>()</pre>
+
+      <p>Proti TinyMCE zmizel globální singleton: žádné <code>nibble.activeEditor</code>.
+        Instanci si drží ten, kdo ji vytvořil.</p>
+
+      <p>Pomocné dotazy na aktuální blok používá lišta a hodí se i vlastnímu ovládání:</p>
+      <pre class="code">editor.<span class="t">getBlockTag</span>()      <span class="c">// 'p' | 'h2' | 'blockquote' | null</span>
+editor.<span class="t">isInList</span>()         <span class="c">// 'ul' | 'ol' | null</span>
+editor.<span class="t">getAlignment</span>()     <span class="c">// 'left' | 'center' | 'right' | 'justify' | ''</span>
+editor.<span class="t">currentBlock</span>()     <span class="c">// Element | null</span></pre>
+
+      <!-- ============================================================ -->
+      <h2 id="udalosti">Události</h2>
+
+      <p><code>on()</code> vrací funkci pro odhlášení — nemusíte si držet referenci na
+        posluchače:</p>
+
+      <pre class="code"><span class="k">const</span> off = editor.<span class="t">on</span>(<span class="s">'change'</span>, ({ html }) =&gt; <span class="t">uloz</span>(html))
+<span class="t">off</span>()</pre>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Událost</th><th>Kdy nastane</th></tr></thead>
+        <tbody>
+          <tr><td><code>change</code></td><td>Obsah se změnil a změna se uzavřela do kroku historie. Nese <code>{ html }</code>.</td></tr>
+          <tr><td><code>input</code></td><td>Každý zásah do obsahu, ještě před uzavřením kroku.</td></tr>
+          <tr><td><code>selectionchange</code></td><td>Kurzor nebo výběr se pohnul. Podle toho se sesynchronizuje lišta.</td></tr>
+          <tr><td><code>setcontent</code></td><td>Obsah byl nahrazen přes <code>setHTML()</code>.</td></tr>
+          <tr><td><code>modechange</code></td><td>Přepnul se režim (design / readonly).</td></tr>
+          <tr><td><code>pasteclean</code></td><td>Doběhlo čištění vloženého obsahu. Nese <code>{ source, removed, html }</code>.</td></tr>
+          <tr><td><code>schemaviolation</code></td><td>Do obsahu se dostalo něco, co schema nepovoluje.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <!-- ============================================================ -->
+      <h2 id="attach">attachToolbar()</h2>
+
+      <div class="sig">attachToolbar(editor: Editor, options?: AttachOptions): EditorUI</div>
+
+      <pre class="code"><span class="k">const</span> ui = <span class="t">attachToolbar</span>(editor, {
+  layout: [
+    [<span class="s">'undo'</span>, <span class="s">'redo'</span>],
+    [<span class="s">'bold'</span>, <span class="s">'italic'</span>, <span class="s">'underline'</span>],
+    [<span class="s">'link'</span>, <span class="s">'image'</span>, <span class="s">'table'</span>],
+  ],
+  layoutBottom: [[<span class="s">'code'</span>, <span class="s">'fullscreen'</span>]],
+  menubar: <span class="k">true</span>,
+  prefsKey: <span class="s">'clanky'</span>,
+  prefs: { height: <span class="s">'500px'</span> },
+  settings: <span class="k">true</span>,
+})</pre>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Volba</th><th>Typ</th><th>Význam</th></tr></thead>
+        <tbody>
+          <tr><td><code>layout</code></td><td><code>string[][]</code></td><td>Skupiny tlačítek v prvním řádku lišty.</td></tr>
+          <tr><td><code>layoutBottom</code></td><td><code>string[][]</code></td><td>Skupiny, které mají začít ve druhém řádku.</td></tr>
+          <tr><td><code>menubar</code></td><td><code>boolean | MenubarMenu[]</code></td><td>Nabídkový pruh nad lištou. <code>true</code> použije výchozí rozvržení.</td></tr>
+          <tr><td><code>prefsKey</code></td><td><code>string</code></td><td>Klíč pro uložení nastavení uživatele (<code>nibble:prefs:&lt;id&gt;</code>).</td></tr>
+          <tr><td><code>prefs</code></td><td><code>Partial&lt;EditorPrefs&gt;</code></td><td>Výchozí hodnoty nastavení. Uživatel je může přebít.</td></tr>
+          <tr><td><code>settings</code></td><td><code>boolean</code></td><td>Ozubené kolo vpravo nahoře. Jediné místo, kde se dá schovat.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p>Vrácené <code>EditorUI</code> nese <code>toolbar</code>, <code>menubar</code>,
+        <code>contextToolbar</code>, <code>prefs</code> a <code>destroy()</code>.</p>
+
+      <p>Výchozí rozvržení obsahuje: <code>undo redo</code> · <code>blocks fontfamily
+        fontsize lineheight</code> · <code>bold italic underline strike</code> ·
+        <code>forecolor backcolor</code> · <code>bullist numlist</code> ·
+        <code>alignleft aligncenter alignright alignjustify</code> · <code>link image
+        media table</code> · <code>blockquote hr removeformat</code> · <code>code
+        searchreplace fullscreen</code>. Tlačítko, jehož plugin není načtený, se
+        v liště prostě neobjeví.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="registr">Registr ovládání</h2>
+
+      <p>Plugin si přihlásí ovládací prvek a lišta ho vykreslí. Žádné další zařizování
+        není potřeba — a jádro nemusí o liště vědět.</p>
+
+      <pre class="code">editor.ui.<span class="t">addButton</span>(<span class="s">'zvyraznit'</span>, {
+  icon: <span class="s">'forecolor'</span>,
+  tooltip: <span class="s">'Zvýraznit'</span>,
+  shortcut: <span class="s">'Ctrl+H'</span>,
+  onAction: () =&gt; editor.<span class="t">exec</span>(<span class="s">'zvyraznit'</span>),
+  isActive: () =&gt; editor.<span class="t">is</span>(<span class="s">'zvyraznit'</span>),
+  isEnabled: () =&gt; editor.<span class="t">can</span>(<span class="s">'zvyraznit'</span>),
+})</pre>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Metoda</th><th>Vykreslí se jako</th></tr></thead>
+        <tbody>
+          <tr><td><code>addButton(name, spec)</code></td><td>Tlačítko, případně přepínač.</td></tr>
+          <tr><td><code>addSelect(name, spec)</code></td><td>Rozbalovací seznam (druh bloku, písmo, velikost).</td></tr>
+          <tr><td><code>addColor(name, spec)</code></td><td>Výběr barvy s kolečkem a paletami.</td></tr>
+          <tr><td><code>addMenu(name, spec)</code></td><td>Tlačítko s nabídkou položek.</td></tr>
+          <tr><td><code>addGrid(name, spec)</code></td><td>Mřížka — používá ji výběr rozměru tabulky.</td></tr>
+          <tr><td><code>addContextToolbar(name, spec)</code></td><td>Plovoucí lišta nad vybraným prvkem.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p><code>editor.ui.get(name)</code> vrátí přihlášený prvek, <code>names()</code>
+        seznam všech. Toho využívá i nastavení, aby nenabízelo tlačítka, jejichž plugin
+        se nenačetl.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="dialogy">Dialogy a hlášky</h2>
+
+      <div class="sig">editor.ui.dialog(spec: DialogSpec): Promise&lt;Record&lt;string, unknown&gt; | null&gt;</div>
+
+      <p>Dialog se popíše polem polí; vykreslení, ozvučení i validaci obstará lišta.
+        Vrací <code>null</code>, když uživatel dialog zavřel.</p>
+
+      <pre class="code"><span class="k">const</span> data = <span class="k">await</span> editor.ui.<span class="t">dialog</span>({
+  title: <span class="s">'Vložit odkaz'</span>,
+  fields: [
+    { type: <span class="s">'url'</span>, name: <span class="s">'href'</span>, label: <span class="s">'Adresa'</span>, required: <span class="k">true</span> },
+    { type: <span class="s">'text'</span>, name: <span class="s">'text'</span>, label: <span class="s">'Text odkazu'</span> },
+    { type: <span class="s">'checkbox'</span>, name: <span class="s">'blank'</span>, label: <span class="s">'Otevřít v novém okně'</span> },
+  ],
+  submit: <span class="s">'Vložit'</span>,
+})
+
+<span class="k">if</span> (data) editor.<span class="t">exec</span>(<span class="s">'link'</span>, data)</pre>
+
+      <p>Typy polí: <code>text</code>, <code>url</code>, <code>number</code>,
+        <code>select</code>, <code>checkbox</code>, <code>color</code>,
+        <code>textarea</code> a <code>code</code> (velké okno se zvýrazněnou syntaxí).</p>
+
+      <div class="callout">
+        <strong>Výběr přežije otevření dialogu</strong>
+        <p>Otevření modálního okna přesune fokus a s ním i výběr. <code>ui.dialog()</code>
+          si ho proto uloží a před spuštěním příkazu vrátí zpátky — jednou pro všechny
+          dialogy, aby se na to nedalo zapomenout v jednotlivých pluginech.</p>
+      </div>
+
+      <div class="sig">editor.ui.notify(text: string, level?: 'info' | 'warn' | 'error'): void</div>
+      <div class="sig">editor.ui.setStatus(name: string, text: string | null): void</div>
+      <p>Stav se ukládá i tehdy, když stavový řádek zrovna neexistuje. Když si ho uživatel
+        zapne, hodnoty se do něj přehrají — plugin se nemusí spouštět znovu.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="nastaveni">Nastavení uživatele</h2>
+
+      <p>Rozvržení lišty navrhne programátor, ale poslední slovo má ten, kdo u editoru
+        sedí. Nastavení se ukládá do <code>localStorage</code> a <strong>přebíjí</strong>
+        konfiguraci.</p>
+
+      <pre class="code">ui.prefs.<span class="t">get</span>()                     <span class="c">// aktuální nastavení</span>
+ui.prefs.<span class="t">set</span>({ sticky: <span class="k">false</span> })      <span class="c">// ovládání se postaví znovu</span>
+ui.prefs.<span class="t">layoutFor</span>(<span class="s">'top'</span>)            <span class="c">// co se vykreslí v prvním řádku</span>
+ui.prefs.<span class="t">reset</span>()                   <span class="c">// zpátky podle konfigurace</span>
+ui.prefs.<span class="t">onChange</span>(fn)               <span class="c">// vrací funkci pro odhlášení</span></pre>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Položka</th><th>Typ</th><th>Výchozí</th><th>Význam</th></tr></thead>
+        <tbody>
+          <tr><td><code>width</code></td><td><code>string</code></td><td><code>''</code></td><td>Šířka editoru. Prázdné = podle obsahu.</td></tr>
+          <tr><td><code>height</code></td><td><code>string</code></td><td><code>''</code></td><td>Výška plochy s obsahem. Zadaná výška zapne rolování uvnitř.</td></tr>
+          <tr><td><code>menubar</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Nabídkový pruh.</td></tr>
+          <tr><td><code>sticky</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Lišta se drží u horního okraje.</td></tr>
+          <tr><td><code>statusbar</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Informační řádek s cestou k prvku.</td></tr>
+          <tr><td><code>resizable</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Změna velikosti tažením za pravý dolní roh.</td></tr>
+          <tr><td><code>groups</code></td><td><code>PrefGroup[]</code></td><td>z <code>layout</code></td><td>Skupiny tlačítek, jejich pořadí, zapnutí a řádek.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="callout">
+        <strong>Uloženému nastavení se nevěří slepě</strong>
+        <p>Sedí v prohlížeči uživatele a může být staré půl roku. Slučuje se proto
+          s aktuální konfigurací: prvek, který uživatel zná, si drží pořadí i zapnutí,
+          prvek, který mezitím přibyl, se doplní na konec své skupiny. Bez toho by
+          upgrade editoru znamenal, že nové tlačítko nikdo nikdy neuvidí.</p>
+      </div>
+
+      <p>Dialog nastavení umí vypsat hotovou konfiguraci podle aktuálního stavu — když si
+        uživatel lištu přeskládá tak, že to dává smysl, je to nejlepší podklad pro to,
+        jak má editor vypadat pro všechny ostatní.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="dodavane">Dodávané pluginy</h2>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Plugin</th><th>Přináší</th></tr></thead>
+        <tbody>
+          <tr><td><code>link</code></td><td>Vložení a úprava odkazu, plovoucí lišta nad odkazem, Ctrl+K.</td></tr>
+          <tr><td><code>image</code> / <code>createImagePlugin({ upload })</code></td><td>Obrázky. Bez adaptéru jako <code>data:</code> URL, s adaptérem nahrání na server.</td></tr>
+          <tr><td><code>table</code></td><td>Tabulky: mřížkový model, řádky a sloupce, slučování, tažení šířky sloupce, vlastnosti tabulky i řádku.</td></tr>
+          <tr><td><code>media</code></td><td>Videa přes <code>&lt;iframe&gt;</code> z povolených hostitelů.</td></tr>
+          <tr><td><code>code</code></td><td>Editace zdrojového HTML se zvýrazněnou syntaxí a pamatováním pozice kurzoru.</td></tr>
+          <tr><td><code>autolink</code></td><td>Z napsané adresy udělá odkaz po mezeře nebo Enteru.</td></tr>
+          <tr><td><code>wordcount</code></td><td>Počet slov a znaků do stavového řádku.</td></tr>
+          <tr><td><code>fullscreen</code></td><td>Editor přes celou obrazovku, F11.</td></tr>
+          <tr><td><code>searchreplace</code></td><td>Hledání a nahrazování v textu, ne ve značkách. Ctrl+F.</td></tr>
+          <tr><td><code>typography</code></td><td>České uvozovky, výpustka, pomlčka — při psaní.</td></tr>
+          <tr><td><code>fonts</code></td><td>Rodina a velikost písma včetně webových písem z Google Fonts.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <!-- ============================================================ -->
+      <h2 id="vlastni-plugin">Vlastní plugin</h2>
+
+      <p>Plugin je objekt se jménem a funkcí <code>setup</code>. Ta dostane celý editor —
+        jakýkoli mezistupeň by musel jen předávat dál. Vrácená funkce je úklid; volá se
+        v <code>destroy()</code>, takže inicializace i úklid stojí na jednom místě.</p>
+
+      <pre class="code"><span class="k">import type</span> { Plugin } <span class="k">from</span> <span class="s">'@nibble/core'</span>
+
+<span class="k">export const</span> poznamka: Plugin = {
+  name: <span class="s">'poznamka'</span>,
+
+  <span class="t">setup</span>(editor) {
+    editor.commands.<span class="t">add</span>(<span class="s">'poznamka'</span>, {
+      <span class="t">exec</span>() {
+        <span class="k">return</span> editor.<span class="t">insertHTML</span>(<span class="s">'&lt;aside class="pozn"&gt;…&lt;/aside&gt;'</span>)
+      },
+    })
+
+    editor.ui.<span class="t">addButton</span>(<span class="s">'poznamka'</span>, {
+      icon: <span class="s">'blockquote'</span>,
+      tooltip: <span class="s">'Poznámka na okraj'</span>,
+      onAction: () =&gt; editor.<span class="t">exec</span>(<span class="s">'poznamka'</span>),
+    })
+
+    <span class="k">const</span> off = editor.<span class="t">on</span>(<span class="s">'change'</span>, spocitejPoznamky)
+    <span class="k">return</span> () =&gt; { <span class="t">off</span>() }
+  },
+}</pre>
+
+      <p>Pluginy s volbami se dělají tovární funkcí — <code>createImagePlugin()</code>,
+        <code>createTablePlugin()</code>, <code>createMediaPlugin()</code>,
+        <code>createFontPlugin()</code> — aby se konfigurace nemusela protahovat globálním
+        stavem.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="serializace">Serializace a round-trip</h2>
+
+      <p>Parser si u každé oblasti nejvyšší úrovně pamatuje původní zdroj a snímek DOMu.
+        Serializace pak vypíše zdroj doslova — dokud se DOM od snímku neliší. Znamená to
+        mimo jiné, že:</p>
+
+      <ul>
+        <li>entity zůstanou tak, jak byly (<code>&amp;nbsp;</code> se nepřepíše na mezeru
+          a naopak),</li>
+        <li>pořadí a zápis atributů se nemění, včetně uvozovek,</li>
+        <li>komentáře, podmíněné komentáře i podivné mezery přežijí,</li>
+        <li>úprava jednoho odstavce nepřeformátuje zbytek dokumentu.</li>
+      </ul>
+
+      <p>Jediná změna, která se dělá vždy, je <strong>převod CRLF na LF</strong>. Prohlížeč
+        ho udělá sám v <code>textarea.value</code> i při parsování HTML — slib, že se
+        zachová, by se nedal splnit. Pomocná funkce <code>normalizeNewlines()</code> je
+        veřejná, aby šlo porovnávat se stejným základem.</p>
+
+      <div class="sig">serializeNode(node: Node, options?: SerializeOptions): string</div>
+      <div class="sig">sanitize(html: string, options?: SanitizeOptions): SanitizeResult</div>
+      <p>Obojí je dostupné samostatně — hodí se při dávkovém zpracování obsahu mimo
+        editor.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="css">CSS proměnné</h2>
+
+      <p>Žádný generátor motivů, jen proměnné. Sedí na <code>:root</code>, protože dialogy
+        se vkládají do <code>&lt;body&gt;</code> — mimo obal editoru — a jinak by je
+        nezdědily.</p>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Proměnná</th><th>Světlá</th><th>K čemu je</th></tr></thead>
+        <tbody>
+          <tr><td><code>--nb-bg</code></td><td><code>#ffffff</code></td><td>Pozadí lišty, dialogů a plochy.</td></tr>
+          <tr><td><code>--nb-fg</code></td><td><code>#16191c</code></td><td>Základní barva textu.</td></tr>
+          <tr><td><code>--nb-muted</code></td><td><code>#6b7280</code></td><td>Popisky, nápovědy, stavový řádek.</td></tr>
+          <tr><td><code>--nb-border</code></td><td><code>#dcdfe3</code></td><td>Rámečky a oddělovače.</td></tr>
+          <tr><td><code>--nb-hover</code></td><td><code>#f1f3f5</code></td><td>Podbarvení pod myší.</td></tr>
+          <tr><td><code>--nb-active</code></td><td><code>#e3ecfb</code></td><td>Zapnuté tlačítko.</td></tr>
+          <tr><td><code>--nb-accent</code></td><td><code>#1f5f5b</code></td><td>Přízvučná barva, fokus, hlavní tlačítko.</td></tr>
+          <tr><td><code>--nb-radius</code></td><td><code>6px</code></td><td>Zaoblení rohů.</td></tr>
+          <tr><td><code>--nb-selection</code></td><td>průsvitná</td><td>Označený text ve zdrojovém kódu. Musí zůstat průsvitná, jinak zmizí obarvená syntaxe.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p>Tmavý režim se řídí <code>prefers-color-scheme</code> a přepisuje stejné
+        proměnné. Kdo chce vlastní vzhled, přebije je ve svém CSS.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="zkratky">Klávesové zkratky</h2>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Zkratka</th><th>Akce</th></tr></thead>
+        <tbody>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>I</kbd> / <kbd>U</kbd></td><td>Tučně, kurzíva, podtržení.</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Zpět.</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Znovu.</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Vložit nebo upravit odkaz.</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Hledat a nahradit.</td></tr>
+          <tr><td><kbd>F11</kbd></td><td>Celá obrazovka.</td></tr>
+          <tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>V seznamu zanoří a vysune položku, v tabulce přejde na další buňku.</td></tr>
+          <tr><td><kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>Nový blok / zalomení řádku.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p>Zkratky pluginů se objevují i v nabídkovém pruhu vedle názvu položky, takže se
+        dají odkoukat bez čtení dokumentace.</p>
+
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap wrap-wide fnav">
+    <span>Nibble · MIT · © Rudolf Svátek</span>
+    <span class="spacer"></span>
+    <a href="../">Úvod</a>
+    <a href="../demo/">Demo</a>
+    <a href="../guide/">Příručka</a>
+    <a href="https://github.com/svatekr70/nibble">GitHub</a>
+  </div>
+</footer>
+
+<script type="module" src="../assets/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,1177 @@
+/*
+ * Vzhled Nibble.
+ *
+ * Žádný build ani generátor motivů — jen proměnné. Kdo chce jiný vzhled,
+ * přebije je ve svém CSS. Barvy se drží systémového nastavení světla a tmy.
+ */
+
+/*
+ * Proměnné sedí na :root, ne na .nb.
+ *
+ * Dialog se vkládá do <body>, tedy mimo obal editoru — kdyby proměnné visely
+ * na .nb, nedědil by je a vyšel by průhledný. Prefix --nb- je drží stranou od
+ * všeho ostatního na stránce.
+ */
+:root {
+  --nb-bg: #ffffff;
+  --nb-fg: #16191c;
+  --nb-muted: #6b7280;
+  --nb-border: #dcdfe3;
+  --nb-hover: #f1f3f5;
+  --nb-active: #e3ecfb;
+  --nb-accent: #1f5f5b;
+  --nb-radius: 6px;
+  /* Průsvitný schválně — kryje se jím obarvený text ve zdrojovém kódu. */
+  --nb-selection: rgba(31, 95, 91, .22);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --nb-bg: #1a1d1f;
+    --nb-fg: #e7eae6;
+    --nb-muted: #8b9490;
+    --nb-border: #32373a;
+    --nb-hover: #24282b;
+    --nb-active: #1e3330;
+    --nb-accent: #64b9ac;
+    --nb-selection: rgba(100, 185, 172, .28);
+  }
+}
+
+/*
+ * box-sizing jen na vlastních prvcích, ne globálně přes `*`.
+ *
+ * Tenhle soubor se přidává do cizí stránky. Globální reset by přepsal rozvržení
+ * hostitele, o což nikdo nežádal. Bez něj ale `width: 100%` nepočítá s vlastním
+ * odsazením a rámečkem, takže pole v dialogu přeteče přes pravý okraj.
+ */
+.nb, .nb *,
+.nb-panel, .nb-panel *,
+.nb-grid, .nb-grid *,
+.nb-dialog, .nb-dialog *,
+.nb-picker, .nb-picker *,
+.nb-menu, .nb-menu * { box-sizing: border-box; }
+
+/*
+ * `overflow: hidden` tady schválně není.
+ *
+ * Zaoblené rohy by se jím ořízly hezky, jenže z obalu by se stal posuvný
+ * kontejner a `position: sticky` uvnitř by se neměl čeho chytit — ovládací
+ * panel by při rolování odjel s obsahem. Rohy se proto zaoblují na hlavičce
+ * a obsahu zvlášť.
+ */
+.nb {
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-radius);
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+}
+
+/**
+ * Ovládací panel se drží u horního okraje — pokud si to uživatel přeje.
+ *
+ * U dlouhého dokumentu je jinak potřeba rolovat nahoru kvůli každému tlačítku.
+ * Vypnout to jde v nastavení, proto je to vlastní třída a ne pevná vlastnost.
+ */
+.nb-head { background: var(--nb-bg); border-radius: var(--nb-radius) var(--nb-radius) 0 0; }
+
+.nb-head-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.nb-surface { position: relative; }
+
+/* Zadaná výška znamená, že se vyšší obsah roluje uvnitř editoru. */
+.nb-surface-scroll { overflow: auto; }
+
+.nb-foot { border-radius: 0 0 var(--nb-radius) var(--nb-radius); }
+/* Druhý řádek lišty. Sedí hned pod prvním, proto nahoře žádná čára. */
+.nb-toolbar-second { padding-top: 0; }
+
+.nb-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--nb-border);
+  background: var(--nb-bg);
+}
+
+/*
+ * Horní pruh: lišta vlevo, ozubené kolo vpravo.
+ *
+ * `align-items: flex-start` je tu to podstatné — lišta se láme do několika
+ * řádků, kolo ale musí zůstat nahoře vpravo, ne sjet doprostřed výšky.
+ */
+.nb-toolrow {
+  display: flex;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--nb-border);
+  background: var(--nb-bg);
+}
+
+/* Když následuje druhý řádek, čára mezi nimi nepatří — je to jedna lišta. */
+.nb-toolrow-open { border-bottom: 0; }
+
+.nb-toolrow > .nb-toolbar {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0;
+  background: none;
+}
+
+/* Drží kolo vpravo, i když v horním řádku není žádná skupina. */
+.nb-toolrow-fill { flex: 1; }
+
+.nb-toolrow > .nb-btn {
+  flex: none;
+  /* Stejné odsazení jako mají tlačítka uvnitř lišty, aby seděly v jedné ose. */
+  margin: 6px 8px 6px 4px;
+}
+
+.nb-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.nb-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 6px;
+  background: var(--nb-border);
+}
+
+.nb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--nb-fg);
+  cursor: pointer;
+}
+
+.nb-select {
+  font: inherit;
+  font-size: 13px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--nb-border);
+  border-radius: 4px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  cursor: pointer;
+  max-width: 150px;
+}
+
+.nb-select:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+.nb-select:disabled { color: var(--nb-muted); opacity: .45; cursor: default; }
+
+.nb-btn:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--nb-hover); }
+.nb-btn:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+.nb-btn[aria-pressed="true"] { background: var(--nb-active); color: var(--nb-accent); }
+.nb-btn:disabled,
+.nb-btn[aria-disabled="true"] { color: var(--nb-muted); opacity: .45; cursor: default; }
+
+.nb-content {
+  padding: 14px 16px;
+  min-height: 200px;
+  outline: none;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+.nb-content:focus-visible { outline: none; }
+.nb-content > :first-child { margin-top: 0; }
+.nb-content > :last-child { margin-bottom: 0; }
+.nb-content table { border-collapse: collapse; }
+.nb-content blockquote {
+  margin: 1em 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--nb-border);
+  color: var(--nb-muted);
+}
+.nb-content pre {
+  background: var(--nb-hover);
+  padding: 10px 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+.nb-content ul,
+.nb-content ol { padding-left: 1.6em; margin: .6em 0; }
+.nb-content li { margin: .2em 0; }
+.nb-content li > ul,
+.nb-content li > ol { margin: .2em 0; }
+
+.nb-content hr {
+  border: 0;
+  border-top: 1px solid var(--nb-border);
+  margin: 1.2em 0;
+}
+.nb-content img { max-width: 100%; height: auto; }
+
+/* Široký obsah nesmí roztáhnout stránku. */
+.nb-content { overflow-x: auto; }
+
+/* ---------- tabulky ---------- */
+
+/*
+ * Vodicí mřížka jen pro tabulky, které se nestylují samy.
+ *
+ * Editor má ukazovat, jak bude obsah vypadat na webu. Kdyby si rámečky vynutil
+ * na všechno, tabulka s vlastním `border` nebo `style` by se v editoru
+ * vykreslila jinak než na stránce — a to je horší než neviditelné buňky.
+ * Tabulka bez vlastního stylu naopak potřebuje aspoň naznačit, kde buňky jsou,
+ * jinak se do ní nedá trefit; proto čárkovaně, ať je poznat, že je to pomůcka.
+ */
+.nb-content table { max-width: 100%; }
+
+.nb-content table:not([border]):not([style]) {
+  border-collapse: collapse;
+}
+
+.nb-content table:not([border]):not([style]) :where(th, td) {
+  border: 1px dashed var(--nb-border);
+  padding: 5px 8px;
+  min-width: 24px;
+  vertical-align: top;
+}
+
+.nb-content :where(th) {
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Táhlo šířky sloupce nic nepřidává do obsahu — mění se jen kurzor. */
+.nb-content.nb-col-resize { cursor: col-resize; }
+
+/* ---------- plovoucí lišta ---------- */
+
+.nb-surface { position: relative; }
+
+.nb-context {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--nb-border);
+  border-radius: 6px;
+  background: var(--nb-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .06), 0 8px 20px -10px rgba(0, 0, 0, .3);
+}
+
+.nb-context[hidden] { display: none; }
+
+/* ---------- dialog ---------- */
+
+.nb-dialog {
+  border: 1px solid var(--nb-border);
+  border-radius: 8px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  padding: 0;
+  width: min(440px, calc(100vw - 32px));
+  box-shadow: 0 12px 40px -12px rgba(0, 0, 0, .45);
+}
+
+.nb-dialog::backdrop { background: rgba(0, 0, 0, .35); }
+
+/*
+ * Dialog, ve kterém se pracuje.
+ *
+ * `resize: both` na `<dialog>` funguje nativně — táhlo v rohu si vykreslí
+ * prohlížeč sám. Chce to `overflow: auto`, jinak je vlastnost bez účinku.
+ */
+.nb-dialog-large {
+  width: min(1100px, 92vw);
+  height: min(760px, 88vh);
+  max-width: none;
+  resize: both;
+  overflow: auto;
+  min-width: 380px;
+  min-height: 280px;
+}
+
+.nb-dialog-large form { height: 100%; }
+
+.nb-dialog-large .nb-dialog-body {
+  flex: 1;
+  max-height: none;
+  overflow: hidden;
+}
+
+.nb-field-grow {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  /* Bez `min-height: 0` se flexový prvek nesmrskne pod výšku svého obsahu
+     a dialog se roztáhne mimo obrazovku. */
+  min-height: 0;
+}
+
+.nb-dialog form { display: flex; flex-direction: column; }
+
+.nb-dialog-title {
+  margin: 0;
+  padding: 16px 20px 12px;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--nb-border);
+}
+
+.nb-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.nb-field { display: flex; flex-direction: column; gap: 5px; }
+.nb-field-inline { flex-direction: row; align-items: center; gap: 8px; }
+.nb-field-inline label { order: 2; }
+
+.nb-field label { font-size: 13px; color: var(--nb-muted); }
+
+.nb-input {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 9px;
+  border: 1px solid var(--nb-border);
+  border-radius: 5px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  width: 100%;
+}
+
+.nb-field-inline .nb-input { width: auto; }
+.nb-input:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -1px; }
+
+.nb-hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--nb-muted);
+}
+
+.nb-dialog textarea.nb-input {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  min-height: 220px;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+  /* Jen na výšku — tažením do šířky by šel dialog rozbít. */
+  resize: vertical;
+}
+
+.nb-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--nb-border);
+}
+
+.nb-dialog-btn {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 14px;
+  border: 1px solid var(--nb-border);
+  border-radius: 5px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  cursor: pointer;
+}
+
+.nb-dialog-btn:hover { background: var(--nb-hover); }
+.nb-dialog-btn:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 1px; }
+
+.nb-dialog-btn-primary {
+  background: var(--nb-accent);
+  border-color: var(--nb-accent);
+  color: #fff;
+}
+
+.nb-dialog-btn-primary:hover { filter: brightness(1.1); background: var(--nb-accent); }
+
+/* ---------- mřížka rozměru tabulky ---------- */
+
+.nb-grid {
+  position: absolute;
+  z-index: 120;
+  padding: 10px;
+  border: 1px solid var(--nb-border);
+  border-radius: 8px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  box-shadow: 0 10px 32px -12px rgba(0, 0, 0, .4);
+}
+
+.nb-grid-cells {
+  display: grid;
+  gap: 2px;
+  justify-content: start;
+}
+
+.nb-grid-cell {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--nb-border);
+  border-radius: 2px;
+  background: var(--nb-bg);
+  cursor: pointer;
+}
+
+.nb-grid-cell[hidden] { display: none; }
+
+.nb-grid-cell.is-on {
+  background: var(--nb-accent);
+  border-color: var(--nb-accent);
+}
+
+.nb-grid-label {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--nb-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.nb-grid-more {
+  font: inherit;
+  font-size: 13px;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  border: 1px solid var(--nb-border);
+  border-radius: 5px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  cursor: pointer;
+}
+
+.nb-grid-more:hover { background: var(--nb-hover); }
+
+/* ---------- nabídkový pruh ---------- */
+
+.nb-menubar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--nb-border);
+}
+
+.nb-menubar-item {
+  font: inherit;
+  font-size: 13.5px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--nb-fg);
+  cursor: pointer;
+}
+
+.nb-menubar-item:hover { background: var(--nb-hover); }
+.nb-menubar-item[aria-expanded="true"] { background: var(--nb-active); color: var(--nb-accent); }
+.nb-menubar-item:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+
+.nb-panel {
+  position: absolute;
+  z-index: 120;
+  min-width: 210px;
+  max-height: min(70vh, 460px);
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--nb-border);
+  border-radius: 6px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  box-shadow: 0 10px 32px -12px rgba(0, 0, 0, .4);
+}
+
+.nb-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nb-panel-item:hover { background: var(--nb-hover); }
+.nb-panel-item:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+
+.nb-panel-item[aria-disabled="true"] {
+  color: var(--nb-muted);
+  opacity: .5;
+  cursor: default;
+}
+
+.nb-panel-item[aria-disabled="true"]:hover { background: none; }
+.nb-panel-item[aria-checked="true"] { color: var(--nb-accent); }
+
+.nb-panel-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nb-panel-label { flex: 1; white-space: nowrap; }
+
+.nb-panel-hint {
+  flex: none;
+  font-size: 12px;
+  color: var(--nb-muted);
+}
+
+.nb-panel-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--nb-border);
+}
+
+/* ---------- rozbalovací nabídka ---------- */
+
+.nb-btn-menu {
+  width: auto;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 6px 0 8px;
+  border: 1px solid var(--nb-border);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.nb-btn-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  flex: 1;
+}
+
+.nb-btn-value-empty { color: var(--nb-muted); }
+
+.nb-btn-caret {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--nb-muted);
+  flex: none;
+}
+
+.nb-menu {
+  position: absolute;
+  z-index: 110;
+  max-height: min(60vh, 380px);
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--nb-border);
+  border-radius: 6px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  box-shadow: 0 10px 32px -12px rgba(0, 0, 0, .4);
+}
+
+.nb-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nb-menu-item:hover { background: var(--nb-hover); }
+.nb-menu-item:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+.nb-menu-item[aria-selected="true"] { background: var(--nb-active); }
+
+.nb-menu-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Náhled nesmí rozhodit výšku řádku, i když je písmo velké. */
+  line-height: 1.3;
+}
+
+.nb-menu-tick {
+  flex: none;
+  width: 14px;
+  color: var(--nb-accent);
+  font-size: 13px;
+}
+
+.nb-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--nb-border);
+}
+
+/* ---------- výběr barvy ---------- */
+
+.nb-btn-color {
+  flex-direction: column;
+  gap: 1px;
+  padding-bottom: 3px;
+}
+
+.nb-btn-bar {
+  display: block;
+  width: 16px;
+  height: 3px;
+  border-radius: 1px;
+  background: transparent;
+  /* Rámeček, aby byla bílá a průhledná od sebe k rozeznání. */
+  box-shadow: inset 0 0 0 1px var(--nb-border);
+}
+
+.nb-picker {
+  position: absolute;
+  z-index: 110;
+  width: 232px;
+  padding: 12px;
+  border: 1px solid var(--nb-border);
+  border-radius: 8px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  box-shadow: 0 10px 32px -12px rgba(0, 0, 0, .4);
+}
+
+.nb-picker-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--nb-muted);
+  margin-bottom: 10px;
+}
+
+.nb-picker-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--nb-border);
+  margin-bottom: 10px;
+}
+
+.nb-picker-tab {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--nb-muted);
+  cursor: pointer;
+}
+
+.nb-picker-tab[aria-selected="true"] {
+  color: var(--nb-accent);
+  border-bottom-color: var(--nb-accent);
+  font-weight: 600;
+}
+
+.nb-picker-tab:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+.nb-picker-pane[hidden] { display: none; }
+
+.nb-wheel { display: block; margin: 0 auto; width: 196px; height: 196px; }
+.nb-wheel-cell { cursor: pointer; stroke: none; }
+.nb-wheel-cell:hover { stroke: var(--nb-fg); stroke-width: 1.5; }
+
+.nb-picker-bright {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--nb-muted);
+}
+
+.nb-picker-bright input { flex: 1; }
+
+.nb-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.nb-picker-swatch {
+  height: 30px;
+  border: 1px solid var(--nb-border);
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nb-picker-swatch:hover { transform: scale(1.06); }
+.nb-picker-swatch:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 1px; }
+
+.nb-picker-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--nb-muted);
+}
+
+.nb-picker-input {
+  width: 36px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid var(--nb-border);
+  border-radius: 5px;
+  background: var(--nb-bg);
+  cursor: pointer;
+}
+
+.nb-picker-apply {
+  font: inherit;
+  font-size: 13px;
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid var(--nb-accent);
+  border-radius: 5px;
+  background: var(--nb-accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.nb-picker-recents-label {
+  font-size: 11.5px;
+  color: var(--nb-muted);
+  margin: 12px 0 5px;
+}
+
+.nb-picker-recents { display: flex; flex-wrap: wrap; gap: 5px; }
+.nb-picker-recent { width: 22px; height: 22px; }
+
+.nb-picker-clear {
+  font: inherit;
+  font-size: 13px;
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 7px;
+  border: 1px solid var(--nb-border);
+  border-radius: 5px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  cursor: pointer;
+}
+
+.nb-picker-clear:hover { background: var(--nb-hover); }
+.nb-picker-clear:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .nb-picker-swatch { transition: transform .1s ease; }
+}
+
+/* ---------- stavový řádek ---------- */
+
+.nb-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 6px 4px 10px;
+  border-top: 1px solid var(--nb-border);
+  font-size: 12px;
+  color: var(--nb-muted);
+}
+
+/*
+ * Cesta k prvku pod kurzorem.
+ *
+ * V cizím HTML bývá <span> ve <span> uvnitř <h4> v buňce tabulky — bez cesty
+ * uživatel netuší, čeho se jeho úprava týká. Kliknutím se dá prvek vybrat.
+ */
+.nb-path {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nb-path::-webkit-scrollbar { display: none; }
+
+.nb-path-step {
+  font: inherit;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nb-path-step:hover { background: var(--nb-hover); color: var(--nb-fg); }
+.nb-path-step:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+.nb-path-sep { opacity: .5; }
+
+.nb-status-slots { display: flex; gap: 14px; flex: none; }
+
+/* Úchyt pro změnu velikosti. Vlastní prvek, ne `resize` — výsledek se ukládá. */
+.nb-grip {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  cursor: nwse-resize;
+  touch-action: none;
+  background:
+    linear-gradient(135deg, transparent 45%, var(--nb-border) 45%, var(--nb-border) 55%, transparent 55%),
+    linear-gradient(135deg, transparent 70%, var(--nb-border) 70%, var(--nb-border) 80%, transparent 80%);
+}
+
+/* ---------- nastavení ---------- */
+
+/*
+ * Dvě sloupce: vlevo rozměry a vzhled, vpravo lišta.
+ *
+ * Lišta má devět skupin a přes třicet tlačítek — v jednom sloupci pod sebou by
+ * se nastavení rolovalo do nekonečna a přehazování skupin by znamenalo tažení
+ * přes celou obrazovku.
+ */
+.nb-settings-body {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 28px;
+  overflow: hidden;
+}
+
+.nb-set-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.nb-set-panel:first-child { overflow-y: auto; }
+
+.nb-set-size { display: flex; gap: 10px; }
+.nb-set-size .nb-field { flex: 1; }
+
+/* Roluje jen seznam skupin, nadpis a nápověda zůstávají na místě. */
+.nb-set-grouplist {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.nb-set-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--nb-muted);
+}
+
+.nb-set-check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.nb-set-check input { margin: 0; }
+
+.nb-set-list { display: flex; flex-direction: column; gap: 4px; }
+
+.nb-set-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: var(--nb-bg);
+  font-size: 13.5px;
+}
+
+.nb-set-row.is-dragging { opacity: .4; border-color: var(--nb-accent); }
+
+.nb-set-group {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
+  border-color: var(--nb-border);
+}
+
+.nb-set-grouphead { display: flex; align-items: center; gap: 8px; }
+.nb-set-groupname { flex: 1; font-weight: 600; }
+.nb-set-rowpick { max-width: 160px; }
+
+.nb-set-items { padding-left: 18px; }
+.nb-set-item:hover { background: var(--nb-hover); }
+
+.nb-set-grip {
+  cursor: grab;
+  color: var(--nb-muted);
+  /* Bez tohohle by prohlížeč při tažení začal rolovat stránku. */
+  touch-action: none;
+  user-select: none;
+}
+
+.nb-set-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  color: var(--nb-muted);
+}
+
+.nb-set-label { flex: 1; }
+
+/* Obě tlačítka vlevo; „Použít" a „Zrušit" zůstávají vpravo. */
+.nb-set-reset { margin-right: 0; }
+.nb-set-dump { margin-right: auto; }
+
+/* ---------- vypsaná konfigurace ---------- */
+
+.nb-dump {
+  width: min(760px, 92vw);
+  max-width: none;
+}
+
+.nb-dump-body { padding-top: 12px; }
+
+.nb-dump-code {
+  margin: 0;
+  padding: 12px 14px;
+  max-height: min(60vh, 520px);
+  overflow: auto;
+  border: 1px solid var(--nb-border);
+  border-radius: 6px;
+  background: var(--nb-hover);
+  color: var(--nb-fg);
+  font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.nb-dump-code:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 2px; }
+
+/* ---------- celá obrazovka ---------- */
+
+.nb-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nb-fullscreen .nb-surface { flex: 1; overflow-y: auto; }
+.nb-fullscreen .nb-head { border-radius: 0; }
+.nb-fullscreen .nb-content { min-height: 100%; }
+
+/* Stránka pod editorem se nesmí rolovat, jinak utíká obsah za okrajem. */
+body.nb-fullscreen-host { overflow: hidden; }
+
+/* ---------- vložená média ---------- */
+
+.nb-content :where(iframe, video, audio) { max-width: 100%; }
+
+/* ---------- zdrojový kód se zvýrazněním ---------- */
+
+/*
+ * Průhledná textarea nad obarveným `<pre>`.
+ *
+ * Obojí musí mít **naprosto shodné** písmo, řádkování, odsazení i zalamování,
+ * jinak se text a jeho obarvení o kus rozejdou. Proto ty vlastnosti sedí na
+ * společném selektoru, ne u každého zvlášť — aby se nedaly změnit jen na jedné
+ * straně.
+ */
+/*
+ * Obě vrstvy leží ve stejné buňce gridu.
+ *
+ * Absolutní pozicování s `inset: 0` by mělo dát totéž, ale uvnitř dialogu se
+ * `<pre>` roztáhlo jen na část obalu a část dokumentu tím zmizela. Grid dává
+ * oběma vrstvám rozměr buňky a žádný prostor pro odchylku nezbývá.
+ */
+.nb-code {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.nb-code-area {
+  display: grid;
+  /* `1fr` schválně, ne `auto`: automatický řádek se roztáhne jen na obsah
+     a textarea by ho svou vlastní výškou přerostla. */
+  grid-template: 1fr / 1fr;
+  flex: 1;
+  min-height: 200px;
+  border: 1px solid var(--nb-border);
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--nb-bg);
+}
+
+/*
+ * Zalamování přepíná **obě vrstvy naráz**.
+ *
+ * Kdyby zalamovala jen jedna, rozešly by se řádky a obarvení by přestalo sedět
+ * na textu. Proto jedna třída na společném obalu, ne dvě nastavení.
+ */
+.nb-code-area.is-wrap .nb-code-hl,
+.nb-code-area.is-wrap .nb-code-input {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.nb-code-area.is-wrap .nb-code-input { overflow-x: hidden; }
+
+.nb-code-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--nb-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.nb-code-wrap input { margin: 0; cursor: pointer; }
+
+.nb-code-hl,
+.nb-code-input {
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/*
+ * Obě vrstvy vyplní celou buňku — a nedají si do toho mluvit.
+ *
+ * `<pre>` a `<textarea>` jsou běžné značky, na které má hostitelská stránka
+ * často vlastní pravidla. Stačilo `pre { max-height: 260px }` kvůli výpisu
+ * jinde na stránce a půlka zdrojového kódu v dialogu zmizela — `max-height`
+ * přebije i výšku nastavenou inline. Rozměry se proto nastavují výslovně
+ * včetně stropů.
+ */
+.nb-code-hl,
+.nb-code-input {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
+}
+
+.nb-code-hl {
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--nb-fg);
+}
+
+.nb-code-input {
+  resize: none;
+  overflow: auto;
+  background: transparent;
+  /* Text je průhledný — vidět je obarvená kopie pod ním. Kurzor zůstává. */
+  color: transparent;
+  caret-color: var(--nb-fg);
+}
+
+/*
+ * Výběr musí být průsvitný.
+ *
+ * Text v textarea je průhledný a vidět je obarvená kopie pod ním. Krycí
+ * pozadí výběru by ji zakrylo a z označeného úseku by zbyl prázdný obdélník —
+ * přesně to, co uživatel nemá vidět, protože označení má text zvýraznit,
+ * ne schovat.
+ */
+.nb-code-input::selection {
+  background: var(--nb-selection);
+  color: transparent;
+}
+.nb-code-input:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+
+.nb-hl-tag { color: #1f6feb; }
+.nb-hl-attr { color: #953800; }
+.nb-hl-value { color: #0a7c47; }
+.nb-hl-punct { color: var(--nb-muted); }
+.nb-hl-comment { color: var(--nb-muted); font-style: italic; }
+.nb-hl-entity { color: #8250df; }
+.nb-hl-doctype { color: var(--nb-muted); }
+
+@media (prefers-color-scheme: dark) {
+  .nb-hl-tag { color: #79c0ff; }
+  .nb-hl-attr { color: #ffa657; }
+  .nb-hl-value { color: #7ee787; }
+  .nb-hl-entity { color: #d2a8ff; }
+}
+
+/* ---------- poznámky ---------- */
+
+.nb-note {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 6;
+  padding: 9px 12px;
+  border-radius: 5px;
+  font-size: 13px;
+  border: 1px solid var(--nb-border);
+  background: var(--nb-bg);
+}
+
+.nb-note-error { border-color: #b4472c; color: #8a3a22; }
+.nb-note-warn { border-color: #b08a2e; }
+
+@media (prefers-color-scheme: dark) {
+  .nb-note-error { border-color: #d97a5a; color: #e09070; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nb-btn { transition: background-color .12s ease, color .12s ease; }
+}

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+demo/dist/
+demo/fixtures/
+test-results/
+playwright-report/
+dist-site/
+
+# Původ vzorků: schéma cizí databáze do veřejného repozitáře nepatří.
+packages/core/test/fixtures/provenance.json

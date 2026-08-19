@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Živé demo — Nibble</title>
+<meta name="description" content="Nibble v prohlížeči na reálném dokumentu z ostrého provozu. Ověřte si, že se obsah, kterého se nikdo nedotkl, uloží znak po znaku stejně.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f6f68'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M9 11h14M9 16h14M9 21h7'/%3E%3C/g%3E%3Crect x='19' y='18' width='2.6' height='8' rx='1.3' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="stylesheet" href="../dist/nibble.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap wrap-wide nav">
+    <a class="brand" href="../">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="6" fill="var(--accent)"/>
+        <g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M9 11h14M9 16h14M9 21h7"/>
+        </g>
+        <rect x="19" y="18" width="2.6" height="8" rx="1.3" fill="#fff"/>
+      </svg>
+      Nibble
+    </a>
+    <span class="ver">v0.1.0</span>
+    <span class="spacer"></span>
+    <a class="navlink" href="./" aria-current="page">Demo</a>
+    <a class="navlink" href="../guide/">Příručka</a>
+    <a class="navlink" href="../api/">API</a>
+    <a class="navlink" href="https://github.com/svatekr70/nibble">GitHub</a>
+  </div>
+</header>
+
+<main class="wrap wrap-wide">
+
+  <section class="hero" style="padding-bottom:0">
+    <h1 style="font-size:clamp(28px,4vw,40px)">Skutečný editor na skutečném dokumentu</h1>
+    <p class="lead">Obsah níž je reálný záznam z ostrého provozu — text je nahrazený,
+      značky jsou původní.</p>
+  </section>
+
+  <section>
+    <div class="card editor-stage">
+      <textarea id="ed" hidden></textarea>
+      <p class="editor-note">Zkuste psát (uvozovky se sázejí česky), obarvit slovo,
+        napsat adresu a dát mezeru, klepnout do tabulky a táhnout za okraj sloupce,
+        otevřít zdrojový kód — nebo sem něco vložit z Google Docs a sledovat, kolik
+        bloků se změní. Ozubené kolo vpravo nahoře otevře nastavení.</p>
+    </div>
+  </section>
+
+  <section id="roundtrip">
+    <h2>Uloží se to beze změny?</h2>
+    <p class="sub">Tohle je celý smysl Nibble. Dokud do bloku nikdo nezasáhne, vypíše se
+      v původním znění — včetně entit, uvozovek a mezer v atributech.</p>
+
+    <div class="card">
+      <div class="chips" style="margin-bottom:14px">
+        <span id="verdict" class="verdict-ok">…</span>
+        <button class="btn btn-ghost btn-sm" id="reload">Načíst znovu</button>
+        <select id="pick" class="field-input" style="padding:6px 10px"></select>
+      </div>
+      <p class="sub" id="explain" style="margin:0"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Výstup <code>getHTML()</code></h2>
+    <p class="sub">Přesně to, co by se uložilo do databáze.</p>
+    <pre class="out" id="out"></pre>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap wrap-wide fnav">
+    <span>Nibble · MIT · © Rudolf Svátek</span>
+    <span class="spacer"></span>
+    <a href="../">Úvod</a>
+    <a href="../guide/">Příručka</a>
+    <a href="../api/">API</a>
+    <a href="https://github.com/svatekr70/nibble">GitHub</a>
+  </div>
+</footer>
+
+<script type="module">
+import { Nibble, normalizeNewlines } from '../dist/core/src/index.js';
+import { attachToolbar } from '../dist/ui/src/index.js';
+import {
+  link, image, table, media, code, autolink,
+  wordcount, fullscreen, searchreplace, typography, fonts,
+} from '../dist/plugins/src/index.js';
+
+const FIXTURES = ['001', '004', '012', '020', '033'];
+const pick = document.getElementById('pick');
+for (const id of FIXTURES) pick.append(new Option('vzorek ' + id, id));
+
+let editor = null;
+let original = '';
+
+async function loadSample(id) {
+  const res = await fetch('../fixtures/' + id + '.html');
+  // Normalizace CRLF je jediná změna, kterou Nibble dělá vždy. Obsah se předává
+  // přímo, ne přes textarea.value — ta by `\r` zahodila sama a demo by měřilo
+  // chování prohlížeče místo chování editoru.
+  original = normalizeNewlines(await res.text());
+
+  if (editor) { editor.destroy(); document.querySelector('.nb')?.remove(); }
+
+  const host = document.getElementById('ed');
+  host.hidden = true;
+
+  editor = await Nibble.create({
+    target: host, content: original, schema: 'legacy', height: 360,
+    plugins: [
+      link, image, table, media, code, autolink,
+      wordcount, fullscreen, searchreplace, typography, fonts,
+    ],
+  });
+
+  // Nejdřív lišta, pak přesun: obal `.nb` vzniká teprve v attachToolbar.
+  attachToolbar(editor, { menubar: true, prefsKey: 'demo' });
+
+  const stage = document.querySelector('.editor-stage');
+  stage.insertBefore(document.querySelector('.nb'), stage.firstChild);
+  editor.on('change', report);
+  report();
+}
+
+function report() {
+  const out = editor.getHTML();
+  const same = out === original;
+  const verdict = document.getElementById('verdict');
+
+  verdict.textContent = same
+    ? 'Ano — znak po znaku stejné (' + out.length + ' B)'
+    : 'Ne — ' + editor.getDirtyBlocks().length + ' změněných uzlů';
+  verdict.className = same ? 'verdict-ok' : 'verdict-bad';
+
+  document.getElementById('explain').textContent = same
+    ? 'Dokud se obsahu nikdo nedotkne, vypisují se bloky v původním znění. Zkuste něco napsat.'
+    : 'Přeformátoval se jen blok, který se změnil. Ostatní si drží původní zápis — všimněte si, že se nezměnily entity ani uvozovky jinde.';
+
+  document.getElementById('out').textContent = out;
+}
+
+document.getElementById('reload').onclick = () => loadSample(pick.value);
+pick.onchange = () => loadSample(pick.value);
+loadSample(FIXTURES[0]);
+</script>
+</body>
+</html>

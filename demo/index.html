@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nibble — F6</title>
+<link rel="stylesheet" href="/dist/nibble.css">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font: 15px/1.6 system-ui, sans-serif;
+    max-width: 940px; margin: 0 auto; padding: 32px 20px 80px;
+    background: Canvas; color: CanvasText;
+  }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .sub { color: GrayText; margin: 0 0 28px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .08em;
+       color: GrayText; margin: 32px 0 10px; font-weight: 600; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+  button.act {
+    font: inherit; padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid GrayText; background: Canvas; color: CanvasText;
+  }
+  #verdict { font-weight: 600; padding: 6px 12px; border-radius: 6px; }
+  .ok   { background: #dceae6; color: #12514c; }
+  .diff { background: #f6e3d9; color: #8a3a22; }
+  @media (prefers-color-scheme: dark) {
+    .ok   { background: #16302c; color: #7fcbbf; }
+    .diff { background: #33211b; color: #e09070; }
+  }
+  /* Jen výpis pod editorem. Bez #out prosakovalo `max-height` i do <pre>
+     uvnitř dialogu se zdrojovým kódem a půlka kódu zmizela. */
+  #out {
+    background: color-mix(in srgb, CanvasText 6%, Canvas);
+    padding: 12px; border-radius: 6px; overflow-x: auto;
+    font: 12px/1.6 ui-monospace, monospace; white-space: pre-wrap;
+    word-break: break-all; max-height: 260px;
+  }
+  select { font: inherit; padding: 5px 8px; }
+</style>
+</head>
+<body>
+
+<h1>Nibble — fáze F6</h1>
+<p class="sub">Jádro, schema, round-trip serializace, historie, bloková editace, seznamy,
+odkazy, obrázky, tabulky, videa, vkládání ze schránky a doplňky. Obsah níž je
+reálný dokument z ostrého provozu — text je nahrazený, markup původní. Zkuste psát
+(uvozovky se sázejí česky), vybrat slovo a obarvit ho, napsat adresu a dát
+mezeru, klepnout do tabulky a táhnout za okraj sloupce, otevřít zdrojový kód —
+nebo sem něco vložit z Wordu či Google Docs a sledovat, kolik uzlů se změní.</p>
+
+<h2>Editor</h2>
+<textarea id="ed" hidden></textarea>
+
+<h2>Uloží se to beze změny?</h2>
+<div class="row">
+  <span id="verdict">…</span>
+  <button class="act" id="reload">Načíst znovu</button>
+  <select id="pick"></select>
+</div>
+<p class="sub" id="explain"></p>
+
+<h2>Výstup getHTML()</h2>
+<pre id="out"></pre>
+
+<script type="module">
+import { Nibble, normalizeNewlines } from '/dist/core/src/index.js';
+import { attachToolbar } from '/dist/ui/src/index.js';
+import {
+  link, image, table, media, code, autolink,
+  wordcount, fullscreen, searchreplace, typography, fonts,
+} from '/dist/plugins/src/index.js';
+
+const FIXTURES = ['001', '004', '012', '020', '033'];
+const pick = document.getElementById('pick');
+for (const id of FIXTURES) pick.append(new Option('vzorek ' + id, id));
+
+let editor = null;
+let original = '';
+
+async function loadSample(id) {
+  const res = await fetch('/fixtures/' + id + '.html');
+  // Normalizace CRLF je jediná změna, kterou Nibble dělá vždy. Obsah se předává
+  // přímo, ne přes textarea.value — ta by `\r` zahodila sama a demo by měřilo
+  // chování prohlížeče místo chování editoru.
+  original = normalizeNewlines(await res.text());
+
+  if (editor) { editor.destroy(); document.querySelector('.nb')?.remove(); }
+
+  const host = document.getElementById('ed');
+  host.hidden = true;
+
+  editor = await Nibble.create({
+    target: host, content: original, schema: 'legacy', height: 320,
+    plugins: [
+      link, image, table, media, code, autolink,
+      wordcount, fullscreen, searchreplace, typography, fonts,
+    ],
+  });
+  attachToolbar(editor, { menubar: true });
+  editor.on('change', report);
+  report();
+}
+
+function report() {
+  const out = editor.getHTML();
+  const same = out === original;
+  const verdict = document.getElementById('verdict');
+
+  verdict.textContent = same
+    ? 'Ano — znak po znaku stejné (' + out.length + ' B)'
+    : 'Ne — ' + editor.getDirtyBlocks().length + ' změněných uzlů';
+  verdict.className = same ? 'ok' : 'diff';
+
+  document.getElementById('explain').textContent = same
+    ? 'Dokud se obsahu nikdo nedotkne, vypisují se bloky v původním znění. Zkuste něco napsat.'
+    : 'Přeformátoval se jen blok, který se změnil. Ostatní si drží původní zápis — všimněte si, že se nezměnily entity ani uvozovky jinde.';
+
+  document.getElementById('out').textContent = out;
+}
+
+document.getElementById('reload').onclick = () => loadSample(pick.value);
+pick.onchange = () => loadSample(pick.value);
+loadSample(FIXTURES[0]);
+</script>
+</body>
+</html>

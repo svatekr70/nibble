@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nibble — lehký WYSIWYG editor, který nesahá na cizí HTML</title>
+<meta name="description" content="Nibble je moderní editor HTML ve vanilla TypeScriptu. Bez runtime závislostí, ~44 kB gzip. Načtený obsah se uloží znak po znaku stejně, dokud se ho někdo nedotkne.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f6f68'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M9 11h14M9 16h14M9 21h7'/%3E%3C/g%3E%3Crect x='19' y='18' width='2.6' height='8' rx='1.3' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./assets/site.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="./">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="6" fill="var(--accent)"/>
+        <g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M9 11h14M9 16h14M9 21h7"/>
+        </g>
+        <rect x="19" y="18" width="2.6" height="8" rx="1.3" fill="#fff"/>
+      </svg>
+      Nibble
+    </a>
+    <span class="ver">v0.1.0</span>
+    <span class="spacer"></span>
+    <a class="navlink" href="./demo/">Demo</a>
+    <a class="navlink" href="./guide/">Příručka</a>
+    <a class="navlink" href="./api/">API</a>
+    <a class="navlink" href="https://github.com/svatekr70/nibble">GitHub</a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <section class="hero">
+      <h1>Editor, který nesahá na to,<br><span class="g">co sám nenapsal.</span></h1>
+      <p class="lead">Nibble je lehký WYSIWYG editor HTML ve vanilla TypeScriptu — náhrada
+        za TinyMCE bez licenčních stropů. Načtený dokument se uloží <strong>znak po
+        znaku stejně</strong>, dokud se ho někdo nedotkne. Ne „skoro stejně“, ne
+        „sémanticky ekvivalentně“. Stejně.</p>
+      <div class="tags">
+        <span class="tag">vanilla TS · ESM</span>
+        <span class="tag">0 závislostí</span>
+        <span class="tag">~44 kB gzip</span>
+        <span class="tag">744 testů</span>
+        <span class="tag">MIT</span>
+      </div>
+      <div class="cta">
+        <a class="btn btn-primary" href="./demo/">▶ Živé demo</a>
+        <a class="btn btn-ghost" href="./guide/">Příručka</a>
+        <a class="btn btn-ghost" href="./api/">API dokumentace</a>
+        <a class="btn btn-ghost" href="https://github.com/svatekr70/nibble">GitHub</a>
+      </div>
+
+      <div class="codewrap">
+        <pre class="code"><span class="k">import</span> { Nibble } <span class="k">from</span> <span class="s">'@nibble/core'</span>
+<span class="k">import</span> { attachToolbar } <span class="k">from</span> <span class="s">'@nibble/ui'</span>
+<span class="k">import</span> { link, image, table } <span class="k">from</span> <span class="s">'@nibble/plugins'</span>
+<span class="k">import</span> <span class="s">'@nibble/ui/nibble.css'</span>
+
+<span class="k">const</span> editor = <span class="k">await</span> Nibble.<span class="t">create</span>({
+  target: <span class="s">'#obsah'</span>,        <span class="c">// selektor, prvek nebo textarea</span>
+  schema: <span class="s">'legacy'</span>,        <span class="c">// starý obsah se nepřepisuje</span>
+  plugins: [link, image, table],
+})
+
+<span class="t">attachToolbar</span>(editor, { menubar: <span class="k">true</span> })
+
+editor.<span class="t">on</span>(<span class="s">'change'</span>, ({ html }) =&gt; <span class="t">uloz</span>(html))</pre>
+        <p class="caption">Pluginy se předávají jako hodnoty, ne jako řetězec se jmény —
+          bundler pak vidí, co se opravdu používá, a zbytek vyhodí. Bez balíčkovače jde
+          celá knihovna načíst <a href="./api/#cdn">jedním importem z adresy</a>.</p>
+      </div>
+    </section>
+
+    <section id="zaruka">
+      <h2>Záruka, na které to celé stojí</h2>
+      <p class="sub">Načtu, nesáhnu, uložím → musí být znak po znaku totéž.</p>
+
+      <div class="two">
+        <div class="card">
+          <h3>Proč to není samozřejmost</h3>
+          <p>Běžný editor obsah při načtení naparsuje a při uložení zase vypíše. Cestou
+            přerovná atributy, doplní uvozovky, nahradí entity, zahodí komentář. U nového
+            textu si toho nikdo nevšimne. U dvaceti tisíc dokumentů, do kterých deset let
+            zasahovaly tři různé nástroje, je z toho tichá ztráta dat.</p>
+        </div>
+        <div class="card">
+          <h3>Jak to Nibble dělá</h3>
+          <p>Parser si u každé oblasti nejvyšší úrovně pamatuje její původní zdroj.
+            Serializace ho vypíše doslova — dokud se DOM té oblasti liší od snímku,
+            který si Nibble pořídil při načtení. Jakmile do bloku uživatel zasáhne,
+            přepne se na normální serializaci, ale jen ten blok.</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Jediná výjimka: konce řádků</strong>
+        <p>CRLF se převádí na LF. Prohlížeč to udělá sám v <code>textarea.value</code>
+          i při parsování HTML, takže „zachovat CRLF“ by byl slib, který se nedá splnit.
+          Je to vědomé a je to jediné, co Nibble změní vždy.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Co umí</h2>
+      <p class="sub">Parita s free TinyMCE plus kus toho, co je jinde za peníze.</p>
+      <div class="grid">
+
+        <div class="card">
+          <div class="ic">📝</div>
+          <h3>Editace bez execCommand</h3>
+          <p>Všechno jde přes <code>beforeinput</code> a vlastní příkazy. Bloky, seznamy
+            se zanořováním, zarovnání, citace, výška řádku, historie s rozumnou
+            granularitou — a jediná cesta, jak změnit obsah.</p>
+        </div>
+
+        <div class="card">
+          <div class="ic">📋</div>
+          <h3>Vkládání, které nepřinese svinstvo</h3>
+          <p>Word, Google Docs, LibreOffice i prostý text. Rozpoznává zdroj,
+            čistí podle něj, umí i vložení bez formátování a Markdown.</p>
+        </div>
+
+        <div class="card">
+          <div class="ic">🔲</div>
+          <h3>Tabulky se šířkami sloupců</h3>
+          <p>Mřížkový model se sloučenými buňkami, navigace Tabem, vlastnosti tabulky
+            i řádku a tažení šířky sloupce do <code>&lt;col width&gt;</code> — protože
+            přesně to je v reálných datech nejčastější.</p>
+        </div>
+
+        <div class="card">
+          <div class="ic">&lt;/&gt;</div>
+          <h3>Zdrojový kód, ve kterém se dá pracovat</h3>
+          <p>Velké okno, zvýrazněná syntaxe, zalamování — a hlavně: kurzor skočí tam,
+            kde jste byli v textu. Po zavření se vrátí zpátky.</p>
+        </div>
+
+        <div class="card">
+          <div class="ic">⚙️</div>
+          <h3>Nastavení pro uživatele</h3>
+          <p>Rozvržení lišty navrhne programátor, ale poslední slovo má ten, kdo u toho
+            sedí: zapnutí tlačítek, pořadí tažením myší, dva řádky lišty, rozměry,
+            informační řádek. A tlačítko, které z toho vypíše hotovou konfiguraci.</p>
+        </div>
+
+        <div class="card">
+          <div class="ic">🛡</div>
+          <h3>Bezpečnost odděleně od tvaru</h3>
+          <p>Sanitizace běží vždy — na skripty, <code>on*</code> atributy i
+            <code>javascript:</code> odkazy. Srovnávání tvaru běží líně, jen na tom,
+            do čeho uživatel opravdu zasáhl.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="data">
+      <h2>Postaveno na reálných datech, ne na dojmech</h2>
+      <p class="sub">Každé rozhodnutí se měřilo proti 142 skutečným dokumentům z ostrého
+        provozu. Několikrát to plán obrátilo naruby.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Word se nevkládá</h3>
+          <p>V datech nebyl <strong>ani jeden</strong> pozůstatek po Wordu. Zato Google
+            Docs a prostý text všude. Čištění se podle toho přerovnalo.</p>
+        </div>
+        <div class="card">
+          <h3>Videa chyběla</h3>
+          <p><code>media</code> byl třetí nejpoužívanější plugin v existující konfiguraci
+            — a v původním plánu nebyl vůbec.</p>
+        </div>
+        <div class="card">
+          <h3>Sloupce, ne slučování</h3>
+          <p>V 55 tabulkách je <code>colspan</code> dvakrát, ale <code>&lt;col width&gt;</code>
+            devětačtyřicetkrát. Priority se otočily.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Kam dál</h2>
+      <div class="cta">
+        <a class="btn btn-primary" href="./demo/">Vyzkoušet v prohlížeči</a>
+        <a class="btn btn-ghost" href="./guide/">Příručka: od instalace po vlastní plugin</a>
+        <a class="btn btn-ghost" href="./api/">API dokumentace</a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap fnav">
+    <span>Nibble · MIT · © Rudolf Svátek</span>
+    <span class="spacer"></span>
+    <a href="./demo/">Demo</a>
+    <a href="./guide/">Příručka</a>
+    <a href="./api/">API</a>
+    <a href="https://github.com/svatekr70/nibble">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

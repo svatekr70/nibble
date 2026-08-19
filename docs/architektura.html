@@ -1,0 +1,1357 @@
+<title>Nibble Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+  :root {
+    --paper:      #F5F6F3;
+    --surface:    #FFFFFF;
+    --surface-2:  #EBEEE9;
+    --ink:        #14181A;
+    --ink-2:      #444E4C;
+    --ink-3:      #6E7874;
+    --rule:       #D7DCD5;
+    --rule-soft:  #E5E9E2;
+    --accent:     #1F5F5B;
+    --accent-2:   #2E8078;
+    --accent-soft:#DDEAE6;
+    --keep:       #1F5F5B;
+    --keep-bg:    #DDEAE6;
+    --trim:       #7E611B;
+    --trim-bg:    #F0E8D0;
+    --drop:       #93402A;
+    --drop-bg:    #F3E0D9;
+    --code-bg:    #EEF1EC;
+    --shadow:     0 1px 2px rgba(20,24,26,.05), 0 8px 24px -12px rgba(20,24,26,.12);
+
+    --f-display: "Newsreader", Georgia, "Times New Roman", serif;
+    --f-body:    "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --f-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --wide: 1080px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #121615;
+      --surface:    #191F1E;
+      --surface-2:  #222A28;
+      --ink:        #E7EAE6;
+      --ink-2:      #AEB7B3;
+      --ink-3:      #808A86;
+      --rule:       #2C3432;
+      --rule-soft:  #232B29;
+      --accent:     #64B9AC;
+      --accent-2:   #7FCBBF;
+      --accent-soft:#1C2C2A;
+      --keep:       #64B9AC;
+      --keep-bg:    #1B2C2A;
+      --trim:       #D4AB55;
+      --trim-bg:    #2E2718;
+      --drop:       #DE8A6C;
+      --drop-bg:    #2F211C;
+      --code-bg:    #1D2423;
+      --shadow:     0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #121615;
+    --surface:    #191F1E;
+    --surface-2:  #222A28;
+    --ink:        #E7EAE6;
+    --ink-2:      #AEB7B3;
+    --ink-3:      #808A86;
+    --rule:       #2C3432;
+    --rule-soft:  #232B29;
+    --accent:     #64B9AC;
+    --accent-2:   #7FCBBF;
+    --accent-soft:#1C2C2A;
+    --keep:       #64B9AC;
+    --keep-bg:    #1B2C2A;
+    --trim:       #D4AB55;
+    --trim-bg:    #2E2718;
+    --drop:       #DE8A6C;
+    --drop-bg:    #2F211C;
+    --code-bg:    #1D2423;
+    --shadow:     0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  .wrap {
+    max-width: var(--wide);
+    margin-inline: auto;
+    padding: 0 24px 120px;
+  }
+
+  .col { max-width: var(--measure); }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    padding: 76px 0 44px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .masthead h1 {
+    font-family: var(--f-display);
+    font-weight: 500;
+    font-size: clamp(52px, 9vw, 96px);
+    line-height: .95;
+    letter-spacing: -.025em;
+    margin: 18px 0 0;
+    text-wrap: balance;
+  }
+  .masthead h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .standfirst {
+    font-family: var(--f-display);
+    font-size: clamp(19px, 2.4vw, 23px);
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-width: 56ch;
+    margin: 24px 0 0;
+  }
+
+  .figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 0;
+    margin-top: 40px;
+    border-top: 1px solid var(--rule-soft);
+    padding-top: 22px;
+  }
+  .fig {
+    flex: 1 1 150px;
+    padding-right: 20px;
+  }
+  .fig b {
+    display: block;
+    font-family: var(--f-display);
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+  }
+  .fig span {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-3);
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+
+  /* ---------- sections ---------- */
+
+  section { margin-bottom: 72px; scroll-margin-top: 24px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 10px;
+    margin-bottom: 28px;
+  }
+  .sec-head .num {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .05em;
+  }
+  .sec-head h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: clamp(26px, 3.4vw, 34px);
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    margin: 0;
+  }
+
+  h3 {
+    font-family: var(--f-body);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.005em;
+    margin: 40px 0 12px;
+  }
+  h4 {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 32px 0 10px;
+  }
+
+  p { margin: 0 0 16px; max-width: var(--measure); }
+  .lede { font-size: 17.5px; color: var(--ink-2); }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+  code {
+    font-family: var(--f-mono);
+    font-size: .875em;
+    background: var(--code-bg);
+    padding: .12em .38em;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  ul, ol { max-width: var(--measure); padding-left: 20px; margin: 0 0 16px; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--ink-3); }
+
+  strong { font-weight: 600; }
+
+  /* ---------- code blocks ---------- */
+
+  .code {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 0 0 24px;
+    box-shadow: var(--shadow);
+  }
+  .code > .code-label {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--rule-soft);
+    position: sticky;
+    left: 0;
+  }
+  .code pre {
+    margin: 0;
+    padding: 16px;
+    font-family: var(--f-mono);
+    font-size: 12.8px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    white-space: pre;
+  }
+  .code pre b { color: var(--ink); font-weight: 500; }
+  .code pre i { color: var(--ink-3); font-style: normal; }
+  .code pre u { color: var(--accent); text-decoration: none; }
+
+  /* ---------- verdict table ---------- */
+
+  .scroller { overflow-x: auto; margin-bottom: 24px; }
+
+  table.verdict {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 660px;
+    font-size: 14.5px;
+  }
+  table.verdict th {
+    text-align: left;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+    padding: 0 14px 8px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.verdict td {
+    padding: 12px 14px 12px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+    color: var(--ink-2);
+  }
+  table.verdict td:first-child {
+    color: var(--ink);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  table.verdict td.note { line-height: 1.5; }
+
+  .chip {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.keep { color: var(--keep); background: var(--keep-bg); }
+  .chip.trim { color: var(--trim); background: var(--trim-bg); }
+  .chip.drop { color: var(--drop); background: var(--drop-bg); }
+
+  /* ---------- layer stack ---------- */
+
+  .stack { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .layer {
+    display: grid;
+    grid-template-columns: 128px 1fr;
+    gap: 18px;
+    align-items: start;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 13px 16px;
+  }
+  .layer.opt { border-left-color: var(--ink-3); }
+  .layer .lname {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -.01em;
+  }
+  .layer .lname small {
+    display: block;
+    font-weight: 400;
+    letter-spacing: .1em;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-top: 3px;
+  }
+  .layer .ldesc { font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  @media (max-width: 600px) {
+    .layer { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---------- pipeline svg ---------- */
+
+  .pipe-wrap {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 26px 20px 20px;
+    margin-bottom: 14px;
+  }
+  .pipe-wrap svg { display: block; min-width: 800px; width: 100%; height: auto; }
+  .cap {
+    font-size: 13px;
+    color: var(--ink-3);
+    max-width: var(--measure);
+    line-height: 1.5;
+    margin: 0 0 24px;
+  }
+
+  /* ---------- phases ---------- */
+
+  .phase {
+    display: grid;
+    grid-template-columns: 62px 1fr;
+    gap: 20px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    align-items: start;
+  }
+  .phase:first-of-type { border-top: 1px solid var(--rule); }
+  .phase .pnum {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    padding-top: 3px;
+    letter-spacing: .03em;
+  }
+  .phase h3 { margin: 0 0 5px; font-size: 16px; }
+  .phase p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+  .phase .ships {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-top: 7px;
+    display: block;
+  }
+  @media (max-width: 600px) {
+    .phase { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  /* ---------- risk cards ---------- */
+
+  .risks { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 12px; }
+  .risk {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .risk h3 { margin: 0 0 7px; font-size: 15px; }
+  .risk p { margin: 0; font-size: 13.8px; color: var(--ink-2); line-height: 1.55; }
+  .risk .sev {
+    font-family: var(--f-mono);
+    font-size: 9.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--drop);
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .risk .sev.mid { color: var(--trim); }
+
+  /* ---------- callout ---------- */
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 16px 20px;
+    border-radius: 0 5px 5px 0;
+    margin: 0 0 24px;
+    max-width: var(--measure);
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout p { font-size: 15px; }
+
+  hr.end {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 64px 0 24px;
+  }
+  .colophon { font-size: 13px; color: var(--ink-3); font-family: var(--f-mono); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color .15s ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Návrh architektury · srpen 2026</div>
+    <h1>Nibble<br><em>lehká náhrada</em> TinyMCE</h1>
+    <p class="standfirst">TinyMCE má za dvacet let nasbíranou vrstvu, kterou dnes nikdo nepotřebuje — vlastní iframe, vlastní DOM knihovnu, vlastní theme engine, API klíč. Nibble bere z něj jen to, co se osvědčilo: registr UI, formatter a deklarativní dialogy. Zbytek staví na prohlížeči.</p>
+
+    <div class="figures">
+      <div class="fig"><b>31,8 kB</b><span>gzip, jádro + lišta včetně písem a barev (TinyMCE ≈ 430 kB)</span></div>
+      <div class="fig"><b>0</b><span>runtime závislostí</span></div>
+      <div class="fig"><b>0</b><span>API klíčů, cloudu a hlášek o doméně</span></div>
+      <div class="fig"><b>MIT</b><span>všechno, včetně toho, co je u TinyMCE premium</span></div>
+    </div>
+  </header>
+
+  <!-- ============ 1 ============ -->
+  <section id="audit">
+    <div class="sec-head"><span class="num">01</span><h2>Co si z TinyMCE vzít a co ne</h2></div>
+
+    <p class="lede">TinyMCE 8 má zhruba 35 open-source pluginů a přes 30 premium. Následující rozvaha jde po jádru, ne po pluginech — plugin se dá dopsat, špatná architektura jádra ne.</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead>
+          <tr><th>Součást TinyMCE</th><th>Verdikt</th><th>Proč</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Deklarativní dialogy</td>
+            <td><span class="chip keep">Převzít</span></td>
+            <td class="note">Nejlepší část celého API. Popíšeš pole objektem, dialog se vykreslí, ozvučí a zvaliduje sám. V Nibble navíc vrací <code>Promise</code> místo <code>onSubmit</code>.</td>
+          </tr>
+          <tr>
+            <td><code>ui.registry</code></td>
+            <td><span class="chip keep">Převzít</span></td>
+            <td class="note">Plugin registruje tlačítko jménem, layout toolbaru je konfigurace uživatele. Správné oddělení — jen zjednodušit sadu typů.</td>
+          </tr>
+          <tr>
+            <td>Formatter</td>
+            <td><span class="chip keep">Převzít</span></td>
+            <td class="note">Formát jako deklarativní popis (<code>inline: 'strong'</code>, <code>block: 'h2'</code>) s apply / remove / toggle / match je dobrý model. Umožní <code>content_css</code> třídy jako formáty.</td>
+          </tr>
+          <tr>
+            <td>Nonediting regions</td>
+            <td><span class="chip keep">Převzít</span></td>
+            <td class="note">Pro CMS šablony nezbytné. Nibble na to má jeden atribut <code>data-nb-atomic</code> a fake caret kolem.</td>
+          </tr>
+          <tr>
+            <td><code>valid_elements</code> / filtrace</td>
+            <td><span class="chip trim">Přepsat</span></td>
+            <td class="note">Myšlenka ano, DSL ne — <code>a[href|target&lt;_blank]</code> je nečitelné. A v praxi to stejně končí na <code>*[*]</code>, jako v cílovém projektu. Nahradit typovaným schématem se dvěma úrovněmi (viz 02).</td>
+          </tr>
+          <tr>
+            <td>Plugin lifecycle</td>
+            <td><span class="chip trim">Přepsat</span></td>
+            <td class="note"><code>PluginManager.add(jméno, fn)</code> je globální registr ze světa &lt;script&gt; tagů. Nibble importuje plugin jako hodnotu — tree-shaking a typy zdarma.</td>
+          </tr>
+          <tr>
+            <td>Editor v <code>&lt;iframe&gt;</code></td>
+            <td><span class="chip trim">Volitelné</span></td>
+            <td class="note">Řeší izolaci stylů, ale platí se za to selection přes hranici dokumentu, dvojím eventovým systémem a rozbitým resize. Default = <code>div[contenteditable]</code> ve světlém DOM, iframe jen na vyžádání.</td>
+          </tr>
+          <tr>
+            <td><code>document.execCommand</code></td>
+            <td><span class="chip drop">Vyhodit</span></td>
+            <td class="note">Deprecated a v každém prohlížeči produkuje jiný markup. Nibble místo toho odchytává <code>beforeinput</code> a mutuje DOM sám.</td>
+          </tr>
+          <tr>
+            <td>DOMUtils, <code>tinymce.each/map/grep</code></td>
+            <td><span class="chip drop">Vyhodit</span></td>
+            <td class="note">jQuery-éra. Dnes je to <code>querySelectorAll</code> a <code>Array.prototype</code>. Desítky kB kódu bez užitku.</td>
+          </tr>
+          <tr>
+            <td>Skin / theme engine (Oxide)</td>
+            <td><span class="chip drop">Vyhodit</span></td>
+            <td class="note">Vlastní build pipeline na vzhled. Nahradit ~20 CSS custom properties, které se dají přebít v projektu jedním blokem.</td>
+          </tr>
+          <tr>
+            <td>Cloud, API klíč, branding</td>
+            <td><span class="chip drop">Vyhodit</span></td>
+            <td class="note">Hlavní důvod, proč tenhle projekt vzniká.</td>
+          </tr>
+          <tr>
+            <td>Menubar (File / Edit / View…)</td>
+            <td><span class="chip drop">Vyhodit z jádra</span></td>
+            <td class="note">Desktopová metafora, kterou v CMS nikdo nepoužívá. Zůstane jako volitelný plugin pro dlouhé dokumenty.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Premium funkce, které v Nibble budou zdarma</h3>
+    <p>Velká část placeného katalogu je implementačně levná — jsou to prostě funkce, které TinyMCE potřebuje mít za paywallem, ne funkce, které jsou těžké:</p>
+    <ul>
+      <li><strong>Case change, format painter, checklist, footnotes, table of contents, page embed</strong> — každá je řádově sto až tři sta řádků nad existujícím formatterem.</li>
+      <li><strong>Advanced typography</strong> — nahrazení <code>"</code> za <code>„ "</code>, <code>--</code> za pomlčku, tři tečky za výpustku. Pro češtinu to chce vlastní pravidla tak jako tak.</li>
+      <li><strong>Markdown paste</strong> — parser na podmnožinu Markdownu ve vkládací pipeline.</li>
+      <li><strong>Spell checker</strong> — prohlížeč to umí nativně. Stačí nechat <code>spellcheck="true"</code> a nebránit mu.</li>
+      <li><strong>Enhanced code editor</strong> — bez zvýrazňování syntaxe v jádře; kdo chce, připojí CodeMirror přes adaptér.</li>
+    </ul>
+
+    <div class="callout">
+      <p><strong>Co naopak drahé je</strong> a co proto do jádra nepatří: import z Wordu (parser OOXML), export do PDF (render na serveru), spolupráce v reálném čase (CRDT) a AI asistence (backend). Nibble pro ně definuje rozhraní adaptéru a nic víc — kdo je potřebuje, doplní si implementaci.</p>
+    </div>
+  </section>
+
+  <!-- ============ 2 ============ -->
+  <section id="zadani">
+    <div class="sec-head"><span class="num">02</span><h2>Cílový projekt jako zadání</h2></div>
+
+    <p class="lede">Návrh se opírá o reálný projekt, ne o představu. Prohledal jsem jeho zdrojáky i databázi a to, co jsem našel, změnilo dvě věci v původním plánu.</p>
+
+    <div class="figures" style="border-top:none;padding-top:0;margin-top:0">
+      <div class="fig"><b>50</b><span>volání <code>tinymce.init()</code> napříč aplikací</span></div>
+      <div class="fig"><b>5</b><span>pluginů pokryje 46 z nich: <code>lists link image media table</code></span></div>
+      <div class="fig"><b>16×</b><span>naprosto identický řetězec toolbaru</span></div>
+      <div class="fig"><b>*[*]</b><span>hodnota <code>valid_elements</code> — filtrování je vypnuté</span></div>
+    </div>
+
+    <h3>Zjištění 1: konfigurace je jednotná, takže most z TinyMCE nemá cenu</h3>
+    <p><em>Compat shim</em> je vrstva, která umí přijmout starý zápis <code>tinymce.init({ selector: …, plugins: 'lists link' })</code> a přeložit ho na Nibble, aby se existující kód nemusel přepisovat. Dává smysl tam, kde je konfigurací hodně a každá jiná.</p>
+    <p>V cílovém projektu je to naopak: padesát volání, ale prakticky jedna konfigurace. Šestnáct z nich má znak po znaku stejný toolbar, dalších deset se liší o jedno tlačítko. Most by tu byl trvalá údržba navíc kvůli kódu, který se dá nahradit jednou sdílenou funkcí:</p>
+
+    <div class="code">
+      <div class="code-label">www/js/nibble-preset.js</div>
+<pre><b>import</b> { Nibble } <b>from</b> <u>'nibble'</u>;
+<b>import</b> { link, image, media, list, table, hr, color, code } <b>from</b> <u>'nibble/plugins'</u>;
+
+<i>// Jedna funkce místo padesáti konfigurací.</i>
+<b>export function</b> mount(target, opts = {}) {
+  <b>return</b> Nibble.create({
+    target,
+    lang:    <u>'cs'</u>,
+    plugins: [link, image, media, list, table, hr, color, code],
+    toolbar: EF_TOOLBAR,
+    blocks:  { p: <u>'Odstavec'</u>, h2: <u>'Nadpis 2'</u>, h3: <u>'Nadpis 3'</u>, h4: <u>'Nadpis 4'</u>,
+               blockquote: <u>'Citace'</u>, pre: <u>'Předformátovaný'</u> },
+    schema:  <u>'legacy'</u>,          <i>// viz níže</i>
+    absoluteUrls: <b>true</b>,        <i>// nahrazuje tinymce-defaults.js</i>
+    linkTarget: <u>'_blank'</u>,
+    ...opts,                  <i>// height, readonly, užší toolbar…</i>
+  });
+}</pre>
+    </div>
+
+    <p><strong>Vedlejší efekt:</strong> zmizí i <code>tinymce-defaults.js</code>. Ten dnes obaluje <code>tinymce.init</code>, aby vynutil <code>relative_urls: false</code> — protože TinyMCE jinak z absolutní adresy udělá <code>../akademie/…</code> a odkaz v odeslaném e-mailu nikam nevede. Nibble URL nepřepisuje vůbec; ukládá se to, co uživatel zadal.</p>
+
+    <h3>Zjištění 2: uložený obsah je starší než jakékoli schema</h3>
+    <p>Zadání „ať Nibble zobrazí už uložené texty" vypadá jako požadavek na zobrazení, ale ve skutečnosti je to nejtvrdší požadavek na jádro. Vzorek z produkční databáze obsahuje tohle:</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Co je v datech</th><th>Odkud</th><th>Co s tím</th></tr></thead>
+        <tbody>
+          <tr><td><code>&lt;span style="color…"&gt;</code></td><td class="note">tlačítka forecolor a backcolor — jsou v každém toolbaru, takže tenhle zápis stále přibývá</td><td class="note">Povolit natrvalo, ne jen tolerovat.</td></tr>
+          <tr><td><code>&lt;b&gt;</code>, <code>&lt;u&gt;</code>, <code>&lt;s&gt;</code></td><td class="note">starší obsah</td><td class="note">Číst i psát. Nepřevádět na <code>&lt;strong&gt;</code> — to je tichá změna dat. <code>&lt;font&gt;</code> jsem čekal taky, ale v současných datech není ani jednou; pocházel ze staršího dumpu.</td></tr>
+          <tr><td><code>&lt;colgroup&gt;</code>, <code>&lt;col width&gt;</code></td><td class="note">tabulky s nastavenou šířkou sloupců</td><td class="note">Zachovat při editaci buňky.</td></tr>
+          <tr><td><code>font-family</code>, <code>line-height</code>, <code>border</code>, <code>margin</code> inline</td><td class="note">většinou vložený obsah z Wordu a e-mailů</td><td class="note">Nechat být, pokud se toho blok nedotkne.</td></tr>
+          <tr><td>obrázky jako <code>data:</code> URL</td><td class="note"><code>automatic_uploads: false</code> plus <code>FileReader</code> v <code>file_picker_callback</code></td><td class="note">Musí fungovat dál. Upload adaptér až potom.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <p><code>valid_elements: '*[*]'</code> v konfiguraci znamená „nefiltruj vůbec nic". Tak se to nastavuje, když editor začne obsah požírat a není čas hledat proč. Je to zároveň dnešní stav: <strong>obsah není nijak sanitizovaný</strong> — vše, co kdy kdo vložil, se ukládá tak, jak přišlo.</p>
+    </div>
+
+    <h3>Z toho plyne hlavní pravidlo jádra</h3>
+    <p>Nibble musí platit, že <strong>čeho se uživatel nedotkl, to se nezmění</strong>. Ne „nezmění se to skoro", ale znak po znaku stejný výstup. Bez toho by první uložení kterékoli z těch stránek tiše přepsalo obsah, který tam někdo dělal roky — a undo na to není.</p>
+
+    <p>Technicky: parser si u každého bloku nejvyšší úrovně ponechá původní řetězec. Serializer generuje nový markup jen pro bloky, které nějaký příkaz opravdu změnil; zbytek vypíše doslova. Sanitizace se dělí na dvě úrovně — <strong>bezpečnostní</strong> (skripty, <code>on*</code> atributy, <code>javascript:</code>) platí vždy a na všechno, <strong>tvarová</strong> (co je hezký markup) jen na to, co uživatel právě upravil.</p>
+
+    <p>Proto má schema režim <code>'legacy'</code>: je široké jako <code>*[*]</code> pro čtení, ale při vlastní editaci produkuje čistý výstup. Nový obsah je tedy postupně lepší, starý zůstane netknutý.</p>
+
+    <h3>Co se ukázalo, až když to běželo</h3>
+    <p>Fáze F0 je hotová a záruka je ověřená na 142 dokumentech z produkce. Tři věci vyšly jinak, než jak jsou popsané výš:</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Zjištění</th><th>Dopad</th><th>Jak je to vyřešené</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>CRLF nejde udržet</td>
+            <td class="note">~1 100 dokumentů — skoro celá tabulka <code>events</code> a většina <code>akademie_lessons</code></td>
+            <td class="note">Parser HTML mění CRLF na LF už při čtení vstupu podle specifikace a <code>textarea.value</code> ho zahodí taky. Nibble to proto dělá vědomě a vždy, aby se choval stejně bez ohledu na to, kudy obsah přišel. Jeden bajt na řádek bez vlivu na zobrazení — ale je to změna dat a patří ji vědět dopředu.</td>
+          </tr>
+          <tr>
+            <td><code>contenteditable</code> nepatří do sanitizace</td>
+            <td class="note">8,7 % obsahu</td>
+            <td class="note">Původně jsem ho zařadil mezi bezpečnostní úklid. Bylo to špatně a porušovalo to vlastní pravidlo z odstavce výš: hodnota je vždy <code>"false"</code> (zbytky po Quillu, <code>&lt;span class="ql-ui"&gt;</code>), takže mimo editor nic nedělá. Odstranit ho znamenalo, že se 13 ze 142 dokumentů při načtení změní. Přesunuto do schématu, kam patří.</td>
+          </tr>
+          <tr>
+            <td>Quill není v datech náhodou</td>
+            <td class="note">20 % obsahu má <code>aria-level</code> nebo <code>data-list</code></td>
+            <td class="note">Část editorů v cílovém projektu je Quill, ne TinyMCE — <code>quillToolbarOptions</code> v <code>recru-*.js</code>. Migrace se tedy netýká jen padesáti volání <code>tinymce.init()</code>. Schema ten obsah čte bez problému, ale do plánu ty editory patří.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Písmo: tři patra, každé z jiného důvodu</h3>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Patro</th><th>Co v něm je</th><th>Proč</th></tr></thead>
+        <tbody>
+          <tr><td>Obecné rodiny</td><td class="note"><code>sans-serif</code>, <code>serif</code>, <code>monospace</code>, <code>cursive</code></td><td class="note">Vysází se tím, co má čtenář po ruce. Přežije jakýkoli systém a nic se nestahuje.</td></tr>
+          <tr><td>Klasiky</td><td class="note">Arial, Times New Roman, Georgia, Courier New…</td><td class="note">Jsou na Windows i macOS a v reálném obsahu už jsou — <code>arial, helvetica, sans-serif</code> tam stojí šestkrát.</td></tr>
+          <tr><td>Google Fonts</td><td class="note">Roboto, Open Sans, Inter, Merriweather…</td><td class="note">Vypadají všude stejně, ale stahují se za běhu. Roboto v reálném obsahu je, takže bez nich by se stará stránka vykreslila jinak, než jak ji autor viděl.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Každá položka je v nabídce vysázená svým písmem, protože se vybírá okem, ne podle názvu. Právě proto to není <code>&lt;select&gt;</code>: nativní <code>&lt;option&gt;</code> se napříč systémy vlastním písmem vysázet nedá. Nabídka je tím pádem vlastní druh prvku v registru — a hodí se i jinde, kde má být vidět náhled.</p>
+
+    <p>Google písma se stahují ve dvou okamžicích: při otevření nabídky, aby náhledy dávaly smysl, a při načtení obsahu, který nějaké používá. To druhé je důležitější — bez něj by dokument s Robotem vypadal u každého jinak podle toho, co má nainstalované.</p>
+
+    <p>Písmo se poznává podle <strong>první rodiny v zásobníku</strong>. TinyMCE zapisuje <code>Georgia, serif</code>, nabídka nabízí <code>Georgia, "Times New Roman", serif</code> — je to totéž písmo a zbytek zásobníku je jen záchrana. Porovnávat celý řetězec by znamenalo, že editor u vlastního obsahu tvrdí, že písmo nastavené není.</p>
+
+    <h3>Barvy: chovat se jako zbytek aplikace</h3>
+    <p><code>forecolor backcolor</code> je v každém toolbaru cílového projektu a v uloženém obsahu je <code>color</code> 432× a <code>background-color</code> 457× — vždycky jako <code>&lt;span style="…"&gt;</code>. Nibble zapisuje přesně tenhle tvar, takže nový obsah vypadá stejně jako ten, který tam už roky je.</p>
+
+    <p>Ovládání je převzaté z Lattice, gridu používaného v cílovém projektu: hexagonální kolo s jezdcem jasu, list s hotovými paletami, vlastní barva a „Bez barvy", k tomu naposledy použité barvy. Není na tom nic objevného — smysl je v tom, že editor a grid se v jedné aplikaci ovládají stejně. Nový nápad by tady byl na obtíž.</p>
+
+    <p>Barva je v registru vlastní druh prvku, ne obyčejné tlačítko. Jádro ví, jakou barvu nabídnout a co s vybranou udělat; jak vypadá kolo, je věc vykreslení. Hostitelská aplikace tím může podstrčit vlastní firemní paletu, aniž by sahala do jádra.</p>
+
+    <h3>Videa: kdy se dá povolit <code>&lt;iframe&gt;</code></h3>
+    <p>Konfigurace v cílovém projektu ukázaly, co je po seznamech, odkazech a tabulkách nejpoužívanější: plugin <code>media</code>, třicetkrát. Naráží to ale na sanitizaci, která <code>&lt;iframe&gt;</code> zahazuje — a právem, cizí rámec na stránce je jednoznačně nebezpečný.</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Plugin v konfiguracích projektu</th><th>Kolikrát</th><th>Stav v Nibble</th></tr></thead>
+        <tbody>
+          <tr><td><code>lists</code>, <code>link</code>, <code>table</code>, <code>image</code></td><td class="note">40, 40, 38, 36</td><td class="note">Hotovo ve fázích F2, F3 a F5.</td></tr>
+          <tr><td><code>media</code></td><td class="note">30</td><td class="note">Hotovo teď — s povolenými zdroji.</td></tr>
+          <tr><td><code>autolink</code></td><td class="note">11</td><td class="note">Hotovo.</td></tr>
+          <tr><td><code>code</code></td><td class="note">9</td><td class="note">Hotovo. Ukazuje výstup <code>getHTML()</code>, takže otevřít a zavřít zdroj nic nezmění.</td></tr>
+          <tr><td><code>emoticons</code>, <code>wordcount</code>, <code>searchreplace</code>, <code>charmap</code>, <code>fullscreen</code></td><td class="note">5, 3, 2, 2, 1</td><td class="note">Kromě emoji a mapy znaků hotovo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Řešením je seznam povolených hostitelů. Uživatel vloží běžnou adresu videa, plugin z ní udělá vkládací odkaz a jádro pak <strong>při každém načtení</strong> ověří, že rámec míří tam, kam má. Adresa mimo seznam se odmítne s vysvětlením, ne potichu — jinak by uživatel jen viděl, že se nic nestalo. I s výchozím seznamem je to přísnější než dnešek, kde <code>valid_elements: '*[*]'</code> nekontroluje nic.</p>
+
+    <h3>Tabulky: mřížka a šířky sloupců</h3>
+    <p>Ze 142 dokumentů má tabulku 16, dohromady 55 tabulek. Rozložení zase určilo, kam dát pečlivost:</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Co</th><th>Kolik</th><th>Důsledek</th></tr></thead>
+        <tbody>
+          <tr><td><code>&lt;col width&gt;</code></td><td class="note">49×</td><td class="note">Šířky sloupců se používají. Tažení za okraj proto zapisuje do <code>&lt;col&gt;</code>, přesně tam, kde ty hodnoty už jsou.</td></tr>
+          <tr><td><code>&lt;colgroup&gt;</code></td><td class="note">16×</td><td class="note">Přidání a mazání sloupce musí <code>&lt;col&gt;</code> držet v souladu, jinak se šířky rozjedou.</td></tr>
+          <tr><td><code>colspan</code> / <code>rowspan</code></td><td class="note">2× / 1×</td><td class="note">Slučování se prakticky nepoužívá. Zůstalo proto jednoduché — sloučit se sousedem vpravo nebo dolů. Výběr obdélníku buněk by byl velký kus práce za malý užitek.</td></tr>
+          <tr><td><code>&lt;th&gt;</code></td><td class="note">3×</td><td class="note">Záhlaví je vzácné, ale přepínač stojí pár řádků a pro přístupnost má cenu.</td></tr>
+          <tr><td>vnořená tabulka</td><td class="note">2×</td><td class="note">Operace musí rozlišit vnitřní tabulku od vnější, jinak by úprava sáhla o úroveň výš.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Mřížka je základ všeho ostatního. Bez ní se sloupce počítají špatně pokaždé, když je v tabulce jediné <code>rowspan</code>: vizuální sloupec číslo dvě pak není druhý <code>&lt;td&gt;</code> v řádku. Každé políčko proto ví, která buňka ho zabírá, a sloučená buňka má příznak počátku jen na svém levém horním rohu.</p>
+
+    <h3>Vkládání: co se v datech opravdu usadilo</h3>
+    <p>Vložený obsah je jediné místo, kde Nibble na cizí HTML sahá naplno. Načtený dokument někdo kdysi napsal a o změnu nežádal — ale to, co právě přišlo ze schránky, vzniká teď a nese s sebou nepořádek zdrojové aplikace.</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Zdroj</th><th>Výskyt v obsahu</th><th>Co po něm zůstává</th></tr></thead>
+        <tbody>
+          <tr><td>Google Docs</td><td class="note">12 617×</td><td class="note"><code>dir="ltr"</code> na všem, <code>role</code> na odstavcích, <code>docs-internal-guid</code>, <code>color:#000000</code></td></tr>
+          <tr><td>Quill</td><td class="note">1 918×</td><td class="note"><code>class="ql-*"</code>, <code>data-list</code>, <code>contenteditable="false"</code></td></tr>
+          <tr><td>ProseMirror / ChatGPT</td><td class="note">1 034×</td><td class="note"><code>data-start</code>, <code>data-end</code>, <code>data-pm-slice</code></td></tr>
+          <tr><td>Word</td><td class="note"><strong>0×</strong></td><td class="note">V uloženém obsahu není ani jednou — TinyMCE ho odfiltroval. Řeší se přesto: do schránky se dostane dřív nebo později.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Ze stylů se nechává jen to, co nese úmysl autora — barva, zarovnání, řez. <code>font-family</code>, <code>font-size</code> a <code>margin</code> patří zdrojovému dokumentu, ne cílové stránce. Padá i <code>color: #000000</code>, které Google Docs razítkuje úplně na všechno: natvrdo černý text rozbije každý tmavý motiv.</p>
+
+    <p>Markdown se z čistého textu převádí jen tehdy, když má <strong>výrazný</strong> znak — nadpis, blok kódu, odkaz nebo aspoň dva po sobě jdoucí řádky seznamu. Jedna pomlčka na začátku řádku je běžná věta, ne struktura, a kdo vloží svůj text, nemá dostat seznam, o který nežádal.</p>
+
+    <h3>Seznamy: co ukázala data</h3>
+    <p>Ze 142 dokumentů má seznam 72. Rozložení struktur je ale jiné, než jak seznamy vypadají v učebnici:</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Struktura</th><th>Kolik</th><th>Co s tím</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>sourozenecká <code>&lt;/li&gt;&lt;ul&gt;</code></td>
+            <td class="note">11 dokumentů</td>
+            <td class="note">Neplatné HTML, export z Google Docs. Srovná se — ale až v okamžiku, kdy se seznamem někdo pracuje.</td>
+          </tr>
+          <tr>
+            <td>zanoření uvnitř <code>&lt;li&gt;</code></td>
+            <td class="note">6 dokumentů</td>
+            <td class="note">Správná forma. To, co Nibble sám vyrábí.</td>
+          </tr>
+          <tr>
+            <td>plochý seznam s <code>aria-level</code></td>
+            <td class="note">3 852 položek</td>
+            <td class="note">Hloubka není ve struktuře, ale v atributu. Nibble ho při zanoření a vysouvání udržuje v souladu — ale nedoplňuje ho tam, kde nikdy nebyl.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Kdyby se struktura srovnávala při načtení, přepsalo by to jedenáct dokumentů, kterých se nikdo nedotkl. Srovnání proto běží líně, stejně jako obalování holého textu odstavcem: vždy jen na tom seznamu, se kterým se právě pracuje.</p>
+
+    <h3>Co se ukázalo u dialogů</h3>
+    <p>Dvě věci, které vypadaly jako detail a nebyly:</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Problém</th><th>Proč vzniká</th><th>Řešení</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Dialog sebere výběr</td>
+            <td class="note">Otevření modálního okna přesune fokus a s ním i výběr. Příkaz spuštěný po zavření pak nemá na čem pracovat — a selže tiše, protože „není výběr" je legitimní stav.</td>
+            <td class="note">Výběr se ukládá a obnovuje v <code>ui.dialog()</code>, tedy jednou pro všechny dialogy. Kdyby si to hlídal každý plugin sám, jeden by se na to dřív nebo později zapomněl.</td>
+          </tr>
+          <tr>
+            <td>Průhledný dialog</td>
+            <td class="note">Barevné proměnné seděly na obalu <code>.nb</code>, jenže <code>&lt;dialog&gt;</code> se vkládá do <code>&lt;body&gt;</code> — tedy mimo něj — takže je nezdědil.</td>
+            <td class="note">Proměnné přesunuty na <code>:root</code>. Testy tohle nechytily: ověřovaly chování, ne vzhled. Odhalil to až pohled na obrazovku.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Nastavení: poslední slovo má uživatel</h3>
+    <p>Rozvržení lišty navrhne programátor, který Nibble do projektu zasazuje — a to je správně, protože ví, co ta konkrétní aplikace potřebuje. Jenže uživatel u toho sedí osm hodin denně a jeho zvyky se s tím návrhem potkat nemusí. Nastavení proto <strong>přebíjí</strong> konfiguraci, ne naopak: šířka a výška editoru, zapnutí jednotlivých tlačítek, jejich pořadí i pořadí skupin (obojí tažením myší), umístění skupiny do prvního nebo druhého řádku lišty, nabídkový pruh, lepkavá hlavička, informační řádek a změna velikosti tažením za roh.</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Rozhodnutí</th><th>Proč</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Ozubené kolo není součástí rozvržení</td>
+            <td class="note">Nedá se vypnout ani přesunout a vždycky sedí v horním řádku úplně vpravo — i když se lišta zalomí do dvou řádků. Je to jediná cesta zpátky: kdyby si ho uživatel schoval nebo poslal do spodního řádku, k nastavení by se už nedostal. Schovat ho může jen programátor při inicializaci, ten má pořád po ruce <code>ui.prefs</code>.</td>
+          </tr>
+          <tr>
+            <td>Nastavení umí vypsat konfiguraci</td>
+            <td class="note">Když si uživatel lištu přeskládá tak, že to dává smysl, je to nejlepší podklad pro to, jak má editor vypadat pro všechny ostatní. Tlačítko vedle „Výchozí nastavení" proto z aktuálního stavu dialogu udělá hotový inicializační kód. Vypisuje se jen to, co se liší od výchozího stavu — konfigurace opakující výchozí hodnoty zastarává potichu, protože po změně výchozího stavu ho tiše přebije.</td>
+          </tr>
+          <tr>
+            <td>Uložené nastavení se slučuje, nepřebírá</td>
+            <td class="note">Sedí v prohlížeči uživatele a může být staré půl roku. Prvek, který zná, si drží pořadí i zapnutí; prvek, který mezitím přibyl, se doplní na konec své skupiny. Bez toho by upgrade editoru znamenal, že nové tlačítko nikdo nikdy neuvidí — a nikdo by netušil proč.</td>
+          </tr>
+          <tr>
+            <td>Po změně se ovládání staví celé znovu</td>
+            <td class="note">Dopočítávat, co přesně se pohnulo, by bylo rychlejší a mnohem snadněji rozbitelné. Stav pluginů v informačním řádku se neztratí — registr si poslední hodnoty pamatuje a při připojení nového řádku je přehraje.</td>
+          </tr>
+          <tr>
+            <td>Nedostupné úložiště se ignoruje</td>
+            <td class="note">V soukromém okně nebo při plné kvótě <code>localStorage</code> vyhodí výjimku. Nastavení pak funguje v paměti a jen se nepřenese do příštího sezení — spadnout kvůli tomu by bylo horší.</td>
+          </tr>
+          <tr>
+            <td>Přetahování na pointer events, ne HTML5 drag &amp; drop</td>
+            <td class="note">Nativní drag &amp; drop se na dotykových zařízeních chová nespolehlivě a nejde u něj rozumně ukázat, kam prvek spadne. Táhne se proto řádek sám a pořadí se přepočítává průběžně.</td>
+          </tr>
+          <tr>
+            <td>Úchyt v rohu místo <code>resize: both</code></td>
+            <td class="note">CSS resize zapisuje rozměry inline a nastavení uživatele by se s nimi rozešlo. Vlastní úchyt dá rozměr po puštění uložit mezi ostatní volby. Zmenšení přitom musí zapnout rolování uvnitř i tehdy, když uživatel žádnou výšku nezadal — jinak má editor novou spodní hranu, ale text pokračuje pod ní.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Informační řádek přitom není jen ozdoba. Vlevo je cesta k prvku pod kurzorem — a v cizím HTML, tedy v cílovém projektu skoro všude, bývá <code>&lt;span&gt;</code> ve <code>&lt;span&gt;</code> uvnitř <code>&lt;h4&gt;</code> v buňce tabulky. Bez cesty uživatel netuší, čeho se jeho úprava týká; kliknutím na kterýkoli krok se navíc vybere celý prvek, což je nejrychlejší způsob, jak se zbavit obalu, o kterém nevíte.</p>
+
+    <h3>Proč Playwright hned ve druhé fázi</h3>
+    <p>Model se testuje nad <code>linkedom</code> a ten se od prohlížeče liší víc, než by člověk čekal. Každý z těchhle rozdílů už jednou způsobil, že testy svítily zeleně u chování, které v Chrome neplatilo:</p>
+
+    <div class="scroller">
+      <table class="verdict">
+        <thead><tr><th>Chování</th><th>linkedom</th><th>prohlížeč</th></tr></thead>
+        <tbody>
+          <tr><td>CRLF v textovém uzlu</td><td class="note">zachová</td><td class="note">převede na LF</td></tr>
+          <tr><td><code>Range.setStart</code></td><td class="note">nemá vůbec</td><td class="note">má</td></tr>
+          <tr><td>pořadí atributů po <code>setAttribute</code></td><td class="note">nezachová</td><td class="note">zachová</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Dělicí čára mezi vitestem a Playwrightem proto nevede podle vrstev, ale podle toho, co linkedom vůbec umí. Cokoli kolem bílých znaků, rozsahů, výběru a serializace patří ověřit v prohlížeči.</p>
+
+    <div class="callout">
+      <p><strong>Co visí v <code>&lt;body&gt;</code>, nesmí hýbat stránkou.</strong> Nabídka písem se otevírala odrolovaná doprostřed a s ní se posunul celý dokument. Na vině bylo <code>focus()</code> a <code>scrollIntoView()</code>: nabídka visí v <code>&lt;body&gt;</code>, takže prohlížeč poslušně odroloval stránku, aby byla vidět. Řešením je <code>focus({ preventScroll: true })</code> a ruční <code>scrollTop</code>. Testy to nechytily — ověřují obsah, ne polohu stránky; přibyly proto dva, které hlídají přímo <code>window.scrollY</code>.</p>
+    </div>
+
+    <div class="callout">
+      <p><strong>Fokus bere výběr, a nemusí to být přes dialog.</strong> Ve fázi F3 se ukázalo, že otevření dialogu sebere výběr, a vyřešilo se to jednou pro všechny v <code>ui.dialog()</code>. Popover na barvu ale přes dialog nechodí — a spadl do téhož: <code>editor.focus()</code> sbalil výběr na kurzor a příkaz mlčky selhal, protože „není výběr" je legitimní stav. Poučení není „opravit i tady", ale že každá cesta, která bere fokus, potřebuje totéž pravidlo.</p>
+    </div>
+
+    <div class="callout">
+      <p><strong>Chyba, která se skrývala pět fází.</strong> Každý úhoz zakládal vlastní textový uzel, takže napsaná adresa měla v odstavci dvacet uzlů místo jednoho. Serializace to nepoznala — poskládá je za sebe — ale cokoli, co se dívá na <code>text.data</code>, vidělo vždycky jen poslední písmeno. Automatické odkazy proto nefungovaly vůbec a hledání by minulo každé slovo, které uživatel napsal ručně. Vyšlo to najevo až u prvního pluginu, který obsah čte místo aby ho jen zapisoval.</p>
+    </div>
+
+    <div class="callout">
+      <p><strong>Editor má ukazovat výsledek, ne svoje pomůcky.</strong> Tabulka s vlastním <code>border</code> nebo <code>style</code> se vykreslí přesně tak, jak se vykreslí na webu. Vodicí mřížku — čárkovanou, ať je poznat, že je to pomůcka — dostanou jen tabulky, které se nestylují samy. Vynutit rámečky na všechno by znamenalo ukazovat něco jiného, než co uživatel dostane, a to je horší než neviditelné buňky.</p>
+    </div>
+
+    <div class="callout">
+      <p><strong>Živé rozsahy jsou past.</strong> Přesun uzlu podle specifikace posune i rozsahy uvnitř něj: jakmile srovnání struktury přendá <code>&lt;ul&gt;</code> jinam, kurzor z něj vyskočí na rodiče a příkaz pak nenajde, na čem měl pracovat. Cesta indexů z <code>Bookmark</code> na to nestačí — po přeskládání ukazuje jinam. Operace měnící strukturu si proto <em>před</em> zásahem uloží odkaz na uzel; textový uzel přesun přežije.</p>
+    </div>
+
+    <div class="callout">
+      <p>Bezpečnostní kontrola nad všemi 6 314 dokumenty vyšla čistě: <strong>žádný <code>&lt;script&gt;</code>, žádné <code>on*</code> atributy, žádné <code>javascript:</code> URL.</strong> Dřív jsem zmiňoval, že jsem <code>&lt;script</code> ve výpisu viděl — pocházelo to z jiné tabulky staršího dumpu, ne z obsahu editoru.</p>
+    </div>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section id="architektura">
+    <div class="sec-head"><span class="num">03</span><h2>Vrstvy</h2></div>
+
+    <p class="lede">Jádro nezná UI, UI nezná pluginy, pluginy nesahají do DOMu přímo. Každá vrstva se dá testovat i použít samostatně — <code>@nibble/core</code> bez UI je použitelný headless pro sanitizaci HTML na serveru.</p>
+
+    <div class="stack">
+      <div class="layer">
+        <div class="lname">core/model<small>bez DOM</small></div>
+        <div class="ldesc">Schema (povolené elementy, atributy, kde smí co být), Parser HTML → DOM, Serializer DOM → HTML, Sanitizer. Čistě datová vrstva, testovatelná bez prohlížeče.</div>
+      </div>
+      <div class="layer">
+        <div class="lname">core/dom<small>rozhraní k DOM</small></div>
+        <div class="ldesc">Walker, práce s <code>Range</code>, normalizace textových uzlů, zjišťování hranic bloků. Tenká vrstva nad nativním API, ne jeho náhrada.</div>
+      </div>
+      <div class="layer">
+        <div class="lname">core/input<small>vstup</small></div>
+        <div class="ldesc">Odchyt <code>beforeinput</code>, klávesových zkratek, vkládání ze schránky, drag &amp; drop a IME kompozice. Překládá vstup uživatele na příkazy.</div>
+      </div>
+      <div class="layer">
+        <div class="lname">core/commands<small>mutace</small></div>
+        <div class="ldesc">Jediné místo, kde se mění obsah. Příkaz je čistá funkce <code>(editor, args) → boolean</code>. Vše ostatní obsah jen čte.</div>
+      </div>
+      <div class="layer">
+        <div class="lname">core/format<small>formátování</small></div>
+        <div class="ldesc">Registr formátů a jejich apply / remove / toggle / match nad výběrem, včetně dělení a slučování inline obalů.</div>
+      </div>
+      <div class="layer">
+        <div class="lname">core/history<small>undo</small></div>
+        <div class="ldesc">Vlastní zásobník s bookmarky výběru a slučováním po sobě jdoucích úprav. Nativní undo je pro editor, který sám mutuje DOM, nepoužitelné.</div>
+      </div>
+      <div class="layer">
+        <div class="lname">ui<small>volitelné</small></div>
+        <div class="ldesc">Registr tlačítek, toolbar, plovoucí kontextová lišta, dialogy, notifikace, ikony. Vykresluje do světlého DOMu, styluje se přes custom properties.</div>
+      </div>
+      <div class="layer opt">
+        <div class="lname">plugins<small>à la carte</small></div>
+        <div class="ldesc">Každý plugin je samostatný modul, který se importuje a předá do konfigurace. Nic se neregistruje globálně, nic se nenačítá po síti.</div>
+      </div>
+      <div class="layer opt">
+        <div class="lname">presets<small>za projekt</small></div>
+        <div class="ldesc">Jedna sdílená konfigurace na projekt — <code>nibble-preset.js</code> a spol. Nahrazuje to, co by jinak dělal compat shim, bez trvalé údržby druhého API.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section id="pipeline">
+    <div class="sec-head"><span class="num">04</span><h2>Jak prochází jeden úhoz</h2></div>
+
+    <p class="lede">Tohle je celý rozdíl proti TinyMCE. Prohlížeč nikdy nemění obsah sám — každá změna projde příkazem, takže je zaznamenatelná, vratná a stejná ve všech prohlížečích.</p>
+
+    <div class="pipe-wrap">
+      <svg viewBox="0 0 860 200" role="img" aria-label="Diagram: událost beforeinput je zrušena, přeložena na příkaz, ten mutuje DOM a zapíše krok do historie">
+        <defs>
+          <marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="var(--ink-3)"/>
+          </marker>
+        </defs>
+
+        <g font-family="JetBrains Mono, monospace" font-size="11.5">
+          <!-- row 1 -->
+          <rect x="0" y="26" width="132" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="66" y="45" text-anchor="middle" fill="var(--ink)" font-weight="700">uživatel píše</text>
+          <text x="66" y="60" text-anchor="middle" fill="var(--ink-3)">keydown / paste</text>
+
+          <line x1="138" y1="49" x2="176" y2="49" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#arw)"/>
+
+          <rect x="182" y="26" width="150" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="257" y="45" text-anchor="middle" fill="var(--ink)" font-weight="700">beforeinput</text>
+          <text x="257" y="60" text-anchor="middle" fill="var(--ink-3)">getTargetRanges()</text>
+
+          <line x1="338" y1="49" x2="376" y2="49" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#arw)"/>
+
+          <rect x="382" y="26" width="150" height="46" rx="4" fill="var(--drop-bg)" stroke="var(--drop)" stroke-opacity=".45"/>
+          <text x="457" y="45" text-anchor="middle" fill="var(--drop)" font-weight="700">preventDefault()</text>
+          <text x="457" y="60" text-anchor="middle" fill="var(--ink-3)">prohlížeč nezasáhne</text>
+
+          <line x1="538" y1="49" x2="576" y2="49" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#arw)"/>
+
+          <rect x="582" y="26" width="150" height="46" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-opacity=".5"/>
+          <text x="657" y="45" text-anchor="middle" fill="var(--accent)" font-weight="700">Command</text>
+          <text x="657" y="60" text-anchor="middle" fill="var(--ink-3)">insertText, splitBlock…</text>
+
+          <!-- elbow down -->
+          <path d="M732,49 H770 V128 H738" fill="none" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#arw)"/>
+
+          <!-- row 2 (right to left) -->
+          <rect x="582" y="105" width="150" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="657" y="124" text-anchor="middle" fill="var(--ink)" font-weight="700">Schema guard</text>
+          <text x="657" y="139" text-anchor="middle" fill="var(--ink-3)">smí to tady být?</text>
+
+          <line x1="576" y1="128" x2="538" y2="128" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#arw)"/>
+
+          <rect x="382" y="105" width="150" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="457" y="124" text-anchor="middle" fill="var(--ink)" font-weight="700">mutace DOM</text>
+          <text x="457" y="139" text-anchor="middle" fill="var(--ink-3)">+ obnova výběru</text>
+
+          <line x1="376" y1="128" x2="338" y2="128" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#arw)"/>
+
+          <rect x="182" y="105" width="150" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="257" y="124" text-anchor="middle" fill="var(--ink)" font-weight="700">History.push</text>
+          <text x="257" y="139" text-anchor="middle" fill="var(--ink-3)">slučování úhozů</text>
+
+          <line x1="176" y1="128" x2="138" y2="128" stroke="var(--ink-3)" stroke-width="1.2" marker-end="url(#arw)"/>
+
+          <rect x="0" y="105" width="132" height="46" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-opacity=".5"/>
+          <text x="66" y="124" text-anchor="middle" fill="var(--accent)" font-weight="700">emit change</text>
+          <text x="66" y="139" text-anchor="middle" fill="var(--ink-3)">debounced</text>
+
+          <text x="0" y="184" fill="var(--ink-3)" font-size="10.5">Výjimka: IME kompozice se nechá proběhnout nativně a normalizuje se až na compositionend.</text>
+        </g>
+      </svg>
+    </div>
+    <p class="cap">Klávesy, které <code>beforeinput</code> nepokrývá dostatečně (Enter uprostřed seznamu, Backspace na hranici bloku), se odchytávají navíc v <code>keydown</code>. Vše ale končí ve stejném registru příkazů — neexistuje druhá cesta, jak změnit obsah.</p>
+  </section>
+
+  <!-- ============ 5 ============ -->
+  <section id="strom">
+    <div class="sec-head"><span class="num">05</span><h2>Kostra repozitáře</h2></div>
+
+    <div class="code">
+      <div class="code-label">nibble/</div>
+<pre><b>packages/</b>
+  <u>core/</u>
+    src/
+      <b>Editor.ts</b>            <i>// veřejná třída, drží vše ostatní</i>
+      <b>create.ts</b>            <i>// Nibble.create(config) → Promise&lt;Editor&gt;</i>
+      Options.ts           <i>// registrace + validace konfigurace</i>
+      Events.ts            <i>// typovaná sběrnice, on() vrací unsubscribe</i>
+      model/
+        Schema.ts          <i>// co smí kde být; jediný zdroj pravdy o markupu</i>
+        Parser.ts          <i>// HTML → DOM podle schématu</i>
+        Serializer.ts      <i>// DOM → HTML, deterministický výstup</i>
+        Sanitizer.ts       <i>// XSS; Sanitizer API kde je, fallback jinde</i>
+      dom/
+        Walker.ts  Ranges.ts  Blocks.ts  Text.ts
+      selection/
+        Selection.ts       <i>// čtení a nastavování výběru</i>
+        Bookmark.ts        <i>// přežití výběru přes mutaci DOM</i>
+        FakeCaret.ts       <i>// caret vedle atomických bloků</i>
+      input/
+        BeforeInput.ts     <i>// srdce celé věci</i>
+        Keymap.ts          <i>// Mod-B, Mod-K, Tab v seznamu…</i>
+        Paste.ts           <i>// pipeline pro vkládání</i>
+        Composition.ts     <i>// IME</i>
+      commands/
+        Registry.ts  text.ts  blocks.ts  lists.ts
+      format/
+        Formatter.ts  defaults.ts
+      history/
+        History.ts
+      plugin/
+        Plugin.ts          <i>// typ pluginu + pořadí setupu</i>
+      i18n/
+        I18n.ts  cs.ts  en.ts
+
+  <u>ui/</u>
+    src/
+      Registry.ts          <i>// addButton / addToggle / addMenu / addSelect</i>
+      Toolbar.ts           <i>// ARIA toolbar pattern, roving tabindex</i>
+      ContextToolbar.ts    <i>// plovoucí lišta nad výběrem</i>
+      Dialog/              <i>// deklarativní, Promise-based</i>
+      Notification.ts
+      icons/               <i>// SVG sprite, tree-shakeable</i>
+      nibble.css           <i>// ~20 custom properties, žádný build</i>
+
+  <u>plugins/</u>
+    link/ image/ list/ table/ code/ media/ quote/ hr/
+    align/ fullscreen/ wordcount/ autosave/ find/ anchor/
+    typography/ checklist/ footnotes/ toc/ menubar/
+
+  <u>presets/</u>              <i>// preset.ts — jedna konfigurace za projekt</i>
+  <u>adapters/</u>             <i>// upload, collab (Yjs), ai, codemirror</i>
+  <u>nibble/</u>               <i>// meta-balíček + předpřipravené bundly</i>
+
+<b>demo/</b>                    <i>// vanilla, laravel blade, react</i>
+<b>e2e/</b>                     <i>// Playwright — selection se v jsdom testovat nedá</i>
+<b>docs/</b></pre>
+    </div>
+
+    <p><strong>Stack:</strong> TypeScript ve strict módu, žádná runtime závislost, build přes <code>tsup</code> do ESM + IIFE, unit testy ve Vitestu (model a schema jdou testovat bez DOM), integrační testy v Playwrightu v reálném prohlížeči. Baseline: Chrome, Edge, Firefox a Safari za poslední dva roky — <code>beforeinput</code> i <code>getTargetRanges()</code> tam jsou všude.</p>
+  </section>
+
+  <!-- ============ 6 ============ -->
+  <section id="api">
+    <div class="sec-head"><span class="num">06</span><h2>Veřejné API</h2></div>
+
+    <h4>Inicializace</h4>
+    <div class="code">
+      <div class="code-label">app.js</div>
+<pre><b>import</b> { Nibble } <b>from</b> <u>'nibble'</u>;
+<b>import</b> { link, image, list, table, code } <b>from</b> <u>'nibble/plugins'</u>;
+
+<b>const</b> editor = <b>await</b> Nibble.create({
+  target:   <u>'#perex'</u>,              <i>// selector | Element | HTMLTextAreaElement</i>
+  plugins:  [link, image, list, table, code],
+  toolbar:  [
+    [<u>'undo'</u>, <u>'redo'</u>],
+    [<u>'blocks'</u>],                    <i>// select: odstavec / H2 / H3 / citace</i>
+    [<u>'bold'</u>, <u>'italic'</u>, <u>'strike'</u>],
+    [<u>'bullist'</u>, <u>'numlist'</u>],
+    [<u>'link'</u>, <u>'image'</u>, <u>'table'</u>],
+    [<u>'code'</u>],
+  ],
+  content:    <u>'&lt;p&gt;Ahoj.&lt;/p&gt;'</u>,     <i>// nebo se převezme z textarey</i>
+  contentCss: [<u>'/css/article.css'</u>],
+  lang:       <u>'cs'</u>,
+  height:     420,
+  autofocus:  <b>false</b>,
+});</pre>
+    </div>
+
+    <p>Konfigurace je plochá a bez řetězců oddělených mezerou. <code>plugins</code> bere hodnoty, ne jména — bundler tak vidí, co se opravdu použije, a zbytek vyhodí.</p>
+
+    <h4>Ovládání a nastavení</h4>
+    <div class="code">
+      <div class="code-label">app.js</div>
+<pre><b>import</b> { attachToolbar } <b>from</b> <u>'nibble/ui'</u>;
+
+<b>const</b> ui = attachToolbar(editor, {
+  layout:   [[<u>'undo'</u>, <u>'redo'</u>], [<u>'bold'</u>, <u>'italic'</u>]],  <i>// návrh programátora</i>
+  layoutBottom: [[<u>'code'</u>]],        <i>// skupiny do druhého řádku lišty</i>
+  menubar:  <b>true</b>,                    <i>// nebo vlastní pole nabídek</i>
+  prefsKey: <u>'clanky'</u>,                <i>// localStorage: nibble:prefs:clanky</i>
+  prefs:    { height: <u>'500px'</u> },     <i>// výchozí hodnoty; uživatel je přebije</i>
+  settings: <b>true</b>,                    <i>// kolo vpravo nahoře; false ho schová</i>
+});
+
+ui.prefs.get()                       <i>// aktuální nastavení uživatele</i>
+ui.prefs.set({ sticky: <b>false</b> })     <i>// ovládání se postaví znovu</i>
+ui.prefs.onChange(fn)                <i>// vrací funkci pro odhlášení</i>
+ui.destroy()</pre>
+    </div>
+
+    <p>Rozvržení z <code>layout</code> je výchozí stav, ne konečné slovo: co si uživatel přeskládá v nastavení, vyhrává. Nové tlačítko přidané v novější verzi se do jeho uloženého rozvržení doplní samo.</p>
+
+    <h4>Instance</h4>
+    <div class="code">
+      <div class="code-label">Editor</div>
+<pre><i>// obsah</i>
+editor.getHTML()                <i>// serializovaný, prošlý schématem</i>
+editor.setHTML(html)
+editor.getText()
+editor.insertHTML(html)         <i>// na pozici kurzoru, sanitizované</i>
+editor.isDirty()
+
+<i>// stav</i>
+editor.<b>selection</b>               <i>// getRange, setRange, getText, collapse…</i>
+editor.<b>schema</b>                  <i>// allow(), disallow(), check()</i>
+editor.<b>history</b>                 <i>// undo(), redo(), transact(fn), canUndo()</i>
+editor.<b>formatter</b>               <i>// register(), apply(), remove(), toggle(), match()</i>
+editor.<b>commands</b>                <i>// add(), has()</i>
+editor.<b>ui</b>                      <i>// registr tlačítek, dialog(), notify()</i>
+
+<i>// akce</i>
+editor.exec(<u>'link'</u>, { href })   <i>// → boolean (šlo to?)</i>
+editor.can(<u>'link'</u>)              <i>// smí se to teď? → stav tlačítka</i>
+editor.is(<u>'bold'</u>)               <i>// je výběr tučný? → aktivní tlačítko</i>
+editor.focus()
+editor.setMode(<u>'design'</u> | <u>'readonly'</u> | <u>'preview'</u>)
+editor.destroy()
+
+<i>// události — on() vrací funkci pro odhlášení</i>
+<b>const</b> off = editor.on(<u>'change'</u>, e =&gt; save(e.html));
+editor.on(<u>'selectionchange'</u> | <u>'focus'</u> | <u>'blur'</u> | <u>'paste'</u>
+        | <u>'drop'</u> | <u>'upload'</u> | <u>'schemaviolation'</u>, fn);</pre>
+    </div>
+
+    <div class="callout">
+      <p>Proti TinyMCE zmizely tři věci: <code>queryCommandState</code> a <code>queryCommandValue</code> se sloučily do dvojice <code>can()</code> / <code>is()</code>, globální singleton <code>tinymce.activeEditor</code> neexistuje (instanci si drží volající) a <code>off()</code> se nemusí volat se stejnou referencí — vrací ji <code>on()</code>.</p>
+    </div>
+
+    <h4>Plugin</h4>
+    <div class="code">
+      <div class="code-label">plugins/link/index.ts</div>
+<pre><b>export const</b> link: Plugin = {
+  name: <u>'link'</u>,
+
+  <i>// options se validují při create(), ne za běhu</i>
+  options: {
+    linkRel:     { type: <u>'string'</u>,  default: <u>'noopener'</u> },
+    allowTarget: { type: <u>'boolean'</u>, default: <b>true</b> },
+  },
+
+  setup(editor) {
+    editor.schema.allow(<u>'a'</u>, {
+      attrs:   { href: <u>'url'</u>, target: [<u>'_blank'</u>, <u>'_self'</u>], rel: <u>'string'</u>, title: <u>'string'</u> },
+      context: <u>'inline'</u>,
+    });
+
+    editor.commands.add(<u>'link'</u>, (ed, { href, text, target }) =&gt; {
+      <b>if</b> (!href) <b>return false</b>;
+      <b>return</b> ed.formatter.apply(<u>'link'</u>, { href, target });
+    });
+
+    editor.ui.addButton(<u>'link'</u>, {
+      icon:     <u>'link'</u>,
+      tooltip:  editor.t(<u>'Odkaz'</u>),
+      shortcut: <u>'Mod-K'</u>,
+      active:   ed =&gt; ed.is(<u>'link'</u>),
+      enabled:  ed =&gt; ed.can(<u>'link'</u>),
+      onAction: openLinkDialog,
+    });
+
+    editor.ui.addContextToolbar(<u>'link'</u>, {
+      predicate: node =&gt; node.closest(<u>'a'</u>) !== <b>null</b>,
+      items:     [<u>'link'</u>, <u>'openlink'</u>, <u>'unlink'</u>],
+    });
+
+    <i>// návratová funkce = teardown, volá se v destroy()</i>
+    <b>return</b> () =&gt; closeLinkDialog();
+  },
+};</pre>
+    </div>
+
+    <p>Návrat teardown funkce ze <code>setup</code> je jediná zásadní odchylka od TinyMCE a stojí za ni — plugin má úklid na stejném místě jako inicializaci, takže se na něj nezapomene.</p>
+
+    <h4>Dialog</h4>
+    <div class="code">
+      <div class="code-label">plugins/link/dialog.ts</div>
+<pre><b>const</b> data = <b>await</b> editor.ui.dialog({
+  title: editor.t(<u>'Vložit odkaz'</u>),
+  fields: [
+    { type: <u>'url'</u>,    name: <u>'href'</u>,   label: <u>'Adresa'</u>, required: <b>true</b>,
+      picker: editor.options.filePicker },
+    { type: <u>'text'</u>,   name: <u>'text'</u>,   label: <u>'Text odkazu'</u> },
+    { type: <u>'select'</u>, name: <u>'target'</u>, label: <u>'Otevřít'</u>, options: [
+        { value: <u>''</u>,       text: <u>'Ve stejném okně'</u> },
+        { value: <u>'_blank'</u>, text: <u>'V novém okně'</u> },
+    ]},
+  ],
+  initial:     currentLink(editor),
+  submitLabel: editor.t(<u>'Vložit'</u>),
+});
+
+<i>// data === null při zrušení — žádný onSubmit/onCancel pár</i>
+<b>if</b> (data) editor.exec(<u>'link'</u>, data);</pre>
+    </div>
+
+    <p>Typy polí: <code>text</code>, <code>textarea</code>, <code>url</code>, <code>number</code>, <code>size</code>, <code>select</code>, <code>checkbox</code>, <code>color</code>, <code>file</code>, <code>html</code>, <code>alert</code> a rozvržení <code>group</code> / <code>tabs</code>. Zhruba polovina toho, co má TinyMCE — zbytek (<code>tree</code>, <code>collection</code>, <code>imagepreview</code>, <code>slider</code>) potřebuje jeden plugin z padesáti a dá se doplnit typem <code>html</code>.</p>
+
+    <h4>Zachování obsahu</h4>
+    <div class="code">
+      <div class="code-label">round-trip</div>
+<pre><i>// Načtu, nesáhnu, uložím → znak po znaku totéž.</i>
+<b>const</b> ed = <b>await</b> Nibble.create({ target, content: fromDb, schema: <u>'legacy'</u> });
+ed.getHTML() === fromDb   <i>// → true</i>
+
+<i>// Které bloky se opravdu změnily</i>
+ed.getDirtyBlocks()       <i>// → Element[]</i>
+
+<i>// Co by přísné schema odstranilo — bez toho, aby to udělalo</i>
+ed.schema.audit(fromDb)   <i>// → [{ node, reason: 'font is legacy' }, …]</i>
+
+<i>// Bezpečnostní vrstva běží vždy, i v režimu legacy</i>
+ed.on(<u>'schemaviolation'</u>, e =&gt; console.warn(e.reason, e.node));</pre>
+    </div>
+    <p>Metoda <code>audit()</code> je tam schválně: dá se přes ni projet celá databáze a zjistit, kolik obsahu by přísný režim ovlivnil — <em>než</em> se přepne. Migrace obsahu se tak dá udělat vědomě a dávkově, ne omylem při prvním uložení.</p>
+
+  </section>
+
+  <!-- ============ 7 ============ -->
+  <section id="plan">
+    <div class="sec-head"><span class="num">07</span><h2>Pořadí prací</h2></div>
+
+    <p class="lede">Fáze jsou seřazené podle rizika, ne podle viditelnosti. Seznamy a vkládání ze schránky jdou brzy, protože právě ony rozhodnou, jestli je základní návrh správný — tabulky a doplňky počkají.</p>
+
+    <div class="phase">
+      <div class="pnum">F0 ✓</div>
+      <div>
+        <h3>Kostra, která něco umí</h3>
+        <p>Hotovo. Repo, build, <code>Editor</code>, sběrnice událostí, schema, parser se zdrojovým mapováním, serializer, historie, <code>beforeinput</code> místo <code>execCommand</code>, inline formátování, lišta podle vzoru ARIA toolbar. 161 testů, 8,4 kB gzip.</p>
+        <span class="ships">ověřeno v prohlížeči: načtení a uložení bez úpravy vrátí totožných 5 105 B, napsání 6 znaků změní přesně 6 bajtů, undo obnoví bajtově přesný původní stav</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pnum">F1 ✓</div>
+      <div>
+        <h3>Bloky</h3>
+        <p>Hotovo. Odstavce, nadpisy, citace, předformátovaný text, oddělovač, zarovnání, zrušení formátování. Dělení bloku Enterem a slučování Backspacem na hranici, <code>Shift+Enter</code> jako <code>&lt;br&gt;</code>. Nasazen Playwright: 40 testů v Chromiu vedle 182 jednotkových.</p>
+        <span class="ships">výstup: použitelný editor pro krátké texty, ověřený skutečnými klávesami</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pnum">F2 ✓</div>
+      <div>
+        <h3>Seznamy</h3>
+        <p>Hotovo. Odrážkové i číslované, zanořování Tabem a vysouvání Shift+Tabem. Enter v prázdné položce vysune o úroveň, Backspace na začátku spojí s předchozí. Srovnání neplatné struktury a údržba <code>aria-level</code>. Celkem 271 testů.</p>
+        <span class="ships">výstup: srovnání, které z libovolného vstupu udělá platnou strukturu — ale až když se s ním pracuje</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pnum">F3 ✓</div>
+      <div>
+        <h3>Odkazy, obrázky, dialogy</h3>
+        <p>Hotovo. Registr ovládacích prvků přesunut do jádra, aby do něj mohly zapisovat pluginy. Dialogy nad nativním <code>&lt;dialog&gt;</code>, plovoucí lišta u odkazu a obrázku, nahrávání jako adaptér. Odkazy a obrázky jsou první skutečné pluginy — do té doby bylo rozhraní jen na papíře.</p>
+        <span class="ships">výstup: pokrytí toho, co dělá 90 % redaktorů; 307 testů celkem</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pnum">F4 ✓</div>
+      <div>
+        <h3>Vkládání</h3>
+        <p>Hotovo. Čištění pro Word, Google Docs, Quill i ProseMirror, převod Markdownu z čistého textu, <code>Ctrl+Shift+V</code> jako text, drag &amp; drop. Ověřeno i to podstatné: vložení do dokumentu z produkce změní jediný uzel a zbytek zůstane bajtově nedotčený.</p>
+        <span class="ships">výstup: nic z vloženého obsahu neprojde mimo schema; 387 testů celkem</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pnum">F5 ✓</div>
+      <div>
+        <h3>Tabulky</h3>
+        <p>Hotovo. Mřížkový model, který počítá se sloučenými buňkami, navigace Tabem s přidáním řádku na konci, řádky a sloupce, záhlaví, slučování a tažení šířky sloupce do <code>&lt;col width&gt;</code>. Data zase přeskládala priority: v 55 tabulkách je <code>colspan</code> dvakrát, ale <code>&lt;col width&gt;</code> 49×.</p>
+        <span class="ships">výstup: tabulky na úrovni free TinyMCE; 437 testů celkem</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pnum">F6 ✓</div>
+      <div>
+        <h3>Doplňky</h3>
+        <p>Hotovo, ale v jiném pořadí, než jak to bylo napsané. Rozhodly počty z konfigurací cílového projektu: <code>media</code> je tam 30×, <code>autolink</code> 11× a <code>code</code> 9× — to jsou tři nejpoužívanější věci, které chyběly. K nim počítadlo slov, hledání, celá obrazovka a česká typografie.</p>
+        <p>Nad rámec plánu k tomu přibylo, co si vyžádalo používání: nabídkový pruh, barvy a písma s vlastním výběrem, vlastnosti tabulky a řádku, velké okno zdrojového kódu se zvýrazněnou syntaxí — a nakonec nastavení, ve kterém si uživatel přeskládá lištu podle sebe.</p>
+        <span class="ships">výstup: parita s free TinyMCE plus část premium katalogu; 744 testů celkem</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pnum">F7</div>
+      <div>
+        <h3>Nasazení v cílovém projektu</h3>
+        <p>Preset <code>nibble-preset.js</code>, převod padesáti volání <code>tinymce.init()</code> na jednu funkci, zrušení <code>tinymce-defaults.js</code>. Před přepnutím projet obsah přes <code>schema.audit()</code> a vědět, co se kde nachází.</p>
+        <span class="ships">výstup: cílový projekt běží na Nibble, TinyMCE z CDN mizí</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pnum">F8</div>
+      <div>
+        <h3>Přístupnost a mobil</h3>
+        <p>Audit podle WCAG 2.2, ARIA toolbar pattern s roving tabindex, ovládání jen klávesnicí, oznamování změn čtečkám, IME, dotykový výběr, iOS Safari.</p>
+        <span class="ships">výstup: verze 1.0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 8 ============ -->
+  <section id="rizika">
+    <div class="sec-head"><span class="num">08</span><h2>Kde to bolí</h2></div>
+
+    <p class="lede">Rich text editor je jednoduchý první týden a pak už nikdy. Tohle jsou místa, kterých se to týká — dobrá zpráva je, že se dají izolovat do vlastních modulů a otestovat.</p>
+
+    <div class="risks">
+      <div class="risk">
+        <span class="sev">vysoké</span>
+        <h3>Normalizace seznamů</h3>
+        <p>Zanořené <code>&lt;ul&gt;</code> uvnitř <code>&lt;li&gt;</code>, sousední seznamy, které se mají spojit, mazání přes hranici úrovní. Řešení: <code>lists.ts</code> jako jediné místo, které se seznamů dotýká, plus snapshotové testy vstup → výstup.</p>
+      </div>
+      <div class="risk">
+        <span class="sev">vysoké</span>
+        <h3>Zachování starého obsahu</h3>
+        <p>Nejtišší způsob, jak přijít o data: editor při načtení obsah „uklidí" a uživatel ho pak uloží. Řešení: nedotčené bloky se vypisují doslova z původního řetězce a testuje se to na skutečném vzorku z produkce, ne na vymyšleném HTML.</p>
+      </div>
+      <div class="risk">
+        <span class="sev">vysoké</span>
+        <h3>Vkládání z Wordu</h3>
+        <p>Word posílá <code>&lt;o:p&gt;</code>, <code>mso-</code> styly a seznamy jako odstavce s odrážkou v textu. Bez čištění to zaneřádí databázi natrvalo. Řešení: přísný whitelist plus detekce pseudo-seznamů.</p>
+      </div>
+      <div class="risk">
+        <span class="sev mid">střední</span>
+        <h3>Granularita undo</h3>
+        <p>Uživatel čeká, že se vrátí slovo, ne písmeno, a že se výběr vrátí tam, kde byl. Řešení: slučování kroků podle času a typu, bookmarky výběru u každého kroku.</p>
+      </div>
+      <div class="risk">
+        <span class="sev mid">střední</span>
+        <h3>IME a diakritika</h3>
+        <p>Během kompozice se do DOMu sahat nesmí. Řešení: <code>Composition.ts</code> pozastaví příkazovou vrstvu a normalizuje až na <code>compositionend</code>. Testovat s japonskou klávesnicí, ne jen s českou.</p>
+      </div>
+      <div class="risk">
+        <span class="sev mid">střední</span>
+        <h3>Kurzor u atomických bloků</h3>
+        <p>Obrázek nebo embed na začátku dokumentu — kam se postavit kurzorem. Řešení: <code>FakeCaret.ts</code> vykreslí kurzor sám a drží virtuální pozici mimo textový uzel.</p>
+      </div>
+      <div class="risk">
+        <span class="sev mid">střední</span>
+        <h3>Mobilní Safari</h3>
+        <p><code>contenteditable</code> na iOS má vlastní představu o výběru, klávesnici i scrollu. Řešení: brát mobil jako cíl od F1, ne jako opravu před vydáním.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="end">
+  <p class="colophon">Nibble · návrh architektury · pro diskusi před první commitem</p>
+
+</div>

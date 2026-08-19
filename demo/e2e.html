@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Nibble e2e</title>
+<link rel="stylesheet" href="/dist/nibble.css">
+<style>body { font: 15px/1.6 system-ui, sans-serif; margin: 20px; }</style>
+</head>
+<body>
+<div id="host"></div>
+
+<!--
+  Zkušební stránka pro Playwright. Drží editor na `window.ed`, aby testy mohly
+  ověřovat výstup `getHTML()` proti zdroji, ne jen to, co je vidět. Interakce
+  ale probíhá přes skutečnou klávesnici a myš — o to tady jde.
+-->
+<script type="module">
+import { Nibble, normalizeNewlines } from '/dist/core/src/index.js';
+import { attachToolbar } from '/dist/ui/src/index.js';
+import {
+  link, createImagePlugin, table, media, code, autolink,
+  wordcount, fullscreen, searchreplace, typography, fonts,
+} from '/dist/plugins/src/index.js';
+
+// Test si může nahrávání podstrčit: window.uploadStub dostane soubor a vrátí URL.
+const imagePlugin = createImagePlugin({
+  upload: (file) => window.uploadStub
+    ? window.uploadStub(file)
+    : Promise.reject(new Error('nahrávání není nastavené')),
+});
+
+window.mount = async (html, opts = {}) => {
+  // Volby pro attachToolbar se předávají zvlášť — do Nibble.create nepatří.
+  const { ui: uiOpts, ...editorOpts } = opts;
+  document.querySelector('.nb')?.remove();
+  const host = document.createElement('div');
+  document.getElementById('host').replaceChildren(host);
+
+  window.original = normalizeNewlines(html);
+  window.ed = await Nibble.create({
+    target: host, content: window.original, schema: 'legacy', height: 260,
+    plugins: opts.plugins ?? [
+      link, imagePlugin, table, media, code, autolink,
+      wordcount, fullscreen, searchreplace, typography, fonts,
+    ],
+    ...editorOpts,
+  });
+  window.tb = attachToolbar(window.ed, { menubar: true, ...uiOpts });
+  return true;
+};
+
+/** Varianta bez adaptéru — obrázek se vloží jako data: URL. */
+window.mountInline = async (html, imageOpts = {}) => {
+  const { image } = await import('/dist/plugins/src/index.js');
+  return window.mount(html, { plugins: [link, image, table] });
+};
+
+window.mountFixture = async (name, opts) => {
+  const html = await (await fetch('/fixtures/' + name)).text();
+  return window.mount(html, opts);
+};
+
+window.ready = true;
+</script>
+</body>
+</html>
