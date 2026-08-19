@@ -101,18 +101,18 @@ npm run build</pre>
       <!-- ============================================================ -->
       <h2 id="cdn">Bez balíčkovače (CDN)</h2>
 
-      <p>Vedle dokumentace se na tuhle adresu publikuje i sestavená knihovna — jeden
-        soubor se vším, co je v <code>core</code>, <code>ui</code> i
-        <code>plugins</code>. Nic se neinstaluje a nic se nesestavuje:</p>
+      <p>Sestavená knihovna je jeden soubor se vším, co je v <code>core</code>,
+        <code>ui</code> i <code>plugins</code>. Nic se neinstaluje a nic se
+        nesestavuje — stačí adresa:</p>
 
       <pre class="code">&lt;<span class="t">link</span> rel=<span class="s">"stylesheet"</span>
-      href=<span class="s">"https://svatekr70.github.io/nibble/dist/nibble.css"</span>&gt;
+      href=<span class="s">"https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.1.0/dist/nibble.css"</span>&gt;
 
 &lt;<span class="t">div</span> id=<span class="s">"obsah"</span>&gt;&lt;<span class="t">p</span>&gt;Ahoj.&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">div</span>&gt;
 
 &lt;<span class="t">script</span> type=<span class="s">"module"</span>&gt;
   <span class="k">import</span> { Nibble, attachToolbar, link, image, table }
-    <span class="k">from</span> <span class="s">'https://svatekr70.github.io/nibble/dist/nibble.min.js'</span>
+    <span class="k">from</span> <span class="s">'https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.1.0/dist/nibble.min.js'</span>
 
   <span class="k">const</span> editor = <span class="k">await</span> Nibble.<span class="t">create</span>({
     target: <span class="s">'#obsah'</span>,
@@ -122,17 +122,25 @@ npm run build</pre>
 &lt;/<span class="t">script</span>&gt;</pre>
 
       <p>Je to modul, takže <code>&lt;script&gt;</code> musí mít
-        <code>type="module"</code>. Jednotlivé balíčky jdou načíst i zvlášť —
-        <code>dist/core/src/index.js</code>, <code>dist/ui/src/index.js</code>,
-        <code>dist/plugins/src/index.js</code> — když nechcete tahat všechno.</p>
+        <code>type="module"</code>.</p>
 
       <div class="callout">
-        <strong>Na téhle adrese je vždycky poslední verze</strong>
-        <p>Publikuje se z hlavní větve, takže se obsah může změnit. Pro ostrý provoz si
-          soubor stáhněte k sobě, nebo si ho vezměte z přílohy konkrétního
-          <a href="https://github.com/svatekr70/nibble/releases">vydání</a> — tam už se
-          nezmění.</p>
+        <strong>Verzi v adrese si pište vždycky</strong>
+        <p><code>@v0.1.0</code> je neměnné: ten soubor už se nikdy nezmění a jsDelivr ho
+          drží v mezipaměti natrvalo. Bez verze (<code>@main</code>) se tahá poslední stav
+          hlavní větve — dobré na zkoušení, nebezpečné v ostrém provozu.</p>
       </div>
+
+      <p>Proto je <code>dist/</code> v repozitáři, i když se sestavuje: jsDelivr
+        servíruje soubory přímo z tagu a bez commitnutého buildu by ta adresa
+        neexistovala. Že bundle sedí se zdrojem, hlídá CI — po sestavení musí být
+        pracovní strom čistý.</p>
+
+      <p>Totéž leží i tady na webu
+        (<code>https://svatekr70.github.io/nibble/dist/nibble.min.js</code>), jen je to
+        vždy poslední stav hlavní větve. Jednotlivé balíčky jdou z webu načíst i zvlášť —
+        <code>dist/core/src/index.js</code>, <code>dist/ui/src/index.js</code>,
+        <code>dist/plugins/src/index.js</code> — když nechcete tahat všechno.</p>
 
       <!-- ============================================================ -->
       <h2 id="rychly-start">Rychlý start</h2>

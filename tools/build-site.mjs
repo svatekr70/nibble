@@ -1,4 +1,5 @@
 import { build } from 'esbuild';
+import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 
 /**
@@ -10,6 +11,9 @@ import { cpSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
  */
 
 const OUT = 'dist-site';
+
+// Bundle pro CDN musí být hotový dřív, než se web poskládá.
+execFileSync(process.execPath, ['tools/build-dist.mjs'], { stdio: 'inherit' });
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(`${OUT}/dist`, { recursive: true });
@@ -46,12 +50,8 @@ await build({
 });
 
 // Jeden soubor pro ty, kdo si chtějí editor jen zkusit — bez balíčkovače,
-// bez klonování, rovnou z adresy.
-await build({
-  ...common,
-  entryPoints: ['tools/bundle-entry.ts'],
-  outfile: `${OUT}/dist/nibble.min.js`,
-  minify: true,
-});
+// bez klonování, rovnou z adresy. Bere se hotový z `dist/`, aby na Pages
+// i na jsDelivr ležel bajt po bajtu tentýž soubor.
+cpSync('dist/nibble.min.js', `${OUT}/dist/nibble.min.js`);
 
 console.log(`\n  web sestaven do ${OUT}/`);

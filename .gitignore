@@ -1,8 +1,9 @@
 node_modules/
-dist/
 coverage/
 *.tsbuildinfo
 .DS_Store
+# Sestavená knihovna v /dist se commituje schválně — jde o to, aby šla načíst
+# z jsDelivr přímo z repozitáře. Ostatní výstupy buildu do repozitáře nepatří.
 demo/dist/
 demo/fixtures/
 test-results/

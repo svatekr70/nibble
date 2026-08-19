@@ -441,25 +441,35 @@ co se opravdu používá, a zbytek vyhodí.
 
 ### Bez balíčkovače, rovnou z adresy
 
-Vedle dokumentace se publikuje i sestavená knihovna — jeden soubor se vším
-z `core`, `ui` i `plugins`. Nic se neinstaluje a nic nesestavuje:
+Sestavená knihovna je jeden soubor se vším z `core`, `ui` i `plugins`. Nic se
+neinstaluje a nic nesestavuje:
 
 ```html
-<link rel="stylesheet" href="https://svatekr70.github.io/nibble/dist/nibble.css">
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.1.0/dist/nibble.css">
 <div id="obsah"><p>Ahoj.</p></div>
 
 <script type="module">
   import { Nibble, attachToolbar, link, image, table }
-    from 'https://svatekr70.github.io/nibble/dist/nibble.min.js';
+    from 'https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.1.0/dist/nibble.min.js';
 
   const editor = await Nibble.create({ target: '#obsah', plugins: [link, image, table] });
   attachToolbar(editor, { menubar: true });
 </script>
 ```
 
-Na téhle adrese je vždycky poslední verze z hlavní větve. Pro ostrý provoz si
-soubor stáhněte k sobě, nebo si ho vezměte z přílohy konkrétního
-[vydání](https://github.com/svatekr70/nibble/releases) — tam už se nezmění.
+**Verzi v adrese si pište vždycky.** `@v0.1.0` je neměnné — ten soubor už se
+nikdy nezmění a jsDelivr ho drží v mezipaměti natrvalo. Bez verze (`@main`) se
+tahá poslední stav hlavní větve, což je fajn na zkoušení a nebezpečné v ostrém
+provozu.
+
+Proto je `dist/` v repozitáři, i když se sestavuje: jsDelivr servíruje soubory
+přímo z tagu a bez commitnutého buildu by ta adresa neexistovala. Že bundle
+sedí se zdrojem, hlídá CI — po sestavení musí být pracovní strom čistý.
+
+Totéž leží i na projektovém webu
+(`https://svatekr70.github.io/nibble/dist/nibble.min.js`), tam je ale vždy
+poslední stav hlavní větve.
 
 Při napojení na `<textarea>` zůstává textarea zdrojem pravdy pro odeslání
 formuláře — stačí tedy vyměnit jeden řádek a odesílání funguje dál.

@@ -43,6 +43,14 @@ jobs:
 
       - run: npm run site:build
 
+      # `dist/` je v repozitáři schválně — jsDelivr ho servíruje přímo z tagu.
+      # Kdyby se rozešel se zdrojem, načetl by si někdo starou verzi a nikdo by
+      # nevěděl proč. Sestavení proto nesmí nic změnit.
+      - name: Commitnutý dist musí sedět se zdrojem
+        run: |
+          git diff --exit-code -- dist \
+            || { echo "dist/ neodpovídá zdroji — spusťte npm run dist a commitněte"; exit 1; }
+
       # Pojistka proti tichému rozpadu: kdyby se do webu nedostaly styly nebo
       # sestavená knihovna, nasadilo by se demo bez editoru.
       - name: Web musí nést editor i jeho styly
