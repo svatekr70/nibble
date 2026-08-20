@@ -1,5 +1,8 @@
 import type { Editor } from '../Editor.js';
-import { cleanPastedContent, extractFragment, type PasteSource } from '../model/clean.js';
+import {
+  cleanPastedContent, detectSource, extractFragment, type PasteSource,
+} from '../model/clean.js';
+import { collectStyleRules, inlineStyleRules } from '../model/pasteCss.js';
 import { looksLikeMarkdown, markdownToHtml, plainTextToHtml } from '../model/markdown.js';
 
 /**
@@ -40,12 +43,24 @@ export function cleanPastedHtml(
   doc: Document,
   options: PasteOptions = {},
 ): PasteResult {
+  // Obojí se čte z celého HTML, ne z výřezu: `<style>` blok i hlavička, podle
+  // které se pozná zdroj, jsou nad značkou fragmentu.
+  const source = detectSource(html);
+
+  // Google Sheets posílá formátování ke každé buňce a `<style>` blok má jen
+  // jako náhradu pro aplikace, které inline styly neumějí — je v něm světle
+  // šedý rámeček na všechno. Kdyby se vlil dovnitř, dostal by mřížku i sešit,
+  // který žádnou nemá. U Sheets se proto blok přeskakuje celý.
+  const rules = source === 'google-sheets' ? [] : collectStyleRules(html);
+
   const box = doc.createElement('div');
   box.innerHTML = extractFragment(html);
+  inlineStyleRules(box, rules);
 
-  const { source, removed } = cleanPastedContent(box, doc, {
+  const { removed } = cleanPastedContent(box, doc, {
     ...(options.keepStyles ? { keepStyles: options.keepStyles } : {}),
     allowedTags: options.allowedTags ?? PASTE_ALLOWED_TAGS,
+    source,
   });
 
   return { source, removed, html: box.innerHTML };
@@ -59,6 +74,11 @@ export function textToHtml(text: string, options: PasteOptions = {}): string {
     : plainTextToHtml(text);
 }
 
+/** Nese HTML ze schránky tabulku? Rozhoduje o přednosti před obrázkem. */
+function hasTable(html: string): boolean {
+  return /<table[\s>]/i.test(html);
+}
+
 export function bindPaste(editor: Editor, options: PasteOptions = {}): () => void {
   const onPaste = (event: Event): void => {
     const e = event as ClipboardEvent;
@@ -67,14 +87,22 @@ export function bindPaste(editor: Editor, options: PasteOptions = {}): () => voi
     const data = e.clipboardData;
     if (!data) return;
 
-    // Obrázek ve schránce si bere plugin obrázků; ten si událost zruší sám.
-    // Kontroluje se typ, ne jen počet souborů: Word posílá zároveň obrázek
-    // i HTML a bez toho by se vložilo obojí.
-    if (Array.from(data.files).some((f) => f.type.startsWith('image/'))) return;
-
     const html = data.getData('text/html');
     const text = data.getData('text/plain');
     if (!html && !text) return;
+
+    // Obrázek ve schránce si jinak bere plugin obrázků; ten si událost zruší
+    // sám. Kontroluje se typ, ne jen počet souborů: Word posílá zároveň
+    // obrázek i HTML a bez toho by se vložilo obojí.
+    //
+    // Excel a Sheets ale posílají obrázek vždycky — je to náhled zkopírované
+    // oblasti. Kdyby platila jen ta první úvaha, skončila by každá tabulka
+    // z Excelu v obsahu jako obrázek, se kterým už nikdo nic neudělá. Když
+    // v HTML tabulka je, má přednost ona a plugin obrázků se ke slovu nedostane.
+    if (Array.from(data.files).some((f) => f.type.startsWith('image/'))) {
+      if (!hasTable(html)) return;
+      e.stopImmediatePropagation();
+    }
 
     e.preventDefault();
 
@@ -108,11 +136,15 @@ export function bindPaste(editor: Editor, options: PasteOptions = {}): () => voi
 
     const data = e.dataTransfer;
     if (!data) return;
-    if (Array.from(data.files).some((f) => f.type.startsWith('image/'))) return;
 
     const html = data.getData('text/html');
     const text = data.getData('text/plain');
     if (!html && !text) return;
+
+    if (Array.from(data.files).some((f) => f.type.startsWith('image/'))) {
+      if (!hasTable(html)) return;
+      e.stopImmediatePropagation();
+    }
 
     e.preventDefault();
     const result = html

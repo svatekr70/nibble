@@ -4,12 +4,18 @@ import { caret, html, mount } from './helpers.js';
 /** Vyvolá vložení se skutečnou událostí a daty schránky. */
 async function paste(
   page: import('@playwright/test').Page,
-  data: { html?: string; text?: string },
+  data: { html?: string; text?: string; image?: boolean },
 ): Promise<void> {
   await page.evaluate((payload) => {
     const dt = new DataTransfer();
     if (payload.html) dt.setData('text/html', payload.html);
     if (payload.text) dt.setData('text/plain', payload.text);
+    // Tabulkové procesory dávají do schránky i náhled zkopírované oblasti.
+    // Soubor musí být opravdový soubor — `files` se jinak nenaplní a test by
+    // ověřoval něco jiného, než co se děje v prohlížeči.
+    if (payload.image) {
+      dt.items.add(new File([new Uint8Array([137, 80, 78, 71])], 'image.png', { type: 'image/png' }));
+    }
     (window as any).ed.root.dispatchEvent(
       new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
   }, data);
@@ -176,5 +182,42 @@ test.describe('vkládání čistého textu', () => {
     await page.keyboard.press('ControlOrMeta+Shift+v');
     await paste(page, { html: '<p><strong>tučně</strong></p>', text: 'tučně' });
     await expect.poll(() => html(page)).toBe('<p>tučně</p>');
+  });
+});
+
+test.describe('vkládání z tabulkového procesoru', () => {
+  test('tabulka má přednost před náhledem ve schránce', async ({ page }) => {
+    // Excel posílá tabulku i její obrázek zároveň. Bez rozlišení by v obsahu
+    // skončil obrázek a s tabulkou by už nikdo nic neudělal.
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await paste(page, {
+      html: '<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>',
+      text: 'a\tb',
+      image: true,
+    });
+    await expect.poll(() => html(page)).toContain('<td>a</td>');
+    await expect.poll(() => html(page)).not.toContain('<img');
+  });
+
+  test('samotný obrázek si dál bere plugin obrázků', async ({ page }) => {
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await paste(page, { html: '<img src="file:///C:/tmp/x.png">', image: true });
+    await expect.poll(() => html(page)).not.toContain('file:///');
+  });
+
+  test('sloučené buňky a šířky sloupců projdou', async ({ page }) => {
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await paste(page, {
+      html: '<table><colgroup><col width="300"><col width="33"></colgroup><tbody>'
+        + '<tr><td colspan="2" style="background-color:#1f497d">nadpis</td></tr>'
+        + '<tr><td>a</td><td>b</td></tr></tbody></table>',
+    });
+    const out = await html(page);
+    expect(out).toContain('colspan="2"');
+    expect(out).toContain('width="300"');
+    expect(out).toContain('background-color: #1f497d');
   });
 });

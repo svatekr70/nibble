@@ -86,6 +86,36 @@ schránky se dostane dřív nebo později. Ze stylů se nechává jen to, co nes
 patří zdrojovému dokumentu, ne cílové stránce. Padá i `color: #000000`, které
 Google Docs razítkuje na všechno — natvrdo černý text rozbije tmavý motiv.
 
+### Tabulky z Google Sheets a Excelu
+
+U tabulky je poměr obrácený: mřížka, šířky sloupců a odsazení buněk **jsou**
+ten obsah, kvůli kterému se kopírovalo. Uvnitř tabulky proto projde i to, co by
+v odstavci padlo — rámečky, `width`, `height`, `padding` a velikost písma.
+
+Každá aplikace to posílá jinak a rozdíl není kosmetický:
+
+| | Google Sheets | Excel |
+|---|---|---|
+| kde je formátování | u každé buňky | v bloku stylů pod třídami `xl*` |
+| blok `<style>` | jen náhradní šedý rámeček — přeskakuje se | rozepíše se k prvkům |
+| značka fragmentu | kolem tabulky | **uvnitř** tabulky, hned za `<table>` |
+| obrázek ve schránce | ano | ano |
+
+Poslední dva řádky rozhodují o tom, jestli vůbec něco dorazí. Fragment
+z Excelu začíná `<col>` a `<tr>`, takže dodržet jeho hranice doslova znamená
+vložit obsah, který prohlížeč mimo tabulku zahodí; bere se proto celé tělo.
+A obrázek ve schránce je jen náhled zkopírované oblasti — když je v HTML
+tabulka, má přednost ona, jinak by v obsahu skončil obrázek, se kterým už
+nikdo nic neudělá.
+
+Formátování se pak srovnává na to, co nese záměr autora. Shodný rámeček ve
+všech buňkách se zapíše jednou (na reálném sešitu 46 × 41 to je 119 kB
+rozdílu), `vertical-align: bottom` na úplně všech buňkách je výchozí stav
+sešitu a padá, `width: 0px` na tabulce je vnitřní značka Sheets. Velikosti
+písma se přepočítají na poměr k základu sešitu — `20pt` v desetibodovém sešitu
+není „dvacet bodů", ale „dvakrát větší než okolí", a to platí i na stránce
+s jiným písmem.
+
 Čistý text se převádí z Markdownu, ale jen když má **výrazný** znak: nadpis,
 blok kódu, odkaz nebo aspoň dva po sobě jdoucí řádky seznamu. Jedna pomlčka na
 začátku řádku je běžná věta, ne struktura. `Ctrl+Shift+V` vloží vždy jako text.
@@ -331,7 +361,8 @@ písmo; zbytek zásobníku je jen záchrana.
 > **Pozor na vkládání.** Čištění schránky `font-family` a `font-size` zahazuje
 > záměrně: z Wordu přijde Calibri 11pt úplně na všem. Znamená to ale, že
 > kopírování uvnitř editoru písmo neponese. Je to vědomý kompromis ve prospěch
-> častějšího případu.
+> častějšího případu. Výjimkou je velikost písma uvnitř vložené tabulky — tam
+> odlišuje nadpis od poznámky pod čarou a přebírá se jako poměr v `em`.
 
 ## Barvy
 

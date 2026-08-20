@@ -3,6 +3,33 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
+## [Nevydáno]
+
+### Přidáno
+
+- Vkládání tabulek z Google Sheets a Excelu. Formátování se přebírá z toho,
+  co aplikace do schránky opravdu dá: Sheets posílá styly u každé buňky,
+  Excel je má v bloku stylů pod třídami `xl*` — ten se teď rozepisuje
+  k prvkům, jinak by z Excelu přišla tabulka bez jediné barvy.
+- Shodný rámeček ve všech buňkách se zapíše jednou místo ke každé straně
+  každé buňky zvlášť. Na reálném sešitu 46 × 41 to je 119 kB rozdílu.
+- Velikosti písma ze sešitu se přepočítají na poměr k jeho základu (`em`),
+  takže si tabulka nese vzájemné poměry a přizpůsobí se písmu stránky.
+  Rodina písma se nepřebírá.
+
+### Opraveno
+
+- `<colgroup>` a `<col>` se při vkládání zahazovaly jako prázdné obaly —
+  vložená tabulka tím přišla o všechny šířky sloupců.
+- Prázdný `<tr>` se rozbalil a jeho buňky zůstaly viset přímo v `<tbody>`.
+- Google Sheets se rozpoznával jako Word (posílá `mso-data-placement`), takže
+  se na něj pouštěla přestavba wordovských seznamů.
+- Vkládání z Excelu končilo obrázkem: Excel dává do schránky kromě HTML
+  i náhled zkopírované oblasti a ten měl přednost. Když je v HTML tabulka,
+  má teď přednost ona.
+- Fragment ze schránky, který začíná uvnitř tabulky (tak ho značkuje Excel),
+  se bral doslova — prohlížeč pak `<tr>` bez tabulky zahodil a nezbyl text.
+
 ## [0.1.0] — 2026-08-19
 
 První veřejná verze. Editor je funkčně hotový; číslo 0.x drží prostor pro

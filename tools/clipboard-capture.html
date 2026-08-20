@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Nibble — odchyt schránky</title>
+<!--
+  Záchytná stránka pro vzorky ze schránky.
+
+  Nesmí se schránkou dělat vůbec nic — žádné čištění, žádnou normalizaci, ani
+  průchod přes innerHTML. Právě ty drobnosti, které by se tím ztratily (pořadí
+  atributů, uvozovky kolem hodnot, značky fragmentu, blok se styly a třídami
+  .xl65 z Excelu), jsou to jediné, kvůli čemu se vzorek sbírá.
+
+  Stránka je proto schválně bez závislostí a mimo build: otevře se přímo
+  ze souboru, přežije to i bez serveru.
+-->
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfbfa; --fg: #1a1a18; --muted: #6b6b66;
+    --line: #dcdcd6; --card: #fff; --accent: #2f6f4f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17171a; --fg: #e8e8e4; --muted: #9a9a94;
+            --line: #33333a; --card: #1f1f24; --accent: #7fc9a0; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1.5rem 4rem; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 .3rem; }
+  h2 { font-size: .95rem; margin: 1.6rem 0 .5rem; text-transform: uppercase;
+       letter-spacing: .06em; color: var(--muted); }
+  p.lead { margin: 0 0 1.5rem; color: var(--muted); }
+  .row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+  label { font-size: .85rem; color: var(--muted); }
+  input[type=text] {
+    font: inherit; padding: .45rem .6rem; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--card); color: var(--fg); min-width: 16rem;
+  }
+  button {
+    font: inherit; padding: .45rem .9rem; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--card); color: var(--fg); cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  #drop {
+    border: 2px dashed var(--line); border-radius: 10px; background: var(--card);
+    padding: 2.5rem 1rem; text-align: center; color: var(--muted); cursor: text;
+    outline: none; transition: border-color .15s;
+  }
+  #drop:focus { border-color: var(--accent); color: var(--fg); }
+  #drop b { display: block; font-size: 1.05rem; color: var(--fg); margin-bottom: .3rem; }
+  #out { display: none; }
+  table.types { border-collapse: collapse; font-size: .87rem; width: 100%; }
+  table.types th, table.types td {
+    text-align: left; padding: .35rem .7rem; border-bottom: 1px solid var(--line);
+  }
+  table.types th { color: var(--muted); font-weight: 500; }
+  table.types td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tabs { display: flex; gap: .3rem; margin: 1.2rem 0 0; flex-wrap: wrap; }
+  .tabs button { border-radius: 6px 6px 0 0; border-bottom-color: transparent; }
+  .tabs button[aria-selected=true] { border-color: var(--line); border-bottom-color: var(--card);
+    background: var(--card); color: var(--accent); }
+  .panel {
+    border: 1px solid var(--line); border-radius: 0 8px 8px 8px; background: var(--card);
+    padding: .9rem; margin-top: -1px;
+  }
+  pre {
+    margin: 0; max-height: 26rem; overflow: auto; white-space: pre-wrap; word-break: break-word;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  iframe { width: 100%; height: 24rem; border: 0; background: #fff; border-radius: 4px; }
+  .hint { font-size: .85rem; color: var(--muted); margin-top: .8rem; }
+  .hint code { background: var(--card); padding: .1em .35em; border-radius: 4px;
+               border: 1px solid var(--line); }
+  ol.todo { color: var(--muted); font-size: .9rem; padding-left: 1.2rem; }
+  ol.todo li { margin-bottom: .25rem; }
+  #saved { color: var(--accent); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Odchyt schránky</h1>
+  <p class="lead">
+    Zkopíruj oblast v Google Sheets nebo Excelu, klikni do rámečku níž a dej Ctrl+V.
+    Stránka nic nemění — uloží přesně to, co ve schránce je.
+  </p>
+
+  <div class="row">
+    <label for="name">Název vzorku</label>
+    <input type="text" id="name" placeholder="např. sheets-slouceni-a-barvy" autocomplete="off">
+  </div>
+
+  <div id="drop" contenteditable="true" spellcheck="false" role="textbox" aria-label="Sem vlož obsah schránky">
+    <b>Sem klikni a stiskni Ctrl+V</b>
+    (nebo sem obsah přetáhni)
+  </div>
+
+  <div id="out">
+    <h2>Co ve schránce bylo</h2>
+    <table class="types"><tbody id="types"></tbody></table>
+
+    <div class="row" style="margin-top:1rem">
+      <button class="primary" id="save">Uložit vzorek do souboru</button>
+      <button id="copy">Kopírovat do schránky</button>
+      <span id="saved"></span>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div class="panel" id="panel"></div>
+  </div>
+
+  <h2>Co se hodí nasbírat</h2>
+  <ol class="todo">
+    <li>Sešit s <b>sloučenými buňkami</b> — vodorovně i svisle.</li>
+    <li>Barvy pozadí a barvy písma, tučné/kurzíva.</li>
+    <li>Zarovnání vlevo / na střed / vpravo a zarovnání na spodek buňky.</li>
+    <li>Rámečky: tabulka s mřížkou a tabulka <b>úplně bez rámečků</b> — na tom se pozná,
+        co je záměr a co jen výchozí nastavení tabulkového procesoru.</li>
+    <li>Sloupce s ručně nastavenou šířkou a řádek záhlaví.</li>
+    <li>Totéž z Excelu i z Google Sheets — každý to posílá jinak.</li>
+  </ol>
+
+  <p class="hint">
+    Uložený soubor se jmenuje <code>nibble-paste-&lt;název&gt;.txt</code> a spadne
+    do složky se staženými soubory.
+  </p>
+</main>
+
+<script>
+'use strict';
+
+const MARK = '@@@nibble-capture';
+const drop = document.getElementById('drop');
+const out = document.getElementById('out');
+const typesBody = document.getElementById('types');
+const tabsBox = document.getElementById('tabs');
+const panel = document.getElementById('panel');
+const saved = document.getElementById('saved');
+const nameInput = document.getElementById('name');
+
+/** Poslední odchycený vzorek: pole { type, data } v pořadí, v jakém přišlo. */
+let capture = null;
+
+const bytes = (s) => new TextEncoder().encode(s).length;
+
+function escapeHtml(s) {
+  return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+}
+
+function readClipboard(data) {
+  const parts = [];
+  for (const type of Array.from(data.types || [])) {
+    if (type === 'Files') continue;
+    let value = '';
+    try { value = data.getData(type); } catch (err) { value = '(nešlo přečíst: ' + err + ')'; }
+    parts.push({ type, data: value });
+  }
+  const files = Array.from(data.files || []).map((f) => ({ name: f.name, type: f.type, size: f.size }));
+  return { parts, files };
+}
+
+function show(result) {
+  capture = result;
+  saved.textContent = '';
+  typesBody.innerHTML = '';
+
+  for (const part of result.parts) {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.textContent = part.type;
+    const td = document.createElement('td');
+    td.className = 'num';
+    td.textContent = bytes(part.data).toLocaleString('cs') + ' B';
+    tr.append(th, td);
+    typesBody.appendChild(tr);
+  }
+  for (const f of result.files) {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.textContent = 'soubor: ' + f.name + ' (' + f.type + ')';
+    const td = document.createElement('td');
+    td.className = 'num';
+    td.textContent = f.size.toLocaleString('cs') + ' B';
+    tr.append(th, td);
+    typesBody.appendChild(tr);
+  }
+
+  const html = result.parts.find((p) => p.type === 'text/html');
+  const views = result.parts.map((p) => ({ label: p.type, render: () => {
+    const pre = document.createElement('pre');
+    pre.textContent = p.data;
+    return pre;
+  } }));
+  if (html) {
+    views.push({ label: 'náhled', render: () => {
+      const frame = document.createElement('iframe');
+      frame.setAttribute('sandbox', '');
+      frame.srcdoc = html.data;
+      return frame;
+    } });
+  }
+
+  tabsBox.innerHTML = '';
+  views.forEach((view, i) => {
+    const b = document.createElement('button');
+    b.textContent = view.label;
+    b.setAttribute('aria-selected', String(i === 0));
+    b.onclick = () => {
+      for (const other of tabsBox.children) other.setAttribute('aria-selected', 'false');
+      b.setAttribute('aria-selected', 'true');
+      panel.innerHTML = '';
+      panel.appendChild(view.render());
+    };
+    tabsBox.appendChild(b);
+  });
+  panel.innerHTML = '';
+  if (views.length) panel.appendChild(views[0].render());
+
+  out.style.display = 'block';
+  drop.innerHTML = '<b>Odchyceno</b>zkopíruj další oblast a vlož ji sem znovu';
+}
+
+/** Vzorek jako jeden soubor. Části jsou oddělené řádkem, který v HTML nevznikne. */
+function serialize() {
+  const name = (nameInput.value.trim() || 'vzorek');
+  const lines = [
+    MARK + ' v1@@@',
+    'nazev: ' + name,
+    'kdy: ' + new Date().toISOString(),
+    'typy: ' + capture.parts.map((p) => p.type + ' (' + bytes(p.data) + ' B)').join(', '),
+  ];
+  for (const f of capture.files) {
+    lines.push('soubor: ' + f.name + ' (' + f.type + ', ' + f.size + ' B)');
+  }
+  for (const part of capture.parts) {
+    lines.push(MARK + ': ' + part.type + '@@@');
+    lines.push(part.data);
+  }
+  lines.push(MARK + ': konec@@@');
+  return lines.join('\n');
+}
+
+function slug(s) {
+  return s.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'vzorek';
+}
+
+document.getElementById('save').onclick = () => {
+  if (!capture) return;
+  const blob = new Blob([serialize()], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nibble-paste-' + slug(nameInput.value) + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  saved.textContent = 'uloženo jako ' + a.download;
+};
+
+document.getElementById('copy').onclick = async () => {
+  if (!capture) return;
+  await navigator.clipboard.writeText(serialize());
+  saved.textContent = 'zkopírováno';
+};
+
+drop.addEventListener('paste', (e) => {
+  e.preventDefault();
+  if (e.clipboardData) show(readClipboard(e.clipboardData));
+});
+
+drop.addEventListener('dragover', (e) => e.preventDefault());
+drop.addEventListener('drop', (e) => {
+  e.preventDefault();
+  if (e.dataTransfer) show(readClipboard(e.dataTransfer));
+});
+
+// Ctrl+V mimo rámeček má fungovat taky — jinak to vypadá jako by se nic nestalo.
+document.addEventListener('paste', (e) => {
+  if (e.target === drop || drop.contains(e.target)) return;
+  e.preventDefault();
+  if (e.clipboardData) show(readClipboard(e.clipboardData));
+});
+
+drop.addEventListener('focus', () => {
+  if (!capture) drop.innerHTML = '<b>Teď stiskni Ctrl+V</b>obsah schránky se nikam neodesílá';
+});
+drop.focus();
+</script>
+</body>
+</html>

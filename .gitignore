@@ -12,3 +12,6 @@ dist-site/
 
 # Původ vzorků: schéma cizí databáze do veřejného repozitáře nepatří.
 packages/core/test/fixtures/provenance.json
+
+# Vzorky ze schránky. Jsou v nich reálná data ze sešitů — do repozitáře nepatří.
+samples/
