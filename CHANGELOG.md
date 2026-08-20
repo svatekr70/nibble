@@ -3,7 +3,7 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
-## [Nevydáno]
+## [0.2.0] — 2026-08-20
 
 ### Přidáno
 
@@ -29,6 +29,12 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   má teď přednost ona.
 - Fragment ze schránky, který začíná uvnitř tabulky (tak ho značkuje Excel),
   se bral doslova — prohlížeč pak `<tr>` bez tabulky zahodil a nezbyl text.
+
+### Ověření
+
+- 482 jednotkových testů (vitest + linkedom) a 290 testů v prohlížeči
+  (Playwright + Chromium). Chování tabulek ze schránky se ověřovalo proti
+  skutečným vzorkům z Google Sheets (46 × 41 buněk) a z Excelu.
 
 ## [0.1.0] — 2026-08-19
 
