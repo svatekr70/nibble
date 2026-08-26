@@ -15,6 +15,8 @@ export { openColorPicker, toHex, DEFAULT_SWATCHES } from './ColorPicker.js';
 export { openMenu } from './Menu.js';
 export { openGridPicker } from './GridPicker.js';
 export type { GridPickerOptions } from './GridPicker.js';
+export { buildGlyphField } from './GlyphPicker.js';
+export type { GlyphFieldHandle } from './GlyphPicker.js';
 export { Menubar, DEFAULT_MENUBAR } from './Menubar.js';
 export type { MenubarMenu, MenuNode } from './Menubar.js';
 export { openSettingsDialog, openConfigCode } from './SettingsDialog.js';
@@ -31,7 +33,7 @@ const DEFAULT_LAYOUT = [
   ['forecolor', 'backcolor'],
   ['bullist', 'numlist'],
   ['alignleft', 'aligncenter', 'alignright', 'alignjustify'],
-  ['link', 'image', 'media', 'table'],
+  ['link', 'image', 'media', 'table', 'emoji', 'charmap'],
   ['blockquote', 'hr', 'removeformat'],
   ['code', 'searchreplace', 'fullscreen'],
 ] as const;

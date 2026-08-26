@@ -1,4 +1,5 @@
 import type { Editor } from '../Editor.js';
+import type { GlyphCategory, GlyphEntry } from './glyphs.js';
 
 /**
  * Registr ovládacích prvků.
@@ -128,7 +129,15 @@ export interface ContextToolbarSpec {
 export type DialogFieldType =
   | 'text' | 'url' | 'textarea' | 'number' | 'select' | 'checkbox' | 'file' | 'html'
   /** Zdrojový kód se zvýrazněním syntaxe. */
-  | 'code';
+  | 'code'
+  /**
+   * Mřížka pojmenovaných znaků s kategoriemi a hledáním.
+   *
+   * Dva druhy, protože se liší jen sazbou: `emoji` vysází políčka barevným
+   * písmem emoji, `chars` písmem obsahu — v mapě znaků má být vidět přesně
+   * to, co se vloží do textu.
+   */
+  | 'emoji' | 'chars';
 
 export interface DialogField {
   type: DialogFieldType;
@@ -144,6 +153,14 @@ export interface DialogField {
   html?: string;
   /** Jen pro type: 'code' — kam postavit kurzor nebo co označit. */
   selection?: readonly [number, number];
+  /**
+   * Jen pro type: 'emoji' a 'chars' — co nabídnout a v jakých kategoriích.
+   *
+   * Seznam se předává zvenčí, ne aby si ho dialog nesl sám: je to pár set
+   * položek a do balíčku patří jen tehdy, když si někdo ten plugin zapne.
+   */
+  glyphs?: readonly GlyphEntry[];
+  categories?: readonly GlyphCategory[];
 }
 
 export interface DialogSpec {

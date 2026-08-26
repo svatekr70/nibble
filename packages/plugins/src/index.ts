@@ -10,6 +10,11 @@ export type { TableProps, RowProps } from './tableProps.js';
 export type { TableOptions } from './table.js';
 export { media, createMediaPlugin, toEmbedUrl, closestMedia, selectedMedia } from './media.js';
 export type { MediaOptions } from './media.js';
+export { emoji, createEmojiPlugin, EMOJI, EMOJI_CATEGORIES } from './emoji.js';
+export { charmap, createCharmapPlugin, CHARMAP, CHARMAP_CATEGORIES } from './charmap.js';
+export type { CharmapOptions } from './charmap.js';
+export { parseGlyphTable, glyphFor } from './glyphTable.js';
+export type { EmojiOptions } from './emoji.js';
 export {
   code, autolink, wordcount, fullscreen, searchreplace, typography,
   countWords, findMatches,

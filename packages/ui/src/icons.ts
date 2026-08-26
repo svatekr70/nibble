@@ -33,6 +33,12 @@ export const ICONS: Record<string, string> = {
   header: 'M4 5h16v5H4zM4 10v9h16v-9M9 10v9M15 10v9',
   media: 'M4 5h16v14H4zM10 9.5l5 2.5-5 2.5z',
   code: 'M9 7l-5 5 5 5M15 7l5 5-5 5',
+  // Obličej tahem, ne vyplněný kroužek: v liště sousedí s barvami a plný
+  // puntík by se mezi nimi četl jako další vzorník.
+  emoji: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M9 10h.01M15 10h.01M8.4 14.2a4.4 4.4 0 0 0 7.2 0',
+  // Omega. Tou značí mapu znaků každý editor, takže se nemusí vysvětlovat.
+  charmap: 'M5 19h4.5M14.5 19h4.5'
+    + 'M9.5 19c-3.2-1.4-5-4-5-7A7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 7.5 7.5c0 3-1.8 5.6-5 7',
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M16 16l4 4',
   fullscreen: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
   forecolor: 'M5 17 10 5h1.6L16.6 17M7.4 13h7.6',

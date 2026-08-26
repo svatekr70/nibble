@@ -408,6 +408,50 @@ Bez uvedení platí výchozí seznam běžných video služeb. Prázdné pole za
 všechny rámce. I s výchozím seznamem je to přísnější než dnešní stav
 v cílovém projektu, kde `valid_elements: '*[*]'` nekontroluje nic.
 
+## Emotikony vkládají znak, ne obrázek
+
+Plugin `emoji` otevře mřížku s kategoriemi a hledáním. Do obsahu se dostane
+obyčejný znak — v uloženém HTML tedy nepřibude nic, co by se muselo hostovat,
+sanitizovat nebo stahovat, a serializér prochází text po kódových bodech, takže
+složené emoji (vlajky, ZWJ) přežijí uložení v celku.
+
+Hledá se česky a bez ohledu na diakritiku: `zirafa` najde 🦒 stejně jako
+`žirafa`. Kromě názvu se prohledávají i klíčová slova, takže `halloween` najde
+dýni. Seznam je vědomě ruční výběr osmi set položek, ne úplná tabulka Unicode —
+ta má přes tři tisíce znaků, česky pojmenovaných nikde, a nedá se v ní nic najít.
+Kdo chce jiný, předá si vlastní:
+
+```js
+import { createEmojiPlugin } from '@nibble/plugins';
+
+createEmojiPlugin({
+  emoji: [{ char: '🦫', name: 'bobr', category: 'priroda', keywords: ['hlodavec'] }],
+  categories: [{ key: 'priroda', label: 'Zvířata' }],
+});
+```
+
+## Mapa znaků a české uvozovky
+
+Plugin `charmap` je tatáž mřížka, jen s jiným seznamem: interpunkce, mezery,
+měny, matematika, zlomky, šipky, písmena s diakritikou, řecká abeceda a symboly.
+Políčka se sázejí písmem obsahu, ne barevným písmem emoji — v mapě znaků má být
+vidět přesně to, co se vloží do textu.
+
+Uloží se to tak, jak to z projektu lidé znají: při `entityEncoding: 'named'`
+serializér sáhne do tabulky HTML4, takže z `©` bude `&copy;` a z `½` `&frac12;`.
+Zapisovat entity ručně tedy není kde.
+
+Dvě věci, které mapa znaků řeší a mřížka emotikonů ne:
+
+- **Neviditelné znaky.** Pevná mezera je pro české sazby ta nejužitečnější
+  položka celé mapy a přitom není vidět. Prázdné políčko vypadá jako chyba
+  vykreslení, takže se místo ní ukáže náhrada `␣` — vloží se pořád ta mezera.
+  V uloženém HTML z ní je `&nbsp;` vždycky, bez ohledu na nastavení entit:
+  zapsaná doslova je k nerozeznání od obyčejné mezery a nikdo by ji v obsahu
+  nenašel.
+- **Hledání podle kódu.** `U+00A9` i `00a9` najde `©`. Je to jediná cesta ke
+  znaku, jehož český název člověk nezná, a kód se pod mřížkou i ukazuje.
+
 ## Editor ukazuje, jak to bude vypadat
 
 Tabulka s vlastním `border` nebo `style` se v editoru vykreslí přesně tak, jak
@@ -563,7 +607,7 @@ jinam, kurzor uvnitř něj vyskočí na rodiče. Operace, které mění struktur
 ```
 packages/core     jádro — model, DOM, výběr, historie, příkazy, vstup, registr UI
 packages/ui       vykreslení — lišta, plovoucí lišta, dialogy, ikony, CSS
-packages/plugins  odkazy, obrázky
+packages/plugins  odkazy, obrázky, tabulky, videa, emotikony, nástroje
 e2e               testy v prohlížeči (Playwright)
 tools             extrakce vzorku z ostrého provozu, build, dev server
 demo              ukázka round-tripu + zkušební stránka pro e2e

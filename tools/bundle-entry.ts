@@ -3,7 +3,8 @@
 export * from '@nibble/core';
 export { attachToolbar, Toolbar, ContextToolbar, openDialog, iconSvg } from '@nibble/ui';
 export {
-  link, image, table, media, code, autolink, wordcount, fullscreen,
-  searchreplace, typography, fonts, createImagePlugin, createTablePlugin,
-  createMediaPlugin, createFontPlugin,
+  link, image, table, media, emoji, charmap, code, autolink, wordcount,
+  fullscreen, searchreplace, typography, fonts, createImagePlugin,
+  createTablePlugin, createMediaPlugin, createFontPlugin, createEmojiPlugin,
+  createCharmapPlugin,
 } from '@nibble/plugins';

@@ -63,6 +63,7 @@ export const DEFAULT_MENUBAR: readonly MenubarMenu[] = [
     items: [
       { control: 'link' }, { control: 'image' }, { control: 'media' },
       { ...S(), control: 'table' }, { control: 'hr' },
+      { ...S(), control: 'emoji' }, { control: 'charmap' },
     ],
   },
   {

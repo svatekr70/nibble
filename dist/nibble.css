@@ -466,6 +466,140 @@
 
 .nb-grid-more:hover { background: var(--nb-hover); }
 
+/* ---------- mřížka znaků: emotikony a mapa znaků ---------- */
+
+/*
+ * Dialog s mřížkou znaků je širší než ostatní.
+ *
+ * Přes `:has()`, ne přes vlastní třídu: šířka je důsledek toho, co uvnitř je,
+ * a `DialogSpec` by kvůli ní musel znát rozměry — což je přesně to, co
+ * nemá. Devět sloupců mřížky a seznam kategorií vedle sebe se do výchozích
+ * 440 px nevejdou.
+ */
+.nb-dialog:has(.nb-glyphs) { width: min(600px, calc(100vw - 32px)); }
+
+/* Roluje mřížka, ne celý dialog — seznam kategorií a hledání mají zůstat vidět. */
+.nb-dialog:has(.nb-glyphs) .nb-dialog-body { overflow: hidden; }
+
+.nb-glyphs {
+  display: flex;
+  gap: 16px;
+  min-height: 0;
+}
+
+.nb-glyphs-cats {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 1px;
+  width: 132px;
+}
+
+.nb-glyphs-cat {
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--nb-muted);
+  cursor: pointer;
+}
+
+.nb-glyphs-cat:hover { background: var(--nb-hover); }
+.nb-glyphs-cat:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+
+.nb-glyphs-cat[aria-selected="true"] {
+  background: var(--nb-active);
+  color: var(--nb-accent);
+  font-weight: 600;
+}
+
+.nb-glyphs-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nb-glyphs-search { display: flex; flex-direction: column; gap: 5px; }
+.nb-glyphs-search label { font-size: 13px; color: var(--nb-muted); }
+
+.nb-glyphs-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 2px;
+  height: 268px;
+  overflow-y: auto;
+  padding: 2px;
+  border: 1px solid var(--nb-border);
+  border-radius: 6px;
+  /* Zarovnat nahoru: při pár výsledcích by se jinak rozlezly přes celou výšku. */
+  align-content: start;
+}
+
+.nb-glyphs-tile {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/*
+ * Barevná písma emoji jmenovitě.
+ *
+ * Bez nich vysází prohlížeč část znaků černobíle z běžného písma — nejvíc
+ * u symbolů jako ✅ nebo ❤, které mají i textovou podobu. Uživatel by pak
+ * v mřížce viděl něco jiného, než co se vloží do obsahu.
+ */
+.nb-glyphs-emoji .nb-glyphs-tile {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
+    "Twemoji Mozilla", sans-serif;
+}
+
+/*
+ * Mapa znaků naopak barevné písmo nechce.
+ *
+ * Vkládá se `©`, ne obrázek copyrightu — v mřížce má tedy stát přesně to,
+ * co pak bude v textu. Patkové písmo navíc odliší `l`, `I` a `1` a znaky
+ * s diakritikou vysází v proporcích, ve kterých je člověk zná z tisku.
+ */
+.nb-glyphs-chars .nb-glyphs-tile {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 19px;
+}
+
+/* Náhrada za neviditelný znak — nesmí vypadat jako znak sám. */
+.nb-glyphs-tile-stand-in {
+  color: var(--nb-muted);
+  font-size: 15px;
+}
+
+.nb-glyphs-tile:hover { background: var(--nb-hover); }
+.nb-glyphs-tile:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+.nb-glyphs-tile[aria-selected="true"] { background: var(--nb-active); }
+
+.nb-glyphs-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 16px 8px;
+  font-size: 13px;
+  color: var(--nb-muted);
+}
+
+/* Vlastní výška: bez ní by mřížka poskočila, jakmile se pod ní objeví název. */
+.nb-glyphs-caption {
+  min-height: 18px;
+  font-size: 12.5px;
+  color: var(--nb-muted);
+}
+
 /* ---------- nabídkový pruh ---------- */
 
 .nb-menubar {

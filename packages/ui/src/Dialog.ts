@@ -1,5 +1,6 @@
 import type { DialogField, DialogSpec } from '@nibble/core';
 import { buildCodeField } from './CodeField.js';
+import { buildGlyphField } from './GlyphPicker.js';
 
 /**
  * Dialogy.
@@ -19,6 +20,15 @@ function buildField(field: DialogField, initial: unknown, doc: Document): HTMLEl
 
   if (field.type === 'html') {
     wrap.innerHTML = field.html ?? '';
+    return wrap;
+  }
+
+  // Mřížka znaků si popisek nese sama — nad ní by visel nadpis, který jen
+  // opakuje název dialogu.
+  if (field.type === 'emoji' || field.type === 'chars') {
+    const picker = buildGlyphField(doc, field);
+    wrap.classList.add('nb-field-grow');
+    wrap.append(picker.element, picker.input);
     return wrap;
   }
 

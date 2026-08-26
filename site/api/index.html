@@ -402,7 +402,7 @@ editor.<span class="t">currentBlock</span>()     <span class="c">// Element | nu
         fontsize lineheight</code> · <code>bold italic underline strike</code> ·
         <code>forecolor backcolor</code> · <code>bullist numlist</code> ·
         <code>alignleft aligncenter alignright alignjustify</code> · <code>link image
-        media table</code> · <code>blockquote hr removeformat</code> · <code>code
+        media table emoji charmap</code> · <code>blockquote hr removeformat</code> · <code>code
         searchreplace fullscreen</code>. Tlačítko, jehož plugin není načtený, se
         v liště prostě neobjeví.</p>
 
@@ -461,7 +461,10 @@ editor.<span class="t">currentBlock</span>()     <span class="c">// Element | nu
 
       <p>Typy polí: <code>text</code>, <code>url</code>, <code>number</code>,
         <code>select</code>, <code>checkbox</code>, <code>color</code>,
-        <code>textarea</code> a <code>code</code> (velké okno se zvýrazněnou syntaxí).</p>
+        <code>textarea</code>, <code>code</code> (velké okno se zvýrazněnou syntaxí)
+        a dvojice <code>emoji</code> / <code>chars</code> (mřížka pojmenovaných znaků
+        s kategoriemi a hledáním; seznam se předává v <code>field.glyphs</code>,
+        liší se jen sazbou políček).</p>
 
       <div class="callout">
         <strong>Výběr přežije otevření dialogu</strong>
@@ -526,6 +529,8 @@ ui.prefs.<span class="t">onChange</span>(fn)               <span class="c">// vr
           <tr><td><code>image</code> / <code>createImagePlugin({ upload })</code></td><td>Obrázky. Bez adaptéru jako <code>data:</code> URL, s adaptérem nahrání na server.</td></tr>
           <tr><td><code>table</code></td><td>Tabulky: mřížkový model, řádky a sloupce, slučování, tažení šířky sloupce, vlastnosti tabulky i řádku.</td></tr>
           <tr><td><code>media</code></td><td>Videa přes <code>&lt;iframe&gt;</code> z povolených hostitelů.</td></tr>
+          <tr><td><code>emoji</code> / <code>createEmojiPlugin({ emoji })</code></td><td>Emotikony: mřížka s kategoriemi a hledáním, česky. Vkládá znak, ne obrázek.</td></tr>
+          <tr><td><code>charmap</code> / <code>createCharmapPlugin({ chars })</code></td><td>Mapa speciálních znaků v téže mřížce: interpunkce, mezery, měny, matematika, zlomky, šipky, diakritika, řecká abeceda, symboly. Hledá i podle <code>U+00A9</code>.</td></tr>
           <tr><td><code>code</code></td><td>Editace zdrojového HTML se zvýrazněnou syntaxí a pamatováním pozice kurzoru.</td></tr>
           <tr><td><code>autolink</code></td><td>Z napsané adresy udělá odkaz po mezeře nebo Enteru.</td></tr>
           <tr><td><code>wordcount</code></td><td>Počet slov a znaků do stavového řádku.</td></tr>

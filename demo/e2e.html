@@ -18,7 +18,7 @@
 import { Nibble, normalizeNewlines } from '/dist/core/src/index.js';
 import { attachToolbar } from '/dist/ui/src/index.js';
 import {
-  link, createImagePlugin, table, media, code, autolink,
+  link, createImagePlugin, table, media, emoji, charmap, code, autolink,
   wordcount, fullscreen, searchreplace, typography, fonts,
 } from '/dist/plugins/src/index.js';
 
@@ -40,7 +40,7 @@ window.mount = async (html, opts = {}) => {
   window.ed = await Nibble.create({
     target: host, content: window.original, schema: 'legacy', height: 260,
     plugins: opts.plugins ?? [
-      link, imagePlugin, table, media, code, autolink,
+      link, imagePlugin, table, media, emoji, charmap, code, autolink,
       wordcount, fullscreen, searchreplace, typography, fonts,
     ],
     ...editorOpts,

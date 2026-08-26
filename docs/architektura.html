@@ -688,7 +688,7 @@
           <tr><td><code>media</code></td><td class="note">30</td><td class="note">Hotovo teď — s povolenými zdroji.</td></tr>
           <tr><td><code>autolink</code></td><td class="note">11</td><td class="note">Hotovo.</td></tr>
           <tr><td><code>code</code></td><td class="note">9</td><td class="note">Hotovo. Ukazuje výstup <code>getHTML()</code>, takže otevřít a zavřít zdroj nic nezmění.</td></tr>
-          <tr><td><code>emoticons</code>, <code>wordcount</code>, <code>searchreplace</code>, <code>charmap</code>, <code>fullscreen</code></td><td class="note">5, 3, 2, 2, 1</td><td class="note">Kromě emoji a mapy znaků hotovo.</td></tr>
+          <tr><td><code>emoticons</code>, <code>wordcount</code>, <code>searchreplace</code>, <code>charmap</code>, <code>fullscreen</code></td><td class="note">5, 3, 2, 2, 1</td><td class="note">Hotovo. Emotikony i mapa znaků vkládají znak, ne obrázek — v uloženém HTML tedy nepřibude nic, co by se muselo hostovat, a při <code>entity_encoding: 'named'</code> z něj rovnou bude <code>&amp;copy;</code>.</td></tr>
         </tbody>
       </table>
     </div>

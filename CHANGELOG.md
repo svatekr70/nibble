@@ -3,6 +3,34 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
+## Nevydáno
+
+### Přidáno
+
+- Plugin `emoji`: mřížka emotikonů s kategoriemi a hledáním, obojí česky.
+  Vkládá se znak, ne obrázek — v uloženém HTML tedy nepřibude nic, co by se
+  muselo hostovat, a serializér prochází text po kódových bodech, takže složené
+  emoji (vlajky, ZWJ) přežijí uložení v celku. V hledání se ignoruje diakritika
+  (`zirafa` najde žirafu) a prohledávají se i klíčová slova (`halloween` najde
+  dýni). Seznam je ruční výběr osmi set položek; vlastní se předá přes
+  `createEmojiPlugin({ emoji, categories })`.
+- Plugin `charmap`: mapa speciálních znaků v téže mřížce — interpunkce,
+  mezery, měny, matematika, zlomky, šipky, písmena s diakritikou, řecká
+  abeceda a symboly. Hledá se i podle kódu (`U+00A9`), který se pod mřížkou
+  ukazuje. Neviditelné znaky (pevná mezera, měkký rozdělovník) mají v mřížce
+  náhradu, aby políčko nevypadalo prázdné. Při `entityEncoding: 'named'` se
+  vložený znak uloží pojmenovanou entitou, tedy `&copy;` místo `©`.
+- Nové druhy pole dialogu `emoji` a `chars` — tatáž mřížka, liší se sazbou
+  políček. Seznam se do nich předává zvenčí, aby se přes tisíc položek dostalo
+  do balíčku jen tomu, kdo si ten plugin zapne.
+
+### Ověření
+
+- 519 jednotkových testů (vitest + linkedom) a 311 testů v prohlížeči
+  (Playwright + Chromium). U vložených znaků se ověřuje i tvar uloženého
+  HTML: `©` se při `entityEncoding: 'named'` uloží jako `&copy;` a složené
+  emoji (vlajky, ZWJ) přežije uložení v celku.
+
 ## [0.2.0] — 2026-08-20
 
 ### Přidáno

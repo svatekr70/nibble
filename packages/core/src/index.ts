@@ -24,6 +24,8 @@ export { Events } from './Events.js';
 export { History } from './history/History.js';
 export { CommandRegistry } from './commands/Registry.js';
 export { UIRegistry, isSelect, isColor, isMenu, isGrid } from './ui/Registry.js';
+export { filterGlyphs, glyphsInCategory, foldText, ALL_GLYPHS } from './ui/glyphs.js';
+export type { GlyphEntry, GlyphCategory } from './ui/glyphs.js';
 export { Prefs, groupsFromLayout, mergeGroups, DEFAULT_PREFS } from './ui/prefs.js';
 export type { EditorPrefs, PrefGroup, PrefItem, PrefsPatch, PrefsOptions, Layout } from './ui/prefs.js';
 export { registerColorCommands, currentColor, COLOR_PROPERTY } from './commands/colors.js';

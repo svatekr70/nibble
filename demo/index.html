@@ -67,7 +67,7 @@ nebo sem něco vložit z Wordu či Google Docs a sledovat, kolik uzlů se změn�
 import { Nibble, normalizeNewlines } from '/dist/core/src/index.js';
 import { attachToolbar } from '/dist/ui/src/index.js';
 import {
-  link, image, table, media, code, autolink,
+  link, image, table, media, emoji, charmap, code, autolink,
   wordcount, fullscreen, searchreplace, typography, fonts,
 } from '/dist/plugins/src/index.js';
 
@@ -93,7 +93,7 @@ async function loadSample(id) {
   editor = await Nibble.create({
     target: host, content: original, schema: 'legacy', height: 320,
     plugins: [
-      link, image, table, media, code, autolink,
+      link, image, table, media, emoji, charmap, code, autolink,
       wordcount, fullscreen, searchreplace, typography, fonts,
     ],
   });
