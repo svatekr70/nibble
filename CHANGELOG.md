@@ -3,7 +3,7 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
-## Nevydáno
+## [0.3.0] — 2026-08-26
 
 ### Přidáno
 

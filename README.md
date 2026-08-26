@@ -521,19 +521,19 @@ neinstaluje a nic nesestavuje:
 
 ```html
 <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.2.0/dist/nibble.css">
+      href="https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.3.0/dist/nibble.css">
 <div id="obsah"><p>Ahoj.</p></div>
 
 <script type="module">
   import { Nibble, attachToolbar, link, image, table }
-    from 'https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.2.0/dist/nibble.min.js';
+    from 'https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.3.0/dist/nibble.min.js';
 
   const editor = await Nibble.create({ target: '#obsah', plugins: [link, image, table] });
   attachToolbar(editor, { menubar: true });
 </script>
 ```
 
-**Verzi v adrese si pište vždycky.** `@v0.2.0` je neměnné — ten soubor už se
+**Verzi v adrese si pište vždycky.** `@v0.3.0` je neměnné — ten soubor už se
 nikdy nezmění a jsDelivr ho drží v mezipaměti natrvalo. Bez verze (`@main`) se
 tahá poslední stav hlavní větve, což je fajn na zkoušení a nebezpečné v ostrém
 provozu.

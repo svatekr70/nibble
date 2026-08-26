@@ -1,6 +1,6 @@
 {
   "name": "nibble",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Lehký WYSIWYG editor HTML ve vanilla TypeScriptu. Načtený obsah se uloží znak po znaku stejně, dokud se ho někdo nedotkne.",
   "keywords": [
