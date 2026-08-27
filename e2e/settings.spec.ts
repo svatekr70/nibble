@@ -202,19 +202,25 @@ test.describe('ozubené kolo', () => {
     await mount(page, '<p>text</p>');
 
     const box = (await gear(page).boundingBox())!;
+    // Jen to, co je v liště opravdu vidět — schované prvky mají nulový rozměr
+    // a `right` u nich nic neznamená.
     const buttons = await page.locator('.nb-toolbar .nb-btn, .nb-toolbar .nb-select')
-      .evaluateAll((nodes) => nodes.map((n) => {
-        const r = n.getBoundingClientRect();
-        return { right: r.right, top: r.top };
-      }));
+      .evaluateAll((nodes) => nodes
+        .filter((n) => (n as HTMLElement).offsetWidth > 0)
+        .map((n) => {
+          const r = n.getBoundingClientRect();
+          return { right: r.right, top: r.top };
+        }));
 
     // Napravo od všeho ostatního…
     expect(Math.min(...buttons.map((b) => box.x - b.right))).toBeGreaterThan(0);
-    // …a v jedné ose s prvním řádkem, i když se lišta láme.
+    // …a v jedné ose s prvním řádkem lišty.
     expect(Math.abs(box.y - Math.min(...buttons.map((b) => b.top)))).toBeLessThan(3);
   });
 
-  test('drží se vpravo i v úzkém editoru se zalomenou lištou', async ({ page }) => {
+  test('drží se vpravo i v úzkém editoru', async ({ page }) => {
+    // Lišta se od jisté chvíle nezalamuje — co se nevejde, jde pod trojtečku.
+    // Kolo přesto musí zůstat vpravo nahoře, aby se k nastavení šlo dostat.
     await mount(page, '<p>text</p>');
 
     await openSettings(page);
@@ -223,14 +229,15 @@ test.describe('ozubené kolo', () => {
 
     const shell = (await page.locator('.nb').boundingBox())!;
     const box = (await gear(page).boundingBox())!;
-    const groups = await page.locator('.nb-toolbar .nb-group').evaluateAll(
-      (nodes) => nodes.map((n) => Math.round(n.getBoundingClientRect().top)),
-    );
+    const bar = (await page.locator('.nb-toolbar').first().boundingBox())!;
 
-    expect(new Set(groups).size).toBeGreaterThan(1);   // lišta se opravdu zalomila
     expect(shell.x + shell.width - (box.x + box.width)).toBeLessThan(20);
-    // Pořád v jedné ose s prvním řádkem lišty, ne s tím posledním.
-    expect(Math.abs(box.y - Math.min(...groups))).toBeLessThan(4)
+    expect(Math.abs(box.y - bar.y)).toBeLessThan(8);
+
+    // A tlačítka, která se nevešla, jsou pod trojtečkou, ne na dalším řádku.
+    const hidden = await page.locator('.nb-toolbar').first()
+      .locator('.nb-overflow-panel .nb-group').count();
+    expect(hidden).toBeGreaterThan(0);
   });
 
   test('vypnout ho může jen programátor při inicializaci', async ({ page }) => {

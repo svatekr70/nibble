@@ -69,7 +69,7 @@ describe('ikony', () => {
       'hr', 'removeformat', 'blockquote', 'header', 'code', 'inlinecode',
       'emoji', 'charmap', 'search', 'fullscreen', 'forecolor', 'backcolor',
       'superscript', 'subscript', 'cut', 'copy', 'paste', 'pastetext',
-      'selectall', 'lineheight', 'trash', 'settings',
+      'selectall', 'lineheight', 'trash', 'settings', 'more',
     ];
     for (const name of expected) expect(ICONS[name], name).toBeTruthy();
   });

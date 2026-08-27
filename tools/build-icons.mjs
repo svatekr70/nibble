@@ -73,6 +73,8 @@ const MAP = {
   selectall: 'square-dashed',
   lineheight: 'align-vertical-space-around',
   settings: 'settings-2',
+  // Svislá trojtečka: co se do lišty nevešlo.
+  more: 'ellipsis-vertical',
 };
 
 /**

@@ -17,6 +17,11 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 
 ### Přidáno
 
+- **Lišta se nezalamuje.** Při větším počtu tlačítek zabrala klidně čtyři řádky
+  a z editoru zbyl proužek. Co se na šířku nevejde, jde pod trojtečku vpravo
+  a rozbalí se kliknutím; po použití se panel zavře. Odchází se po skupinách,
+  ať v liště nezbyde osamocené tlačítko, a skupiny se přesouvají, neklonují —
+  klon by měl vlastní stav.
 - *Nastavení editoru* ukazuje pod tlačítky verzi. Dosazuje ji bundler
   z `package.json`, takže se nemá kde rozejít s vydáním.
 - **Rozepsané se neztratí.** Obsah se průběžně ukládá do `localStorage` a po

@@ -18,7 +18,16 @@ export default defineConfig({
     baseURL: 'http://localhost:4321',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [{
+    name: 'chromium',
+    use: {
+      ...devices['Desktop Chrome'],
+      // Širší než výchozích 1280: od chvíle, kdy se lišta nezalamuje a co se
+      // nevejde jde pod trojtečku, by se na užším okně část tlačítek schovala
+      // a testy by na ně neklikly. Kdo přetečení testuje, zúží si editor sám.
+      viewport: { width: 1680, height: 900 },
+    },
+  }],
   webServer: {
     command: 'node tools/build.mjs && node tools/serve.mjs',
     url: 'http://localhost:4321/e2e.html',

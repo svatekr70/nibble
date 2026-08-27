@@ -252,6 +252,35 @@ na textu. Proto je to jedna třída na společném obalu, ne dvě nastavení.
 > kódu v dialogu zmizela — `max-height` přebije i výšku nastavenou inline.
 > Rozměry se proto nastavují výslovně včetně stropů.
 
+## Lišta se nezalamuje
+
+Se zalomením zabrala lišta při větším počtu tlačítek klidně čtyři řádky a
+z editoru zbyl proužek. Řádky jsou proto nejvýš dva — a to jsou ty dva, které
+si uživatel nastavil. Co se na šířku nevejde, jde pod **trojtečku** vpravo
+a rozbalí se po kliknutí. Jakmile se z panelu něco použije, zase se zavře.
+
+Odchází se **po skupinách**, ne po jednotlivých tlačítkách: jinak by v liště
+zbylo osamocené tlačítko bez těch, se kterými patří k sobě. Skupiny se do
+panelu přesouvají, neklonují — klon by měl vlastní stav a vlastní posluchače,
+takže by tlačítko v panelu ukazovalo něco jiného než totéž tlačítko v liště.
+
+Měří se v jednom průchodu: nejdřív jde všechno zpátky do lišty, změří se šířky
+a pak se odzadu odebírá, dokud se zbytek nevejde. Odebírat po jedné s měřením
+po každém kroku by znamenalo tolik reflow, kolik je skupin — a při tažení za
+okraj okna by to bylo znát. `ResizeObserver` přitom reaguje jen na změnu
+šířky; bez toho by se spustil vlastním zásahem znovu a dokola.
+
+Dvě věci, které se přitom ukázaly:
+
+`[hidden]` je v prohlížeči jen `display: none` s nejnižší specificitou, takže
+ho porazí jakékoli vlastní `display`. Trojtečka zůstávala vidět i v řádku,
+kterému se všechno vešlo, a otevírala prázdný panel. Skrytí proto přebíjí
+`display` výslovně.
+
+Testy v prohlížeči musely dostat širší okno. Na výchozích 1280 px se část
+tlačítek schová do trojtečky a testy by na ně neklikly — což je správné
+chování, jen se s ním musí počítat.
+
 ## Verze je vidět v nastavení
 
 *Nastavení editoru* ukazuje pod tlačítky „Nibble 0.3.0". Hodnotu dosazuje

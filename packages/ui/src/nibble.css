@@ -131,15 +131,55 @@
 /* Druhý řádek lišty. Sedí hned pod prvním, proto nahoře žádná čára. */
 .nb-toolbar-second { padding-top: 0; }
 
+/*
+ * Lišta se nezalamuje.
+ *
+ * Se zalomením zabrala při větším počtu tlačítek klidně čtyři řádky a z editoru
+ * zbyl proužek. Co se nevejde, jde pod trojtečku — řádky tak zůstanou nejvýš
+ * dva, a to jsou ty dva, které si uživatel nastavil.
+ */
 .nb-toolbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   padding: 6px 8px;
   border-bottom: 1px solid var(--nb-border);
   background: var(--nb-bg);
 }
+
+/* Skupiny se nesmí smrsknout — místo toho odejdou celé do trojtečky. */
+.nb-toolbar > .nb-group { flex: 0 0 auto; }
+
+/* Trojtečka drží vpravo, i když v liště zbylo málo. */
+.nb-overflow { margin-left: auto; flex: 0 0 auto; }
+
+/*
+ * Panel s tím, co se nevešlo.
+ *
+ * Kotví se k pravému okraji lišty, ne k tlačítku — u úzkého editoru by jinak
+ * vylezl ven z okna. Uvnitř se láme, protože tady na počtu řádků nezáleží.
+ */
+.nb-overflow-panel {
+  position: absolute;
+  top: calc(100% - 2px);
+  right: 4px;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 6px;
+  border: 1px solid var(--nb-border);
+  border-radius: 8px;
+  background: var(--nb-bg);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, .45);
+}
+
+/* Uvnitř panelu je svislá čára mezi skupinami k ničemu — řádky se lámou. */
+.nb-overflow-panel .nb-sep { display: none; }
 
 /*
  * Horní pruh: lišta vlevo, ozubené kolo vpravo.
@@ -185,6 +225,16 @@
   margin: 4px 6px;
   background: var(--nb-border);
 }
+
+/*
+ * Skrytí musí přebít `display` níž.
+ *
+ * `[hidden]` je v prohlížeči jen `display: none` s nejnižší specificitou —
+ * jakékoli vlastní `display` ho porazí. Trojtečka pak zůstala v liště vidět
+ * i tam, kde se všechno vešlo, a klepnutí na ni otevřelo prázdný panel.
+ */
+.nb [hidden],
+.nb-dialog [hidden] { display: none !important; }
 
 .nb-btn {
   display: inline-flex;

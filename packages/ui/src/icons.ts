@@ -8,7 +8,7 @@
  * Zdroj: Lucide (Lucide Contributors), ISC.
  * https://github.com/lucide-icons/lucide
  *
- * Ikony jsou tady zapsané, ne načítané za běhu: do balíčku jde 53 ikon
+ * Ikony jsou tady zapsané, ne načítané za běhu: do balíčku jde 54 ikon
  * místo celé sady a Nibble nemá žádnou runtime závislost. Uloženo je celé nitro
  * značky `<svg>`, ne jen data cesty — část ikon má víc tvarů než jeden `<path>`.
  */
@@ -66,6 +66,7 @@ export const ICONS: Record<string, string> = {
   selectall: '<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 3a2 2 0 0 0-2 2m16-2a2 2 0 0 1 2 2m0 14a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1m4-18h1m-1 18h1M3 9v1m18-1v1M3 14v1m18-1v1"/>',
   lineheight: '<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"><rect width="10" height="6" x="7" y="9" rx="2"/><path d="M22 20H2M22 4H2"/></g>',
   settings: '<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"><path d="M14 17H5M19 7h-9"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></g>',
+  more: '<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></g>',
 };
 
 /** Velikost mřížky, na které jsou ikony nakreslené. */
