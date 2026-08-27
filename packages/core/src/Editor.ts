@@ -21,6 +21,7 @@ import { deleteInDirection, insertParagraph, registerBlockCommands } from './com
 import { registerListCommands } from './commands/lists.js';
 import { registerDefListCommands } from './commands/deflist.js';
 import { registerAnchorCommands } from './commands/anchor.js';
+import { Autosave, draftKey, type AutosaveOptions } from './storage/Autosave.js';
 import { registerColorCommands } from './commands/colors.js';
 import { registerClipboardCommands } from './commands/clipboard.js';
 import { captureCaret, restoreCaret } from './selection/caret.js';
@@ -58,6 +59,8 @@ export class Editor {
   readonly schema: Schema;
   readonly selection: EditorSelection;
   readonly formatter: Formatter;
+  /** Záloha rozepsaného textu. `null`, když je vypnutá nebo úložiště chybí. */
+  readonly autosave: Autosave | null;
   readonly commands = new CommandRegistry<Editor>();
   readonly ui: UIRegistry;
 
@@ -100,6 +103,10 @@ export class Editor {
     this.history = new History({
       html: this.getHTML(), mark: null, kind: 'init', at: Date.now(),
     });
+
+    // Až po `setHTML`: za rozepsané se považuje odchylka od toho, co editor
+    // dostal, a to je vidět teprve teď.
+    this.autosave = createAutosave(this, config);
 
     this.registerCoreCommands();
     registerBlockCommands(this);
@@ -328,6 +335,7 @@ export class Editor {
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.autosave?.destroy();
     for (const fn of this.teardown.reverse()) fn();
     this.teardown.length = 0;
     this.events.clear();
@@ -341,6 +349,7 @@ export class Editor {
   commit(kind: string): void {
     const html = this.getHTML();
     this.history.push({ html, mark: this.selection.save(), kind, at: Date.now() });
+    this.autosave?.schedule(html);
     this.events.dispatch('change', { html });
   }
 
@@ -362,6 +371,10 @@ export class Editor {
       this.setHTML(html, this.serializeOptions.entityEncoding);
       this.selection.restore(mark);
     });
+    // Zpět a znovu obsah mění stejně jako psaní, takže i záloha musí jít
+    // s nimi. Bez toho by po vrácení všech změn zůstala viset stará verze
+    // a po obnovení stránky by se nabízela, přestože ji nikdo nechtěl.
+    this.autosave?.schedule(html);
     this.events.dispatch('change', { html });
   }
 
@@ -535,4 +548,33 @@ export class Editor {
     if (!range) return null;
     return ensureBlock(range.startContainer, this.root, this.document);
   }
+}
+
+/**
+ * Postaví zálohování, nebo vrátí `null`, když je vypnuté.
+ *
+ * Klíč se odvozuje z adresy stránky a z `name` nebo `id` cílového prvku. Když
+ * ani jedno není, použije se pořadí editoru na stránce — funguje to, dokud se
+ * pořadí nezmění, a je to pořád lepší než nezálohovat vůbec.
+ */
+let editorsOnPage = 0;
+
+function createAutosave(editor: Editor, config: NibbleConfig): Autosave | null {
+  if (config.autosave === false) return null;
+
+  const options: AutosaveOptions = typeof config.autosave === 'object' ? config.autosave : {};
+  const win = editor.document.defaultView;
+  const name = options.key
+    ?? editor.root.dataset.nibbleName
+    ?? editor.root.id
+    ?? '';
+
+  const store = new Autosave(
+    win,
+    options.key ?? draftKey(win, name, editorsOnPage++),
+    editor.getHTML(),
+    options,
+  );
+
+  return store.available ? store : null;
 }

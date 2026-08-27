@@ -252,6 +252,41 @@ na textu. Proto je to jedna třída na společném obalu, ne dvě nastavení.
 > kódu v dialogu zmizela — `max-height` přebije i výšku nastavenou inline.
 > Rozměry se proto nastavují výslovně včetně stropů.
 
+## Rozepsané se neztratí
+
+Kdo píše půl hodiny a omylem obnoví stránku, přijde o všechno — a je to ta
+ztráta, kterou uživatel editoru pamatuje nejdéle. Nibble proto průběžně ukládá
+obsah do `localStorage` a po načtení nabídne, že ho vrátí:
+
+```
+┌────────────────────────────────────┐
+│ Máte tu rozepsanou verzi z 14:32.  │
+│              [Obnovit] [Zahodit]   │
+├────────────────────────────────────┤
+│ B  I  U  …                         │
+```
+
+**Nabídne, neobnoví.** Automatické obnovení by přepsalo text, který mezitím mohl
+někdo změnit jinde — třeba druhý editor téhož záznamu — a uživatel by se to
+nedozvěděl. Záloha je pojistka, ne zdroj pravdy. Obnovení jde vzít zpět Ctrl+Z.
+
+Ukládá se jen odchylka od obsahu, se kterým editor začal: kdo si stránku jen
+otevřel a nic nenapsal, žádnou zálohu nezanechá, a kdo vrátí změny zpět, tomu
+se smaže. Po odeslání formuláře záloha mizí — text je v databázi, pojistka
+doslouží.
+
+Klíč je adresa stránky plus `name` nebo `id` pole, takže dva editory na jedné
+stránce si nepřepisují data. Bez jména se použije pořadí editoru; funguje to,
+dokud se pořadí nezmění, a je to pořád lepší než nezálohovat vůbec.
+
+Zapnuté je to bez ptaní. Ochrana před ztrátou práce je něco, na co ten, kdo
+editor nasazuje, dopředu nemyslí. Vypíná se `autosave: false`, doladit jde
+`autosave: { key, delay, maxAge }`.
+
+`localStorage` není samozřejmost — v soukromém okně nebo při zakázaných
+souborech cookie může i jen sáhnutí na něj skončit výjimkou. Zálohování se
+v takovém případě tiše vypne; editor kvůli pojistce padat nesmí.
+
 ## Kotva je `id` na bloku
 
 `<a name>` HTML5 zrušil, takže kotva je `id`. Vkládá se z *Vložit → Kotva* a sedí

@@ -87,6 +87,47 @@
 .nb-surface-scroll { overflow: auto; }
 
 .nb-foot { border-radius: 0 0 var(--nb-radius) var(--nb-radius); }
+/*
+ * Nabídka obnovy rozepsaného textu.
+ *
+ * Sedí nad lištou, protože je to první, co se má po obnovení stránky přečíst.
+ * Barvou upozorňuje, ale nekřičí — není to chyba, jen nabídka.
+ */
+.nb-draft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--nb-border);
+  background: color-mix(in srgb, var(--nb-accent) 10%, var(--nb-bg));
+  font-size: 13px;
+}
+
+.nb-draft-text { flex: 1; min-width: 12ch; }
+
+.nb-draft-btn {
+  font: inherit;
+  padding: 4px 10px;
+  border: 1px solid var(--nb-border);
+  border-radius: 6px;
+  background: var(--nb-bg);
+  color: var(--nb-fg);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nb-draft-btn:hover { background: var(--nb-hover); }
+.nb-draft-btn:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 1px; }
+
+.nb-draft-btn-primary {
+  border-color: var(--nb-accent);
+  background: var(--nb-accent);
+  color: #fff;
+}
+
+.nb-draft-btn-primary:hover { filter: brightness(1.1); background: var(--nb-accent); }
+
 /* Druhý řádek lišty. Sedí hned pod prvním, proto nahoře žádná čára. */
 .nb-toolbar-second { padding-top: 0; }
 

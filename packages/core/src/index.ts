@@ -72,6 +72,8 @@ export {
   pruneEmptyInline, fillIfEmpty, clearFiller, normalizeContainer,
 } from './dom/blocks.js';
 export { Formatter } from './format/Formatter.js';
+export { Autosave, draftKey } from './storage/Autosave.js';
+export type { Draft, AutosaveOptions } from './storage/Autosave.js';
 export { captureCaret, restoreCaret, withCaret } from './selection/caret.js';
 export type { CaretRef } from './selection/caret.js';
 export type {

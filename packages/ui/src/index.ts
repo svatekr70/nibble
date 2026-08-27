@@ -120,6 +120,10 @@ export function attachToolbar(
   shell.className = 'nb';
   editor.root.parentNode?.insertBefore(shell, editor.root);
 
+  // Nabídka obnovy patří nad lištu — je to první, co se má po refreshi přečíst.
+  const draftBar = buildDraftBar(editor, doc);
+  if (draftBar) shell.appendChild(draftBar);
+
   const head = doc.createElement('div');
   head.className = 'nb-head';
   shell.appendChild(head);
@@ -305,4 +309,66 @@ function registerSettingsControl(editor: Editor, prefs: Prefs): void {
       });
     },
   });
+}
+
+/**
+ * Pruh s nabídkou obnovy rozepsaného textu.
+ *
+ * Nabízí, neobnovuje. Automatické obnovení by přepsalo text, který mezitím
+ * mohl někdo změnit jinde, a uživatel by se to nedozvěděl — proto rozhodnutí
+ * zůstává na něm. Vykresluje se tady, ne v jádře: jádro o obalu editoru neví
+ * a nemá kam pruh pověsit.
+ */
+function buildDraftBar(editor: Editor, doc: Document): HTMLElement | null {
+  const draft = editor.autosave?.pending;
+  if (!draft) return null;
+
+  const bar = doc.createElement('div');
+  bar.className = 'nb-draft';
+  bar.setAttribute('role', 'status');
+
+  const text = doc.createElement('span');
+  text.className = 'nb-draft-text';
+  text.textContent = 'Máte tu rozepsanou verzi z ' + draftTime(draft.savedAt) + '.';
+
+  const restore = doc.createElement('button');
+  restore.type = 'button';
+  restore.className = 'nb-draft-btn nb-draft-btn-primary';
+  restore.textContent = 'Obnovit';
+
+  const dismiss = doc.createElement('button');
+  dismiss.type = 'button';
+  dismiss.className = 'nb-draft-btn';
+  dismiss.textContent = 'Zahodit';
+
+  restore.addEventListener('click', () => {
+    editor.setHTML(draft.html);
+    editor.commit('restore');
+    editor.focus();
+    bar.remove();
+  });
+
+  dismiss.addEventListener('click', () => {
+    editor.autosave?.discard();
+    // Od téhle chvíle je rozepsané to, co se liší od obsahu na obrazovce —
+    // jinak by se právě zahozená verze uložila hned prvním dalším písmenem.
+    editor.autosave?.rebase(editor.getHTML());
+    bar.remove();
+  });
+
+  bar.append(text, restore, dismiss);
+  return bar;
+}
+
+/** Čas zálohy lidsky: dnes stačí hodina, ze včerejška je potřeba i datum. */
+function draftTime(at: number): string {
+  const when = new Date(at);
+  const time = when.toLocaleTimeString('cs', { hour: 'numeric', minute: '2-digit' });
+  const today = new Date();
+
+  const sameDay = when.getFullYear() === today.getFullYear()
+    && when.getMonth() === today.getMonth()
+    && when.getDate() === today.getDate();
+
+  return sameDay ? time : when.toLocaleDateString('cs') + ' ' + time;
 }
