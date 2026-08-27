@@ -17,6 +17,17 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 
 ### Přidáno
 
+- Buňka, položka a `<dt>`/`<dd>` se nepřejmenovávají ani neobalují. `<td>`
+  přepsané na `<h3>` z tabulky zmizelo a odrážky kolem `<td>` ji rozbily;
+  nově se pracuje s obsahem takového bloku. Týká se seznamů, seznamů definic,
+  citace i druhu bloku.
+- Mazání nepřekročí hranici obalu. Backspace na začátku odstavce za tabulkou
+  vysypal text přímo do `<table>`, za seznamem do `<ul>` a v první buňce buňku
+  zrušil. Slít se smí jen dva obyčejné textové bloky.
+- Enter uprostřed bloku s kotvou nezdvojí `id` — kotva zůstane u bloku, na
+  kterém byla. Ostatní atributy se dál nesou.
+- Blok, ze kterého smazáním zmizel poslední znak, dostane `<br>`. Prázdný
+  `<p></p>` je neviditelný a nedá se do něj kliknout.
 - **Lišta se nezalamuje.** Při větším počtu tlačítek zabrala klidně čtyři řádky
   a z editoru zbyl proužek. Co se na šířku nevejde, jde pod trojtečku vpravo
   a rozbalí se kliknutím; po použití se panel zavře. Odchází se po skupinách,

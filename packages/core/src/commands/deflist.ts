@@ -1,5 +1,6 @@
 import type { Editor } from '../Editor.js';
 import { blocksInRange, convertBlock, ensureBlock, isEmptyBlock } from '../dom/blocks.js';
+import { contentBlock } from './blocks.js';
 import {
   closestDefItem, defListOf, isDefList, isEmptyDefItem, liftDefItem,
   normalizeDefList, otherKind, splitDefItem,
@@ -110,7 +111,7 @@ function toggleDefList(editor: Editor): boolean {
     return true;
   }
 
-  const blocks = blocksInRange(range, editor.root);
+  const blocks = blocksInRange(range, editor.root).map((b) => contentBlock(b, doc));
   if (blocks.length === 0) {
     const created = ensureBlock(range.startContainer, editor.root, doc);
     if (!created) return false;

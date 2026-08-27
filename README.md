@@ -252,6 +252,32 @@ na textu. Proto je to jedna třída na společném obalu, ne dvě nastavení.
 > kódu v dialogu zmizela — `max-height` přebije i výšku nastavenou inline.
 > Rozměry se proto nastavují výslovně včetně stropů.
 
+## Buňka a položka drží strukturu
+
+`<td>`, `<th>`, `<li>`, `<dt>` a `<dd>` se **nepřejmenovávají ani neobalují**.
+`<td>` přepsané na `<h3>` z tabulky zmizí a `<ul>` obalený kolem `<td>` ji
+rozbije — co uživatel zamýšlí, patří jejich **obsahu**. Ten se proto nejdřív
+zabalí do odstavce a pracuje se s ním:
+
+```html
+<td>abc</td>                  + odrážky
+→ <td><ul><li>abc</li></ul></td>       ne <ul><li><td>abc</td></li></ul>
+
+<li>abc</li>                  + Nadpis 3
+→ <li><h3>abc</h3></li>                ne <ul><h3>abc</h3></ul>
+```
+
+Totéž platí pro mazání: **přes hranici obalu se neslévá.** Backspace na začátku
+odstavce za tabulkou vysypal text přímo do `<table>`, mimo buňku; za seznamem
+přímo do `<ul>`, mimo položku. Slít se smí jen dva obyčejné textové bloky —
+tabulku, seznam nebo citaci jde smazat tlačítkem, ne Backspacem přes okraj.
+
+Kotva se při dělení bloku nepřenáší. Enter uprostřed `<p id="kotva">` by jinak
+udělal dvě stejná `id`, což je neplatné HTML a odkaz by skočil jen na to první;
+ostatní atributy se dál nesou. A blok, ze kterého smazáním zmizel poslední
+znak, dostane `<br>` — prázdný `<p></p>` je neviditelný a nedá se do něj
+kliknout.
+
 ## Lišta se nezalamuje
 
 Se zalomením zabrala lišta při větším počtu tlačítek klidně čtyři řádky a

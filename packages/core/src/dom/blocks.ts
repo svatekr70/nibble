@@ -63,7 +63,7 @@ export function closestBlock(node: Node | null, root: Element): Element | null {
  * Enter ji rozdělí na dvě citace místo na dva odstavce a zrušení citace nemá
  * co vyndat. Srovná se proto při první úpravě — stejně líně jako u seznamů.
  */
-const BLOCK_CONTAINERS = new Set(['blockquote', 'li', 'td', 'th', 'figure']);
+const BLOCK_CONTAINERS = new Set(['blockquote', 'li', 'td', 'th', 'dt', 'dd', 'figure']);
 
 /** Obalí holý inline obsah uvnitř kontejneru odstavci. */
 export function normalizeContainer(container: Element, doc: Document): void {
@@ -295,6 +295,9 @@ export function splitBlock(block: Element, range: Range, doc: Document): Element
   const next = doc.createElement(nextTag);
   if (nextTag === tag) {
     for (const attr of Array.from(block.attributes)) next.setAttribute(attr.name, attr.value);
+    // `id` je jediné svého druhu — dvě stejná jsou neplatné HTML a odkaz by
+    // skočil jen na to první. Kotva zůstává u bloku, na kterém byla.
+    next.removeAttribute('id');
   }
   next.appendChild(contents);
 

@@ -1,7 +1,7 @@
 import type { Editor } from '../Editor.js';
 import {
   atBlockEnd, atBlockStart, blocksInRange, closestBlock, convertBlock,
-  ensureBlock, fillIfEmpty, isEmptyBlock, mergeBlocks, normalizeContainer,
+  ensureBlock, fillIfEmpty, isBlock, isEmptyBlock, mergeBlocks, normalizeContainer,
   pruneEmptyInline, splitBlock, TEXT_BLOCKS,
 } from '../dom/blocks.js';
 import { closestListItem } from '../dom/lists.js';
@@ -65,7 +65,9 @@ function toggleBlockquote(editor: Editor): boolean {
   if (!live) return false;
 
   const blocks = blocksInRange(live, editor.root)
-    .filter((block) => block.tagName.toLowerCase() !== 'blockquote');
+    .filter((block) => block.tagName.toLowerCase() !== 'blockquote')
+    // Buňku ani položku citace neobaluje — obalí se to, co je uvnitř nich.
+    .map((block) => contentBlock(block, doc));
 
   if (blocks.length === 0) {
     const created = ensureBlock(live.startContainer, editor.root, doc);
@@ -165,7 +167,7 @@ export function registerBlockCommands(editor: Editor): void {
       blocks.push(created);
     }
 
-    for (const block of blocks) convertBlock(block, tag, ed.document);
+    for (const block of blocks) convertBlock(contentBlock(block, ed.document), tag, ed.document);
 
     ed.selection.restore(mark);
     ed.commit('block');
@@ -343,6 +345,59 @@ export function insertParagraph(ed: Editor): boolean {
 }
 
 /**
+ * Doplní `<br>` do bloku, ze kterého smazáním zmizel poslední znak.
+ *
+ * Prázdný `<p></p>` je v prohlížeči neviditelný a nedá se do něj kliknout —
+ * po vymazání posledního písmene by tak odstavec zůstal, ale nešel by použít.
+ */
+function fillEmptied(ed: Editor, from: Node): void {
+  const block = closestBlock(from, ed.root);
+  if (!block || !isEmptyBlock(block)) return;
+
+  const mark = ed.selection.save();
+  fillIfEmpty(block, ed.document);
+  ed.selection.restore(mark);
+}
+
+/**
+ * Blok, který drží strukturu. Přejmenovat ho ani obalit nejde — to, co s ním
+ * uživatel zamýšlí, patří jeho **obsahu**.
+ */
+const STRUCTURAL = new Set(['td', 'th', 'li', 'dt', 'dd']);
+
+export function isStructuralBlock(node: Element | null): boolean {
+  return !!node && STRUCTURAL.has(node.tagName.toLowerCase());
+}
+
+/**
+ * Blok, se kterým se má opravdu pracovat.
+ *
+ * Buňka ani položka se nepřejmenovává a neobaluje: `<td>` přepsané na `<h3>`
+ * z tabulky zmizí a `<ul>` obalený kolem `<td>` ji rozbije. Co uživatel
+ * zamýšlí, patří **obsahu** takového bloku — ten se proto nejdřív zabalí do
+ * odstavce a pracuje se s ním.
+ */
+export function contentBlock(block: Element, doc: Document): Element {
+  if (!isStructuralBlock(block)) return block;
+
+  normalizeContainer(block, doc);
+  return block.firstElementChild ?? block;
+}
+
+/**
+ * Dá se s tímhle blokem sloučit obsah sousedního?
+ *
+ * Jen s obyčejným textovým blokem. Tabulka, seznam ani citace to nejsou:
+ * obsah by u nich skončil přímo v `<table>` nebo `<ul>` — mimo buňku, mimo
+ * položku — a struktura by se rozpadla. Smazat je jde tlačítkem, ne
+ * Backspacem přes hranici.
+ */
+function mergeable(node: Element): boolean {
+  if (!isBlock(node) || isStructuralBlock(node)) return false;
+  return !Array.from(node.children).some(isBlock);
+}
+
+/**
  * Zbyl v obsahu ještě něco, co je vidět?
  *
  * Prázdné bloky se nepočítají — po smazání celého výběru jich zůstává celá řada
@@ -459,12 +514,14 @@ export function deleteInDirection(ed: Editor, direction: -1 | 1): boolean {
     if (direction === -1 && offset > 0) {
       text.deleteData(offset - 1, 1);
       ed.selection.collapseTo(text, offset - 1);
+      fillEmptied(ed, text);
       ed.commit('delete');
       return true;
     }
     if (direction === 1 && offset < text.data.length) {
       text.deleteData(offset, 1);
       ed.selection.collapseTo(text, offset);
+      fillEmptied(ed, text);
       ed.commit('delete');
       return true;
     }
@@ -486,10 +543,13 @@ export function deleteInDirection(ed: Editor, direction: -1 | 1): boolean {
     return deleteBackwardInDefList(ed, def);
   }
 
-  const other = direction === -1 ? block.previousElementSibling : block.nextElementSibling;
+  const sibling = direction === -1 ? block.previousElementSibling : block.nextElementSibling;
 
-  if (!other) {
-    if (direction === -1 && block.tagName.toLowerCase() !== 'p') {
+  if (!sibling) {
+    // Buňka ani položka se na odstavec nepřevádí — zmizela by z tabulky
+    // nebo ze seznamu, do kterého patří.
+    if (direction === -1 && block.tagName.toLowerCase() !== 'p'
+        && !isStructuralBlock(block)) {
       const mark = ed.selection.save();
       convertBlock(block, 'p', ed.document);
       ed.selection.restore(mark);
@@ -500,14 +560,17 @@ export function deleteInDirection(ed: Editor, direction: -1 | 1): boolean {
   }
 
   // Oddělovač a podobné bloky bez obsahu se mažou celé.
-  if (other.tagName.toLowerCase() === 'hr') {
-    other.parentNode?.removeChild(other);
+  if (sibling.tagName.toLowerCase() === 'hr') {
+    sibling.parentNode?.removeChild(sibling);
     ed.commit('delete');
     return true;
   }
 
-  const target = direction === -1 ? other : block;
-  const source = direction === -1 ? block : other;
+  // Soused může být obal, ne blok s textem. Přes jeho hranici se neslévá.
+  if (!mergeable(sibling) || !mergeable(block)) return false;
+
+  const target = direction === -1 ? sibling : block;
+  const source = direction === -1 ? block : sibling;
   const boundary = mergeBlocks(target, source, ed.document);
 
   if (boundary) ed.selection.collapseTo(boundary, (boundary.nodeValue ?? '').length);

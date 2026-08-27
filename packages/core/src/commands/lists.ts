@@ -2,6 +2,7 @@ import type { Editor } from '../Editor.js';
 import {
   blocksInRange, closestBlock, ensureBlock, fillIfEmpty, isEmptyBlock, pruneEmptyInline,
 } from '../dom/blocks.js';
+import { contentBlock } from './blocks.js';
 import {
   closestListItem, fillDeep, indentItem, isEmptyItem, isList, itemContent,
   listOf, mergeAdjacentLists, normalizeList, outdentItem, splitListItem, syncAriaLevel,
@@ -87,8 +88,9 @@ function toggleList(editor: Editor, tag: ListTag): boolean {
     return true;
   }
 
-  // Z odstavců udělat seznam.
-  const blocks = blocksInRange(range, editor.root);
+  // Z odstavců udělat seznam. Buňka ani položka se neobaluje — seznam by
+  // skončil kolem `<td>` a tabulku by to rozbilo.
+  const blocks = blocksInRange(range, editor.root).map((b) => contentBlock(b, doc));
   if (blocks.length === 0) {
     const created = ensureBlock(range.startContainer, editor.root, doc);
     if (!created) return false;
