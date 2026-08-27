@@ -502,6 +502,17 @@
 .nb-dialog-btn:hover { background: var(--nb-hover); }
 .nb-dialog-btn:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 1px; }
 
+/* Verze pod patičkou nastavení. Vlevo, potichu — je to údaj, ne ovládání. */
+.nb-dialog-version {
+  margin: 0;
+  padding: 0 20px 12px;
+  color: var(--nb-muted);
+  font-size: 12px;
+}
+
+/* Volba, kterou vypnul programátor — zaškrtnout ji nejde a je to vidět. */
+.nb-check-off { opacity: .5; }
+
 .nb-dialog-btn-primary {
   background: var(--nb-accent);
   border-color: var(--nb-accent);

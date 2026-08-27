@@ -2,6 +2,8 @@ import { build } from 'esbuild';
 import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
+const VERSION = JSON.parse(readFileSync('package.json', 'utf8')).version;
+
 /**
  * Sestaví knihovnu do `dist/`, který se **commituje**.
  *
@@ -21,6 +23,8 @@ const { metafile } = await build({
   entryPoints: ['tools/bundle-entry.ts'],
   outfile: 'dist/nibble.min.js',
   bundle: true,
+  // Verze se dosazuje z package.json, ať se nemá kde rozejít s vydáním.
+  define: { __NIBBLE_VERSION__: JSON.stringify(VERSION) },
   format: 'esm',
   target: ['chrome111', 'firefox115', 'safari16'],
   minify: true,

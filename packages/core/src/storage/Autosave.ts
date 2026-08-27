@@ -63,6 +63,7 @@ export class Autosave {
   private readonly delay: number;
   private readonly maxAge: number;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private enabled = true;
 
   /** Obsah, se kterým editor začal. Proti němu se pozná, co je rozepsané. */
   private baseline: string;
@@ -87,11 +88,22 @@ export class Autosave {
   }
 
   /**
+   * Zapne nebo vypne zálohování za běhu — z Nastavení editoru.
+   *
+   * Vypnutí zálohu rovnou zahodí. Nechat ji ležet by znamenalo, že se po
+   * obnovení stránky nabídne verze, kterou uživatel zálohovat nechtěl.
+   */
+  setEnabled(on: boolean): void {
+    this.enabled = on;
+    if (!on) this.discard();
+  }
+
+  /**
    * Naplánuje uložení. Opakované volání během psaní posune čas —
    * do `localStorage` se sahá až v pauze, ne po každém znaku.
    */
   schedule(html: string): void {
-    if (!this.store) return;
+    if (!this.store || !this.enabled) return;
 
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => {
@@ -132,7 +144,7 @@ export class Autosave {
   }
 
   private write(html: string): void {
-    if (!this.store) return;
+    if (!this.store || !this.enabled) return;
 
     // Shoda s výchozím obsahem není co zálohovat — a stará záloha by po
     // vrácení změn zpátky zůstala viset a nabízela by se pořád dokola.

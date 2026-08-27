@@ -132,4 +132,83 @@ test.describe('záloha rozepsaného', () => {
       () => Object.keys(localStorage).filter((k) => k.startsWith('nibble:draft:')).length,
     )).toBe(0);
   });
+
+  test('vypnutí v Nastavení editoru zálohování zastaví', async ({ page }) => {
+    await mount(page, '<p>Z databaze.</p>');
+    await clearDrafts(page);
+
+    await page.evaluate(() => (window as any).ed.ui.get('settings').onAction((window as any).ed));
+    await page.locator('.nb-dialog[open]').waitFor();
+    await page.locator('.nb-dialog label', { hasText: 'Pamatovat si rozepsané' })
+      .locator('input[type=checkbox]').uncheck();
+    await page.locator('.nb-dialog .nb-dialog-btn-primary').click();
+    await page.locator('.nb-dialog').waitFor({ state: 'detached' });
+
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      const block = ed.root.children[0];
+      ed.selection.collapseTo(block.firstChild, (block.textContent ?? '').length);
+      ed.root.focus();
+    });
+    await page.keyboard.type(' Rozepsane.');
+    await page.waitForTimeout(1200);
+
+    expect(await page.evaluate(
+      () => Object.keys(localStorage).filter((k) => k.startsWith('nibble:draft:')).length,
+    )).toBe(0);
+  });
+
+  test('vypnutí zahodí i zálohu, která už byla uložená', async ({ page }) => {
+    await mount(page, '<p>Z databaze.</p>');
+    await clearDrafts(page);
+    await pisAPockej(page, ' Rozepsane.');
+
+    await page.evaluate(() => (window as any).ed.ui.get('settings').onAction((window as any).ed));
+    await page.locator('.nb-dialog[open]').waitFor();
+    await page.locator('.nb-dialog label', { hasText: 'Pamatovat si rozepsané' })
+      .locator('input[type=checkbox]').uncheck();
+    await page.locator('.nb-dialog .nb-dialog-btn-primary').click();
+
+    await expect.poll(() => page.evaluate(
+      () => Object.keys(localStorage).filter((k) => k.startsWith('nibble:draft:')).length,
+    )).toBe(0);
+  });
+
+  test('vypnuté konfigurací se v nastavení nedá zapnout', async ({ page }) => {
+    await page.goto('/e2e.html');
+    await page.waitForFunction(() => (window as any).ready === true);
+    await page.evaluate(() => (window as any).mount('<p>Text</p>', { autosave: false }));
+
+    await page.evaluate(() => (window as any).ed.ui.get('settings').onAction((window as any).ed));
+    await page.locator('.nb-dialog[open]').waitFor();
+
+    const box = page.locator('.nb-dialog label', { hasText: 'Pamatovat si rozepsané' })
+      .locator('input[type=checkbox]');
+    await expect(box).toBeDisabled();
+    await expect(box).not.toBeChecked();
+  });
+});
+
+test.describe('verze v nastavení', () => {
+  test('dialog ukazuje verzi', async ({ page }) => {
+    await mount(page, '<p>Text</p>');
+    await page.evaluate(() => (window as any).ed.ui.get('settings').onAction((window as any).ed));
+    await page.locator('.nb-dialog[open]').waitFor();
+
+    const version = page.locator('.nb-dialog-version');
+    await expect(version).toBeVisible();
+    // Verzi dosazuje bundler z package.json, takže se nemá kde rozejít.
+    await expect(version).toHaveText(/^Nibble \d+\.\d+\.\d+/);
+  });
+
+  test('verze sedí s package.json', async ({ page }) => {
+    await mount(page, '<p>Text</p>');
+    const version = await page.evaluate(async () => {
+      const core = await import('/dist/core/src/index.js');
+      return (core as { VERSION: string }).VERSION;
+    });
+
+    expect(version).toBe(process.env.npm_package_version ?? version);
+    expect(version).not.toBe('dev');
+  });
 });

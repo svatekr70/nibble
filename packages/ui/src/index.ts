@@ -209,6 +209,10 @@ export function attachToolbar(
       head.appendChild(toolbarBottom.element);
     }
 
+    // Uživatelská volba nad rámec konfigurace: co programátor vypnul
+    // `autosave: false`, tady vůbec není, a zaškrtnutí na tom nic nezmění.
+    editor.autosave?.setEnabled(value.autosave);
+
     if (value.statusbar) {
       statusbar = buildStatusBar(editor, foot);
       editor.ui.setStatusHandler((name, text) => statusbar?.setStatus(name, text));

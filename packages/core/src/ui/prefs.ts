@@ -34,6 +34,14 @@ export interface EditorPrefs {
   statusbar: boolean;
   /** Změna velikosti tažením za pravý dolní roh. */
   resizable: boolean;
+  /**
+   * Zálohovat rozepsaný text do `localStorage`.
+   *
+   * Uživatelská volba nad rámec konfigurace. Když ji programátor vypnul
+   * přes `autosave: false`, nezapne ji ani zaškrtnutí tady — editor pak
+   * žádnou zálohu nemá.
+   */
+  autosave: boolean;
   groups: PrefGroup[];
 }
 
@@ -60,6 +68,7 @@ export const DEFAULT_PREFS: Omit<EditorPrefs, 'groups'> = {
   sticky: true,
   statusbar: true,
   resizable: true,
+  autosave: true,
 };
 
 /** Rozvržení od programátora na výchozí skupiny. */

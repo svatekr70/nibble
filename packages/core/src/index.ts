@@ -1,3 +1,4 @@
+export { VERSION } from './version.js';
 export { Editor } from './Editor.js';
 export type { EditorMode } from './Editor.js';
 export { Nibble, create } from './create.js';

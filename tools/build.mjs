@@ -1,5 +1,7 @@
 import { build } from 'esbuild';
-import { copyFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+
+const VERSION = JSON.parse(readFileSync('package.json', 'utf8')).version;
 
 mkdirSync('demo/dist', { recursive: true });
 mkdirSync('demo/fixtures', { recursive: true });
@@ -14,6 +16,8 @@ copyFileSync('packages/ui/src/nibble.css', 'demo/dist/nibble.css');
 
 const common = {
   bundle: true,
+  // Verze se dosazuje z package.json, ať se nemá kde rozejít s vydáním.
+  define: { __NIBBLE_VERSION__: JSON.stringify(VERSION) },
   format: 'esm',
   target: ['chrome111', 'firefox115', 'safari16'],
   logLevel: 'info',
@@ -41,7 +45,6 @@ const { metafile } = await build({
 
 const out = Object.values(metafile.outputs)[0];
 const { gzipSync } = await import('node:zlib');
-const { readFileSync } = await import('node:fs');
 const gz = gzipSync(readFileSync('demo/dist/nibble.min.js')).length;
 
 console.log('\n  jádro + lišta: %d B raw, %d B gzip', out.bytes, gz);

@@ -252,6 +252,14 @@ na textu. Proto je to jedna třída na společném obalu, ne dvě nastavení.
 > kódu v dialogu zmizela — `max-height` přebije i výšku nastavenou inline.
 > Rozměry se proto nastavují výslovně včetně stropů.
 
+## Verze je vidět v nastavení
+
+*Nastavení editoru* ukazuje pod tlačítky „Nibble 0.3.0". Hodnotu dosazuje
+bundler z `package.json` (`define` v `tools/build*.mjs`), takže se nemůže
+rozejít s vydáním — a nemusí se udržovat na dvou místech, kde by jedno bylo
+dřív nebo později zapomenuté. Bez bundleru, tedy v jednotkových testech,
+zůstane `dev`.
+
 ## Rozepsané se neztratí
 
 Kdo píše půl hodiny a omylem obnoví stránku, přijde o všechno — a je to ta
@@ -282,6 +290,12 @@ dokud se pořadí nezmění, a je to pořád lepší než nezálohovat vůbec.
 Zapnuté je to bez ptaní. Ochrana před ztrátou práce je něco, na co ten, kdo
 editor nasazuje, dopředu nemyslí. Vypíná se `autosave: false`, doladit jde
 `autosave: { key, delay, maxAge }`.
+
+Uživatel má vlastní přepínač v *Nastavení editoru* — „Pamatovat si rozepsané".
+Vypnutí zálohu rovnou zahodí; nechat ji ležet by znamenalo, že se po obnovení
+stránky nabídne verze, kterou zálohovat nechtěl. Co vypnul programátor,
+zaškrtnutím nezapne: políčko je v takovém případě zašedlé, aby to přiznalo
+místo aby tiše lhalo.
 
 `localStorage` není samozřejmost — v soukromém okně nebo při zakázaných
 souborech cookie může i jen sáhnutí na něj skončit výjimkou. Zálohování se

@@ -17,12 +17,15 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 
 ### Přidáno
 
+- *Nastavení editoru* ukazuje pod tlačítky verzi. Dosazuje ji bundler
+  z `package.json`, takže se nemá kde rozejít s vydáním.
 - **Rozepsané se neztratí.** Obsah se průběžně ukládá do `localStorage` a po
   načtení stránky se nad lištou nabídne pruh „Máte tu rozepsanou verzi z 14:32"
   s možností Obnovit nebo Zahodit. Nabízí, neobnovuje — automatické obnovení by
   přepsalo text, který mezitím mohl někdo změnit jinde. Ukládá se jen odchylka
   od výchozího obsahu, po odeslání formuláře záloha mizí a starší než týden se
-  uklidí. Zapnuté bez ptaní, vypíná se `autosave: false`.
+  uklidí. Zapnuté bez ptaní, vypíná se `autosave: false` — a uživatel má vlastní
+  přepínač „Pamatovat si rozepsané" v Nastavení editoru.
 - Kotva: *Vložit → Kotva* zapíše `id` na blok, ve kterém stojí kurzor, takže na
   něj vede odkaz `#nazev`. `<a name>` HTML5 zrušil. Název se navrhne z textu
   bloku a převede na tvar bez diakritiky; obsazený se očísluje, prázdné pole
