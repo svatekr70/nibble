@@ -1,6 +1,9 @@
 const BLOCKS = new Set([
   'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre',
   'li', 'td', 'th', 'figcaption', 'section', 'article',
+  // `dt` a `dd` ano, `dl` ne — stejný důvod jako u `ul`/`ol`: `closestBlock`
+  // má vracet prvek, do kterého se píše, ne obal kolem celého seznamu.
+  'dt', 'dd',
 ]);
 
 /** Bloky, do kterých se dá psát a které jde navzájem přepínat. */
@@ -8,6 +11,26 @@ export const TEXT_BLOCKS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote
 
 /** Bloky, které nemají vlastní obsah — Enter je nesmí dělit. */
 const ATOMIC = new Set(['hr', 'img', 'table']);
+
+/**
+ * Prvky, které blok v editorovém smyslu nejsou, ale do odstavce nepatří.
+ *
+ * `<ul>` ani `<ol>` v `BLOCKS` být nesmí — `closestBlock` by pak vracel seznam
+ * místo položky a Enter by dělil celý seznam. Obalování holého textu je ale
+ * musí brát jako hranici: bez toho `ensureBlock` shrábne i sousední seznam a
+ * z `<ol>…</ol>text` vznikne `<p><ol>…</ol>text</p>`.
+ */
+const FLOW_ONLY = new Set([
+  'ul', 'ol', 'dl', 'figure', 'form', 'fieldset',
+  'header', 'footer', 'nav', 'aside', 'main', 'details', 'address',
+]);
+
+/** Konec souvislého úseku inline obsahu — sem už odstavec nesahá. */
+function isFlowBoundary(node: Node | null): boolean {
+  if (isBlock(node) || isAtomic(node)) return true;
+  return !!node && node.nodeType === NODE_ELEMENT
+    && FLOW_ONLY.has((node as Element).tagName.toLowerCase());
+}
 
 const NODE_ELEMENT = 1;
 const NODE_TEXT = 3;
@@ -55,7 +78,7 @@ export function normalizeContainer(container: Element, doc: Document): void {
   };
 
   for (const child of Array.from(container.childNodes)) {
-    if (isBlock(child) || isAtomic(child)) { flush(); continue; }
+    if (isFlowBoundary(child)) { flush(); continue; }
     if (child.nodeType === 3 && (child.nodeValue ?? '').trim() === '' && loose.length === 0) {
       continue;   // bílé znaky mezi bloky
     }
@@ -93,11 +116,11 @@ export function ensureBlock(node: Node | null, root: Element, doc: Document): El
   if (top.parentNode !== root) return null;
 
   let first: Node = top;
-  while (first.previousSibling && !isBlock(first.previousSibling) && !isAtomic(first.previousSibling)) {
+  while (first.previousSibling && !isFlowBoundary(first.previousSibling)) {
     first = first.previousSibling;
   }
   let last: Node = top;
-  while (last.nextSibling && !isBlock(last.nextSibling) && !isAtomic(last.nextSibling)) {
+  while (last.nextSibling && !isFlowBoundary(last.nextSibling)) {
     last = last.nextSibling;
   }
 

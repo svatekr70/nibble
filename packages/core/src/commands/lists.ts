@@ -6,7 +6,8 @@ import {
   closestListItem, fillDeep, indentItem, isEmptyItem, isList, itemContent,
   listOf, mergeAdjacentLists, normalizeList, outdentItem, splitListItem, syncAriaLevel,
 } from '../dom/lists.js';
-import { captureCaret, restoreCaret } from '../selection/caret.js';
+import { applyListProps, listChain, type ListProps } from '../dom/listProps.js';
+import { captureCaret, restoreCaret, type CaretRef } from '../selection/caret.js';
 
 type ListTag = 'ul' | 'ol';
 
@@ -34,7 +35,7 @@ function prepare(editor: Editor, node: Node | null): Element | null {
 }
 
 
-function makeItem(block: Element, doc: Document): HTMLLIElement {
+function makeItem(block: Element, doc: Document, caret: CaretRef | null): HTMLLIElement {
   const li = doc.createElement('li');
 
   if (block.tagName.toLowerCase() === 'p' && !block.attributes.length) {
@@ -42,6 +43,12 @@ function makeItem(block: Element, doc: Document): HTMLLIElement {
     // Vyprázdněná slupka musí pryč, jinak za seznamem zůstane <p></p>.
     while (block.firstChild) li.appendChild(block.firstChild);
     block.parentNode?.removeChild(block);
+
+    // V prázdném odstavci míří kurzor na odstavec samotný, ne na text v něm —
+    // a ten odstavec právě zmizel. Bez přesměrování na položku ho `restoreCaret`
+    // v kořeni nenajde, kurzor zůstane mezi bloky a první napsané písmeno
+    // skončí za seznamem. Položka přebírá obsah v pořadí, offset proto sedí.
+    if (caret && caret.node === block) caret.node = li;
   } else {
     li.appendChild(block);
   }
@@ -69,7 +76,7 @@ function toggleList(editor: Editor, tag: ListTag): boolean {
 
     if (sameKind) {
       // Už je to tenhle druh seznamu → ven z něj.
-      for (const li of items.reverse()) outdentItemToTop(li, editor);
+      for (const li of items.reverse()) outdentItemToTop(li, editor, caret);
     } else {
       const lists = new Set(items.map((li) => listOf(li)).filter(Boolean) as Element[]);
       for (const list of lists) retagList(list, tag, doc);
@@ -90,7 +97,7 @@ function toggleList(editor: Editor, tag: ListTag): boolean {
 
   const list = doc.createElement(tag);
   blocks[0]!.parentNode?.insertBefore(list, blocks[0]!);
-  for (const block of blocks) list.appendChild(makeItem(block, doc));
+  for (const block of blocks) list.appendChild(makeItem(block, doc, caret));
 
   mergeAdjacentLists(list, editor.root);
   restoreCaret(editor, caret);
@@ -130,11 +137,22 @@ function retagList(list: Element, tag: ListTag, doc: Document): Element {
  *
  * Po posledním vysunutí je z položky odstavec mimo seznam, takže `listOf` vrátí
  * null a cyklus skončí sám. Pojistka je tu pro případ poškozené struktury.
+ *
+ * Poslední vysunutí `<li>` zruší. Kurzor, který mířil na položku samotnou —
+ * v prázdné položce vždycky — proto musí přejít na odstavec, který po ní zbyl.
  */
-function outdentItemToTop(li: Element, editor: Editor): void {
+function outdentItemToTop(li: Element, editor: Editor, caret: CaretRef | null): void {
   let guard = 0;
+  let landing: Element | null = null;
+
   while (li.tagName.toLowerCase() === 'li' && listOf(li) && guard++ < 24) {
-    if (!outdentItem(li, editor.root, editor.document)) break;
+    const next = outdentItem(li, editor.root, editor.document);
+    if (!next) break;
+    landing = next;
+  }
+
+  if (caret && caret.node === li && landing && !editor.root.contains(li)) {
+    caret.node = landing;
   }
 }
 
@@ -170,6 +188,41 @@ export function registerListCommands(editor: Editor): void {
     return li !== null && li.previousElementSibling?.tagName.toLowerCase() === 'li';
   });
 
+  /**
+   * Vlastnosti seznamu — druh značky, odsazení a počáteční číslo.
+   *
+   * Argument je pole po úrovních, ne jedna sada hodnot: každá úroveň je vlastní
+   * `<ul>`/`<ol>`, takže se nastavuje samostatně. Index odpovídá `listChain`,
+   * tedy odshora dolů — stejné pořadí, v jakém jsou pole v dialogu.
+   */
+  commands.add('listprops', (ed, args) => {
+    const range = ed.selection.getRange();
+    if (!range) return false;
+
+    const caret = captureCaret(ed);
+    prepare(ed, range.commonAncestorContainer);
+
+    // Řetěz se čte až po srovnání struktury: seznam visící jako sourozenec
+    // položky se tím teprve dostane na svou úroveň, a do té doby by index
+    // ukazoval na jiný seznam, než jaký uživatel v dialogu viděl.
+    const chain = listChain(caret?.node ?? range.startContainer, ed.root);
+    if (chain.length === 0) return false;
+
+    const levels = ((args ?? {}) as { levels?: Array<Partial<ListProps>> }).levels ?? [];
+    let changed = false;
+    for (const [i, list] of chain.entries()) {
+      const props = levels[i];
+      if (!props) continue;
+      applyListProps(list, props);
+      changed = true;
+    }
+    if (!changed) return false;
+
+    restoreCaret(ed, caret);
+    ed.commit('list');
+    return true;
+  }, (ed) => closestListItem(ed.selection.getRange()?.startContainer ?? null, ed.root) !== null);
+
   commands.add('outdent', (ed) => {
     const range = ed.selection.getRange();
     if (!range) return false;
@@ -203,8 +256,8 @@ export function insertParagraphInList(editor: Editor, li: Element): boolean {
   if (!range) return false;
 
   if (isEmptyItem(li)) {
-    if (!outdentItem(li, editor.root, editor.document)) return false;
-    const landing = closestListItem(li, editor.root) === li ? itemContent(li) : li;
+    const landing = outdentItem(li, editor.root, editor.document);
+    if (!landing) return false;
     editor.selection.collapseTo(landing, 0);
     editor.commit('outdent');
     return true;
@@ -231,7 +284,11 @@ export function deleteBackwardInList(editor: Editor, li: Element): boolean {
   const prev = li.previousElementSibling;
 
   if (!prev) {
-    if (!outdentItem(li, editor.root, doc)) return false;
+    // Kurzor byl na začátku položky; ta zaniká, takže musí na začátek toho,
+    // co po ní zbylo. V prázdné položce nemá živý výběr čeho jiného se držet.
+    const landing = outdentItem(li, editor.root, doc);
+    if (!landing) return false;
+    editor.selection.collapseTo(landing, 0);
     editor.commit('outdent');
     return true;
   }

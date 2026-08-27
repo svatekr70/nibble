@@ -2,6 +2,8 @@ import { build } from 'esbuild';
 import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
+const VERSION = JSON.parse(readFileSync('package.json', 'utf8')).version;
+
 /**
  * Sestaví knihovnu do `dist/`, který se **commituje**.
  *
@@ -21,12 +23,19 @@ const { metafile } = await build({
   entryPoints: ['tools/bundle-entry.ts'],
   outfile: 'dist/nibble.min.js',
   bundle: true,
+  // Verze se dosazuje z package.json, ať se nemá kde rozejít s vydáním.
+  define: { __NIBBLE_VERSION__: JSON.stringify(VERSION) },
   format: 'esm',
   target: ['chrome111', 'firefox115', 'safari16'],
   minify: true,
   metafile: true,
   // Bez banneru by v souboru nebylo poznat, co to je a odkud se to vzalo.
-  banner: { js: '/*! Nibble — https://github.com/svatekr70/nibble — MIT */' },
+  // Lucide je tu proto, že ISC žádá copyright u všech kopií — a minifikovaný
+  // balíček z jsDelivr je kopie jako každá jiná. Plné znění: licenses/lucide.txt.
+  banner: {
+    js: '/*! Nibble — https://github.com/svatekr70/nibble — MIT\n'
+      + ' * Ikony: Lucide — https://lucide.dev — ISC, (c) Lucide Icons and Contributors */',
+  },
   logLevel: 'info',
 });
 

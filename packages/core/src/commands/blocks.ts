@@ -2,16 +2,27 @@ import type { Editor } from '../Editor.js';
 import {
   atBlockEnd, atBlockStart, blocksInRange, closestBlock, convertBlock,
   ensureBlock, fillIfEmpty, isEmptyBlock, mergeBlocks, normalizeContainer,
-  splitBlock, TEXT_BLOCKS,
+  pruneEmptyInline, splitBlock, TEXT_BLOCKS,
 } from '../dom/blocks.js';
 import { closestListItem } from '../dom/lists.js';
 import { captureCaret, restoreCaret, withCaret } from '../selection/caret.js';
 import { deleteBackwardInList, insertParagraphInList } from './lists.js';
+import { closestDefItem, deleteBackwardInDefList, insertParagraphInDefList } from './deflist.js';
 
 const ALIGNMENTS = ['left', 'center', 'right', 'justify'] as const;
 export type Alignment = (typeof ALIGNMENTS)[number];
 
-const INLINE_FORMATS = 'strong,em,b,i,u,s,strike,font,span,sub,sup,mark,small,code';
+/**
+ * Značky, které „vyčistit formát" sundá.
+ *
+ * `span` je mezi nimi schválně: nese barvu, písmo i velikost, takže s ním
+ * zmizí i ty. Odkaz v seznamu není — ten se ruší vlastním tlačítkem, jinak by
+ * čištění formátu tiše odstranilo i cíl, který nikdo mazat nechtěl.
+ */
+const INLINE_FORMATS = [
+  'strong', 'em', 'b', 'i', 'u', 's', 'strike', 'font',
+  'span', 'sub', 'sup', 'mark', 'small', 'code',
+] as const;
 
 function isTextBlock(tag: string): boolean {
   return (TEXT_BLOCKS as readonly string[]).includes(tag);
@@ -243,30 +254,22 @@ export function registerBlockCommands(editor: Editor): void {
     return true;
   });
 
-  /** Sundá inline formátování z výběru. Bloky nechává být. */
+  /**
+   * Sundá inline formátování z výběru.
+   *
+   * Bloky nechává být, a to i jejich zarovnání a výšku řádku — „vyčistit
+   * formát" znamená vyčistit text, ne přeskládat dokument. Na blok jsou
+   * v liště vlastní ovládací prvky.
+   */
   commands.add('removeFormat', (ed) => {
     const range = ed.selection.getRange();
     if (!range || range.collapsed) return false;
 
-    const frag = range.extractContents();
-    for (const el of Array.from(frag.querySelectorAll(INLINE_FORMATS))) {
-      const parent = el.parentNode;
-      if (!parent) continue;
-      while (el.firstChild) parent.insertBefore(el.firstChild, el);
-      parent.removeChild(el);
-    }
+    const before = ed.root.innerHTML;
+    const out = ed.formatter.clear(range, INLINE_FORMATS);
+    if (ed.root.innerHTML === before) return false;
 
-    const first = frag.firstChild;
-    const last = frag.lastChild;
-    range.insertNode(frag);
-
-    if (first && last) {
-      const out = ed.document.createRange();
-      out.setStartBefore(first);
-      out.setEndAfter(last);
-      ed.selection.setRange(out);
-    }
-
+    ed.selection.setRange(out);
     ed.commit('removeformat');
     return true;
   });
@@ -286,6 +289,10 @@ export function insertParagraph(ed: Editor): boolean {
   // Uvnitř seznamu platí jiná pravidla — dělí se položka, ne blok v ní.
   const item = closestListItem(range.startContainer, ed.root);
   if (item) return insertParagraphInList(ed, item);
+
+  // V seznamu definic se navíc střídá druh: po termínu vysvětlení a naopak.
+  const def = closestDefItem(range.startContainer, ed.root);
+  if (def) return insertParagraphInDefList(ed, def);
 
   range.deleteContents();
 
@@ -336,6 +343,102 @@ export function insertParagraph(ed: Editor): boolean {
 }
 
 /**
+ * Zbyl v obsahu ještě něco, co je vidět?
+ *
+ * Prázdné bloky se nepočítají — po smazání celého výběru jich zůstává celá řada
+ * a dokument, ve kterém zbyly jen ony, je pro uživatele prázdný.
+ */
+function isRootEmpty(root: Element): boolean {
+  if ((root.textContent ?? '').trim() !== '') return false;
+  return root.querySelector('img, hr, table, iframe, video, audio') === null;
+}
+
+/**
+ * Zahodí blok a s ním obaly, které po něm zůstaly prázdné.
+ *
+ * Bez toho by po smazání jediné položky zbyl prázdný `<ul>` — neviditelný,
+ * ale v uloženém HTML dobře vidět.
+ */
+function dropBlock(block: Element, root: Element): void {
+  let node: Element | null = block;
+
+  while (node && node !== root) {
+    const parent: Element | null = node.parentElement;
+    node.parentNode?.removeChild(node);
+    if (!parent || parent === root || parent.children.length > 0) break;
+    node = parent;
+  }
+}
+
+/**
+ * Smazání výběru, který může sahat přes víc bloků.
+ *
+ * `deleteContents()` sám nestačí: zbaví bloky obsahu, ale nechá je stát. Z výběru
+ * přes tři odstavce zbydou dva prázdné krajní a kurzor skončí mezi nimi — tedy
+ * v kořeni, kde další psaní vyrobí holý text mimo blok. Po Ctrl+A a Backspace
+ * pak v dokumentu zůstane prázdný nadpis a prázdná položka seznamu.
+ *
+ * Proto se po smazání ještě uklízí: krajní bloky se spojí do jednoho, bloky,
+ * které výběr celé vyprázdnil, se zahodí, a když nezbylo vůbec nic, nastoupí
+ * jeden prázdný odstavec.
+ */
+function deleteSelection(ed: Editor, range: Range): boolean {
+  const doc = ed.document;
+  const root = ed.root;
+
+  const touched = blocksInRange(range, root);
+  const start = closestBlock(range.startContainer, root);
+  const end = closestBlock(range.endContainer, root);
+
+  range.deleteContents();
+
+  // Spojit se smí jen to, co spolu sousedí ve stejném obalu. Přes hranici
+  // tabulky nebo seznamu by se obsah stěhoval tam, kam nepatří.
+  let boundary: Node | null = null;
+  if (start && end && start !== end
+      && root.contains(start) && root.contains(end)
+      && start.parentNode === end.parentNode) {
+    boundary = mergeBlocks(start, end, doc);
+  }
+
+  const alive = touched.filter((block) => root.contains(block));
+  const keep = alive.find((block) => block === start) ?? alive[0] ?? null;
+
+  for (const block of alive) {
+    if (block !== keep && isEmptyBlock(block)) dropBlock(block, root);
+    // Po vyprázdnění zbývá slupka obalu — `<strong></strong>` tam, kde
+    // vyjmuté slovo bylo tučné.
+    else pruneEmptyInline(block);
+  }
+
+  if (isRootEmpty(root)) {
+    // Prázdný nadpis nebo položka seznamu by znamenaly, že se v nich bude
+    // pokračovat v psaní. Po smazání všeho se čeká čistý odstavec.
+    const p = doc.createElement('p');
+    fillIfEmpty(p, doc);
+    root.replaceChildren(p);
+    ed.selection.collapseTo(p, 0);
+    ed.commit('delete');
+    return true;
+  }
+
+  if (boundary) {
+    // Spojily se dva bloky — kurzor patří na šev, ne na začátek.
+    ed.selection.collapseTo(boundary, (boundary.nodeValue ?? '').length);
+  } else if (keep && root.contains(keep) && isEmptyBlock(keep)) {
+    fillIfEmpty(keep, doc);
+    ed.selection.collapseTo(keep, 0);
+  } else {
+    // Nic se nepřeskládalo. Rozsah po `deleteContents` stojí přesně tam, kde
+    // se mazalo — posouvat kurzor na začátek bloku by ho odnesl jinam.
+    ed.selection.setRange(range);
+  }
+
+  ed.commit('delete');
+  return true;
+}
+
+/**
  * Backspace a Delete.
  *
  * Na hranici bloku se bloky slučují. Výjimka je začátek dokumentu: tam není
@@ -346,13 +449,7 @@ export function deleteInDirection(ed: Editor, direction: -1 | 1): boolean {
   const range = ed.selection.getRange();
   if (!range) return false;
 
-  if (!range.collapsed) {
-    range.deleteContents();
-    const block = closestBlock(range.startContainer, ed.root);
-    if (block && !block.firstChild) fillIfEmpty(block, ed.document);
-    ed.commit('delete');
-    return true;
-  }
+  if (!range.collapsed) return deleteSelection(ed, range);
 
   const node = range.startContainer;
   const offset = range.startOffset;
@@ -382,6 +479,11 @@ export function deleteInDirection(ed: Editor, direction: -1 | 1): boolean {
   const item = closestListItem(node, ed.root);
   if (item && direction === -1 && atBlockStart(range, item)) {
     return deleteBackwardInList(ed, item);
+  }
+
+  const def = closestDefItem(node, ed.root);
+  if (def && direction === -1 && atBlockStart(range, def)) {
+    return deleteBackwardInDefList(ed, def);
   }
 
   const other = direction === -1 ? block.previousElementSibling : block.nextElementSibling;

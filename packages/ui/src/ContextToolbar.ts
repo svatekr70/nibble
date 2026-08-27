@@ -69,6 +69,13 @@ export class ContextToolbar {
     }
   }
 
+  /**
+   * Postaví lištu nad prvek, a když se tam nevejde, pod něj.
+   *
+   * Dřív se v takovém případě jen zarazila na horním okraji — a přistála přes
+   * prvek, ke kterému patří. U odkazu v prvním řádku to znamenalo, že
+   * upravovaný odkaz nebylo přes ikony vidět.
+   */
   private position(target: Element): void {
     const box = target.getBoundingClientRect();
     const base = this.host.getBoundingClientRect();
@@ -76,14 +83,20 @@ export class ContextToolbar {
     this.element.hidden = false;
     this.visible = true;
 
+    const GAP = 6;
     const width = this.element.offsetWidth;
+    const height = this.element.offsetHeight;
+
     const left = Math.max(0, Math.min(
       box.left - base.left + box.width / 2 - width / 2,
       this.host.clientWidth - width,
     ));
 
+    const above = box.top - base.top - height - GAP;
+    const below = box.bottom - base.top + GAP;
+
     this.element.style.left = left + 'px';
-    this.element.style.top = Math.max(0, box.top - base.top - this.element.offsetHeight - 6) + 'px';
+    this.element.style.top = (above >= 0 ? above : below) + 'px';
   }
 
   hide(): void {

@@ -1,4 +1,4 @@
-import type { EditorPrefs, PrefGroup, Editor } from '@nibble/core';
+import { VERSION, type EditorPrefs, type PrefGroup, type Editor } from '@nibble/core';
 import { configCode } from './configCode.js';
 import { iconSvg } from './icons.js';
 
@@ -176,6 +176,15 @@ export function openSettingsDialog(
   const sticky = check('Ovládací panel se drží u okraje', prefs.sticky);
   const statusbar = check('Informační řádek dole', prefs.statusbar);
   const resizable = check('Měnit velikost tažením za roh', prefs.resizable);
+  const autosave = check('Pamatovat si rozepsané', prefs.autosave);
+
+  // Když zálohování vypnul programátor, zaškrtnutí by nic nezměnilo —
+  // políčko to musí přiznat, ne tiše lhát.
+  if (!editor.autosave) {
+    autosave.checked = false;
+    autosave.disabled = true;
+    autosave.closest('label')?.classList.add('nb-check-off');
+  }
 
   body.appendChild(general);
 
@@ -309,12 +318,21 @@ export function openSettingsDialog(
 
   footer.append(reset, dump, cancel, submit);
   form.appendChild(footer);
+
+  // Verze pod tlačítky, ne mezi nimi: je to údaj o programu, ne ovládací prvek,
+  // a v řadě s tlačítky by se o ně otíral.
+  const version = doc.createElement('p');
+  version.className = 'nb-dialog-version';
+  version.textContent = 'Nibble ' + VERSION;
+  form.appendChild(version);
+
   dialog.appendChild(form);
   doc.body.appendChild(dialog);
 
   /** Aktuální stav formuláře. Používá ho uložení i výpis konfigurace. */
   function current(): Required<Pick<EditorPrefs,
-    'width' | 'height' | 'menubar' | 'sticky' | 'statusbar' | 'resizable' | 'groups'>> {
+    'width' | 'height' | 'menubar' | 'sticky' | 'statusbar' | 'resizable'
+    | 'autosave' | 'groups'>> {
     return {
       width: width.value.trim(),
       height: height.value.trim(),
@@ -322,6 +340,7 @@ export function openSettingsDialog(
       sticky: sticky.checked,
       statusbar: statusbar.checked,
       resizable: resizable.checked,
+      autosave: autosave.checked,
       groups: readOrder(),
     };
   }

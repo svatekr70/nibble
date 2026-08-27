@@ -27,6 +27,12 @@ export async function create(config: NibbleConfig): Promise<Editor> {
   }
 
   const content = config.content ?? (textarea ? textarea.value : host.innerHTML);
+
+  // Jméno pole je nejlepší klíč zálohy, jaký na stránce je — `id` hostitele
+  // bývá generované, `name` ve formuláři ne.
+  const named = textarea?.name || textarea?.id || host.id;
+  if (named) host.dataset.nibbleName = named;
+
   const editor = new Editor(host, { ...config, target: host, content });
 
   if (textarea) {
@@ -34,6 +40,9 @@ export async function create(config: NibbleConfig): Promise<Editor> {
     editor.on('change', () => { textarea!.value = editor.getHTML(); });
     textarea.form?.addEventListener('submit', () => {
       textarea!.value = editor.getHTML();
+      // Text jde do databáze, pojistka doslouží. Bez tohohle by se rozepsaná
+      // verze nabízela znovu i po úspěšném uložení.
+      editor.autosave?.discard();
     });
   }
 

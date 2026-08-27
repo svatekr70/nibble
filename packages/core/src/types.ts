@@ -1,6 +1,7 @@
 /** Veřejné typy Nibble. */
 
 import type { Editor } from './Editor.js';
+import type { AutosaveOptions } from './storage/Autosave.js';
 
 export type SchemaMode = 'legacy' | 'strict';
 
@@ -35,6 +36,14 @@ export interface NibbleConfig {
    * Bez uvedení platí výchozí seznam běžných video služeb.
    */
   allowedEmbedHosts?: readonly string[];
+  /**
+   * Záloha rozepsaného textu do `localStorage`.
+   *
+   * Zapnutá schválně bez ptaní: ochrana před ztrátou půlhodiny práce je něco,
+   * na co ten, kdo editor nasazuje, dopředu nemyslí — a uživatel, který o text
+   * přijde, si to pamatuje nejdéle. Vypíná se `autosave: false`.
+   */
+  autosave?: boolean | AutosaveOptions;
 }
 
 /**

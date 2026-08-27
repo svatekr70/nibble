@@ -19,6 +19,9 @@ import {
 const MERGEABLE = new Set(['p', 'div']);
 import { deleteInDirection, insertParagraph, registerBlockCommands } from './commands/blocks.js';
 import { registerListCommands } from './commands/lists.js';
+import { registerDefListCommands } from './commands/deflist.js';
+import { registerAnchorCommands } from './commands/anchor.js';
+import { Autosave, draftKey, type AutosaveOptions } from './storage/Autosave.js';
 import { registerColorCommands } from './commands/colors.js';
 import { registerClipboardCommands } from './commands/clipboard.js';
 import { captureCaret, restoreCaret } from './selection/caret.js';
@@ -39,11 +42,25 @@ const FORMAT_TAGS: Record<string, string> = {
   inlinecode: 'code',
 };
 
+/**
+ * Formáty, které se navzájem vylučují.
+ *
+ * Text nemůže být zároveň horní a dolní index. Bez tohohle šlo zapnout obojí
+ * a vzniklo `<sup><sub>…</sub></sup>` — v prohlížeči nesmysl, který se navíc
+ * nedal jednoduše vypnout.
+ */
+const OPPOSITE: Record<string, string> = {
+  sup: 'sub',
+  sub: 'sup',
+};
+
 export class Editor {
   readonly root: HTMLElement;
   readonly schema: Schema;
   readonly selection: EditorSelection;
   readonly formatter: Formatter;
+  /** Záloha rozepsaného textu. `null`, když je vypnutá nebo úložiště chybí. */
+  readonly autosave: Autosave | null;
   readonly commands = new CommandRegistry<Editor>();
   readonly ui: UIRegistry;
 
@@ -87,9 +104,15 @@ export class Editor {
       html: this.getHTML(), mark: null, kind: 'init', at: Date.now(),
     });
 
+    // Až po `setHTML`: za rozepsané se považuje odchylka od toho, co editor
+    // dostal, a to je vidět teprve teď.
+    this.autosave = createAutosave(this, config);
+
     this.registerCoreCommands();
     registerBlockCommands(this);
     registerListCommands(this);
+    registerDefListCommands(this);
+    registerAnchorCommands(this);
     registerColorCommands(this);
     registerClipboardCommands(this);
     registerCoreControls(this, this.ui);
@@ -312,6 +335,7 @@ export class Editor {
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.autosave?.destroy();
     for (const fn of this.teardown.reverse()) fn();
     this.teardown.length = 0;
     this.events.clear();
@@ -325,6 +349,7 @@ export class Editor {
   commit(kind: string): void {
     const html = this.getHTML();
     this.history.push({ html, mark: this.selection.save(), kind, at: Date.now() });
+    this.autosave?.schedule(html);
     this.events.dispatch('change', { html });
   }
 
@@ -346,6 +371,10 @@ export class Editor {
       this.setHTML(html, this.serializeOptions.entityEncoding);
       this.selection.restore(mark);
     });
+    // Zpět a znovu obsah mění stejně jako psaní, takže i záloha musí jít
+    // s nimi. Bez toho by po vrácení všech změn zůstala viset stará verze
+    // a po obnovení stránky by se nabízela, přestože ji nikdo nechtěl.
+    this.autosave?.schedule(html);
     this.events.dispatch('change', { html });
   }
 
@@ -355,15 +384,27 @@ export class Editor {
         const range = ed.selection.getRange();
         if (!range) return false;
 
+        const opposite = OPPOSITE[tag];
+
         if (range.collapsed) {
           // Bez výběru se formát jen předepíše pro další napsaný znak.
-          if (ed.pendingMarks.has(tag)) ed.pendingMarks.delete(tag);
-          else ed.pendingMarks.add(tag);
+          if (ed.pendingMarks.has(tag)) {
+            ed.pendingMarks.delete(tag);
+          } else {
+            ed.pendingMarks.add(tag);
+            if (opposite) ed.pendingMarks.delete(opposite);
+          }
           ed.events.dispatch('selectionchange');
           return true;
         }
 
-        ed.selection.setRange(ed.formatter.toggle(range, tag));
+        // Zapnutí jednoho z dvojice vypne ten druhý — jinak by se zanořily
+        // do sebe a text by byl horní i dolní index zároveň.
+        const live = opposite && !ed.formatter.matches(range, tag)
+          ? ed.formatter.clear(range, [opposite])
+          : range;
+
+        ed.selection.setRange(ed.formatter.toggle(live, tag));
         ed.commit('format');
         return true;
       });
@@ -507,4 +548,33 @@ export class Editor {
     if (!range) return null;
     return ensureBlock(range.startContainer, this.root, this.document);
   }
+}
+
+/**
+ * Postaví zálohování, nebo vrátí `null`, když je vypnuté.
+ *
+ * Klíč se odvozuje z adresy stránky a z `name` nebo `id` cílového prvku. Když
+ * ani jedno není, použije se pořadí editoru na stránce — funguje to, dokud se
+ * pořadí nezmění, a je to pořád lepší než nezálohovat vůbec.
+ */
+let editorsOnPage = 0;
+
+function createAutosave(editor: Editor, config: NibbleConfig): Autosave | null {
+  if (config.autosave === false) return null;
+
+  const options: AutosaveOptions = typeof config.autosave === 'object' ? config.autosave : {};
+  const win = editor.document.defaultView;
+  const name = options.key
+    ?? editor.root.dataset.nibbleName
+    ?? editor.root.id
+    ?? '';
+
+  const store = new Autosave(
+    win,
+    options.key ?? draftKey(win, name, editorsOnPage++),
+    editor.getHTML(),
+    options,
+  );
+
+  return store.available ? store : null;
 }

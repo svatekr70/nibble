@@ -221,3 +221,119 @@ test.describe('vkládání z tabulkového procesoru', () => {
     expect(out).toContain('background-color: #1f497d');
   });
 });
+
+/**
+ * Kopírování uvnitř editoru.
+ *
+ * Chrome do `text/html` přibalí spočítané styly — `color`, `background-color`,
+ * `text-align: start` — a vložení zpátky do editoru je přinese, přestože je
+ * nikdo nenastavil. Nibble proto schránku plní sám.
+ */
+test.describe('kopírování uvnitř editoru', () => {
+  /** Vyvolá `copy` s vlastní schránkou a vrátí, co do ní editor zapsal. */
+  const copied = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => {
+      const ed = (window as any).ed;
+      const dt = new DataTransfer();
+      ed.root.dispatchEvent(new ClipboardEvent('copy', {
+        clipboardData: dt, bubbles: true, cancelable: true,
+      }));
+      return { html: dt.getData('text/html'), text: dt.getData('text/plain') };
+    });
+
+  async function selectInside(page: import('@playwright/test').Page, selector: string) {
+    await page.evaluate((sel) => {
+      const ed = (window as any).ed;
+      const el = ed.root.querySelector(sel);
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      ed.selection.setRange(r);
+      ed.root.focus();
+    }, selector);
+  }
+
+  test('do schránky jde čisté HTML bez spočítaných stylů', async ({ page }) => {
+    await mount(page, '<p>abc <strong>tucne</strong> def</p>');
+    await selectInside(page, 'strong');
+
+    const out = await copied(page);
+    expect(out.html).toBe('<strong>tucne</strong>');
+    expect(out.text).toBe('tucne');
+    expect(out.html).not.toContain('style=');
+  });
+
+  test('obal nad výběrem se do schránky přenese', async ({ page }) => {
+    // `cloneContents` sám vrátí jen holý text — tučnost by se ztratila.
+    await mount(page, '<p><em><strong>abc</strong></em></p>');
+    await selectInside(page, 'strong');
+
+    expect(await copied(page)).toMatchObject({ html: '<em><strong>abc</strong></em>' });
+  });
+
+  test('barva zadaná uživatelem se zachová', async ({ page }) => {
+    await mount(page, '<p><span style="color: rgb(255, 0, 0);">abc</span></p>');
+    await selectInside(page, 'span');
+
+    expect((await copied(page)).html).toContain('color: rgb(255, 0, 0)');
+  });
+
+  test('vyjmutí nenechá prázdný obal ani pevnou mezeru', async ({ page }) => {
+    await mount(page, '<p>abc <strong>tucne</strong> def</p>');
+    await selectInside(page, 'strong');
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      const dt = new DataTransfer();
+      ed.root.dispatchEvent(new ClipboardEvent('cut', {
+        clipboardData: dt, bubbles: true, cancelable: true,
+      }));
+    });
+
+    const out = await html(page);
+    expect(out).not.toContain('<strong>');
+    expect(out).not.toContain('&nbsp;');
+  });
+});
+
+/**
+ * Google Docs kolem zkopírovaného úseku dává
+ * `<b style="font-weight:normal" id="docs-internal-guid-…">` — kontejner, ne
+ * formátování. `<b>` kolem `<p>` je navíc neplatné HTML.
+ */
+test.describe('inline obal kolem bloku', () => {
+  const vloz = (page: import('@playwright/test').Page, source: string) =>
+    page.evaluate((src) => {
+      const ed = (window as any).ed;
+      ed.selection.collapseTo(ed.root.children[0].firstChild, 1);
+      ed.root.focus();
+      const dt = new DataTransfer();
+      dt.setData('text/html', src);
+      ed.root.dispatchEvent(new ClipboardEvent('paste', {
+        clipboardData: dt, bubbles: true, cancelable: true,
+      }));
+    }, source);
+
+  test('obalovací <b> z Google Docs se rozbalí', async ({ page }) => {
+    await mount(page, '<p>X</p>');
+    await vloz(page, '<b style="font-weight:normal" id="docs-internal-guid-1">'
+      + '<p dir="ltr"><span style="font-size:11pt">Docs text</span></p></b>');
+
+    await expect.poll(() => html(page)).toBe('<p>XDocs text</p>');
+  });
+
+  test('<span> kolem tabulky se rozbalí, tabulka zůstane', async ({ page }) => {
+    await mount(page, '<p>X</p>');
+    await vloz(page, '<span><table><tbody><tr><td>a</td></tr></tbody></table></span>');
+
+    await expect.poll(() => html(page)).toContain('<table>');
+    expect(await html(page)).not.toContain('<span>');
+  });
+
+  test('tučné kolem obyčejného textu zůstane tučné', async ({ page }) => {
+    // Pravidlo platí jen na obal kolem bloku — běžné formátování se nesmí ztratit.
+    await mount(page, '<p>X</p>');
+    await vloz(page, '<b>tucny text</b>');
+
+    await expect.poll(() => html(page)).toContain('tucny text');
+    expect(await html(page)).toMatch(/<(b|strong)>/);
+  });
+});

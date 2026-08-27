@@ -66,11 +66,14 @@ function applyLink(editor: Editor, data: LinkData): boolean {
     }
   };
 
-  const existing = closestLink(range.startContainer, editor.root);
-  if (existing) {
-    decorate(existing);
-    if (data.text && data.text !== existing.textContent) existing.textContent = data.text;
-    selectLink(editor, existing);
+  // Úprava stávajícího odkazu se pozná podle toho, že výběr nesahá nikam jinam.
+  // Kdyby přesahoval, uživatel označil víc než ten odkaz a čeká odkaz nad celým
+  // výběrem — ne jen změnu cíle u toho, co už odkazem bylo.
+  const inside = onlyLink(editor, range);
+  if (inside) {
+    decorate(inside);
+    if (data.text && data.text !== inside.textContent) inside.textContent = data.text;
+    selectLink(editor, inside);
     editor.commit('link');
     return true;
   }
@@ -97,6 +100,41 @@ function applyLink(editor: Editor, data: LinkData): boolean {
   selectLink(editor, anchor);
   editor.commit('link');
   return true;
+}
+
+/**
+ * Odkazy, kterých se výběr dotýká.
+ *
+ * Hledá se přes textové uzly uvnitř výběru, ne přes `range.startContainer`.
+ * Ten totiž při výběru taženém myší leží běžně mimo vybraný text: u výběru
+ * textu odkazu začíná rozsah na konci uzlu před ním, takže by z něj
+ * `closestLink` vrátil null a „odebrat odkaz" by tiše neudělalo nic.
+ */
+function linksIn(editor: Editor, range: Range): Element[] {
+  const out: Element[] = [];
+
+  if (range.collapsed) {
+    const here = closestLink(range.startContainer, editor.root);
+    return here ? [here] : [];
+  }
+
+  for (const text of editor.formatter.textsInside(range)) {
+    const anchor = closestLink(text, editor.root);
+    if (anchor && !out.includes(anchor)) out.push(anchor);
+  }
+  return out;
+}
+
+/** Odkaz, ve kterém výběr celý leží — jinak null. */
+function onlyLink(editor: Editor, range: Range): HTMLAnchorElement | null {
+  if (range.collapsed) return closestLink(range.startContainer, editor.root);
+
+  const texts = editor.formatter.textsInside(range);
+  if (texts.length === 0) return closestLink(range.startContainer, editor.root);
+
+  const first = closestLink(texts[0]!, editor.root);
+  if (!first) return null;
+  return texts.every((t) => closestLink(t, editor.root) === first) ? first : null;
 }
 
 async function openLinkDialog(editor: Editor): Promise<void> {
@@ -137,22 +175,37 @@ export const link: Plugin = {
       const range = ed.selection.getRange();
       if (!range) return false;
 
-      const existing = closestLink(range.startContainer, ed.root);
-      if (!existing) return false;
+      // Výběr může krýt víc odkazů naráz — zruší se všechny, kterých se dotkl.
+      const found = linksIn(ed, range);
+      if (found.length === 0) return false;
 
-      const parent = existing.parentNode;
-      if (!parent) return false;
+      let first: Node | null = null;
+      let last: Node | null = null;
 
-      const first = existing.firstChild;
-      while (existing.firstChild) parent.insertBefore(existing.firstChild, existing);
-      parent.removeChild(existing);
-      if (first) ed.selection.collapseTo(first, 0);
+      for (const anchor of found) {
+        const parent = anchor.parentNode;
+        if (!parent) continue;
 
+        if (!first) first = anchor.firstChild;
+        last = anchor.lastChild ?? last;
+        while (anchor.firstChild) parent.insertBefore(anchor.firstChild, anchor);
+        parent.removeChild(anchor);
+      }
+
+      // Výběr zůstane na textu, který odkazem být přestal.
+      if (first && last) {
+        const out = ed.document.createRange();
+        out.setStartBefore(first);
+        out.setEndAfter(last);
+        ed.selection.setRange(out);
+      }
+
+      ed.root.normalize();
       ed.commit('unlink');
       return true;
     }, (ed) => {
       const range = ed.selection.getRange();
-      return !!range && closestLink(range.startContainer, ed.root) !== null;
+      return !!range && linksIn(ed, range).length > 0;
     });
 
     editor.commands.add('openlink', (ed) => {

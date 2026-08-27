@@ -185,10 +185,15 @@ export function indentItem(li: Element, root: Element, doc: Document): boolean {
  *
  * Co v seznamu následovalo za položkou, se musí přesunout dovnitř ní — jinak by
  * se ze zbytku staly položky o úroveň výš, než kde původně byly.
+ *
+ * Vrací prvek, ve kterém obsah položky skončil, ne jen `true`. Na nejvyšší
+ * úrovni `<li>` zaniká a volající by neměl kam posadit kurzor: `closestListItem`
+ * na odpojené položce vrátí ji samotnou, takže by se kurzor posadil mimo
+ * dokument a psaní by skončilo kdesi na jeho začátku.
  */
-export function outdentItem(li: Element, root: Element, doc: Document): boolean {
+export function outdentItem(li: Element, root: Element, doc: Document): Element | null {
   const list = listOf(li);
-  if (!list) return false;
+  if (!list) return null;
 
   const following: Element[] = [];
   let sibling = li.nextElementSibling;
@@ -214,12 +219,12 @@ export function outdentItem(li: Element, root: Element, doc: Document): boolean 
     fillDeep(li, doc);
     const outer = listOf(li);
     if (outer) syncAriaLevel(outer, root);
-    return true;
+    return itemContent(li);
   }
 
   // Nejvyšší úroveň — ze seznamu ven.
   const target = list.parentNode;
-  if (!target) return false;
+  if (!target) return null;
 
   const sub = sublistOf(li);
   if (sub) li.removeChild(sub);
@@ -255,7 +260,7 @@ export function outdentItem(li: Element, root: Element, doc: Document): boolean 
 
   pruneEmptyInline(replacement);
   fillIfEmpty(replacement, doc);
-  return true;
+  return replacement;
 }
 
 /** Rozdělí položku v místě kurzoru. Zanořený seznam zůstane u původní položky. */

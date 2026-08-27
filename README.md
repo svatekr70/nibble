@@ -252,6 +252,190 @@ na textu. Proto je to jedna třída na společném obalu, ne dvě nastavení.
 > kódu v dialogu zmizela — `max-height` přebije i výšku nastavenou inline.
 > Rozměry se proto nastavují výslovně včetně stropů.
 
+## Verze je vidět v nastavení
+
+*Nastavení editoru* ukazuje pod tlačítky „Nibble 0.3.0". Hodnotu dosazuje
+bundler z `package.json` (`define` v `tools/build*.mjs`), takže se nemůže
+rozejít s vydáním — a nemusí se udržovat na dvou místech, kde by jedno bylo
+dřív nebo později zapomenuté. Bez bundleru, tedy v jednotkových testech,
+zůstane `dev`.
+
+## Rozepsané se neztratí
+
+Kdo píše půl hodiny a omylem obnoví stránku, přijde o všechno — a je to ta
+ztráta, kterou uživatel editoru pamatuje nejdéle. Nibble proto průběžně ukládá
+obsah do `localStorage` a po načtení nabídne, že ho vrátí:
+
+```
+┌────────────────────────────────────┐
+│ Máte tu rozepsanou verzi z 14:32.  │
+│              [Obnovit] [Zahodit]   │
+├────────────────────────────────────┤
+│ B  I  U  …                         │
+```
+
+**Nabídne, neobnoví.** Automatické obnovení by přepsalo text, který mezitím mohl
+někdo změnit jinde — třeba druhý editor téhož záznamu — a uživatel by se to
+nedozvěděl. Záloha je pojistka, ne zdroj pravdy. Obnovení jde vzít zpět Ctrl+Z.
+
+Ukládá se jen odchylka od obsahu, se kterým editor začal: kdo si stránku jen
+otevřel a nic nenapsal, žádnou zálohu nezanechá, a kdo vrátí změny zpět, tomu
+se smaže. Po odeslání formuláře záloha mizí — text je v databázi, pojistka
+doslouží.
+
+Klíč je adresa stránky plus `name` nebo `id` pole, takže dva editory na jedné
+stránce si nepřepisují data. Bez jména se použije pořadí editoru; funguje to,
+dokud se pořadí nezmění, a je to pořád lepší než nezálohovat vůbec.
+
+Zapnuté je to bez ptaní. Ochrana před ztrátou práce je něco, na co ten, kdo
+editor nasazuje, dopředu nemyslí. Vypíná se `autosave: false`, doladit jde
+`autosave: { key, delay, maxAge }`.
+
+Uživatel má vlastní přepínač v *Nastavení editoru* — „Pamatovat si rozepsané".
+Vypnutí zálohu rovnou zahodí; nechat ji ležet by znamenalo, že se po obnovení
+stránky nabídne verze, kterou zálohovat nechtěl. Co vypnul programátor,
+zaškrtnutím nezapne: políčko je v takovém případě zašedlé, aby to přiznalo
+místo aby tiše lhalo.
+
+`localStorage` není samozřejmost — v soukromém okně nebo při zakázaných
+souborech cookie může i jen sáhnutí na něj skončit výjimkou. Zálohování se
+v takovém případě tiše vypne; editor kvůli pojistce padat nesmí.
+
+## Kotva je `id` na bloku
+
+`<a name>` HTML5 zrušil, takže kotva je `id`. Vkládá se z *Vložit → Kotva* a sedí
+na bloku, ve kterém stojí kurzor:
+
+```html
+<h2 id="prvni-kapitola">První kapitola</h2>
+<p id="poznamka">Text odstavce…</p>
+```
+
+Prázdný obal `<span id></span>` na místě kurzoru by uměl kotvu doprostřed věty,
+ale v obsahu není vidět a při mazání okolo se ztratí, aniž by si toho někdo
+všiml. Blok přežije čištění, round-trip i pozdější úpravy — a odkaz na začátek
+odstavce nebo nadpisu je to, co se skoro vždycky myslí.
+
+Název se navrhne z textu bloku a převede na tvar, který projde i v adrese:
+bez diakritiky, malými písmeny, mezery na pomlčky. Dvě stejná `id` jsou neplatné
+HTML, takže se obsazený název očísluje — `kotva-2`. Vlastní název upravovaného
+bloku se za kolizi nepočítá, jinak by se kotva při každém otevření dialogu
+očíslovala znovu. Prázdné pole kotvu zruší; je to jediná cesta, jak ji sundat.
+
+Blok s kotvou dostane v editoru značku ⚓ přes `::before`, takže se do obsahu
+nic nepřidává a v uloženém HTML po ní není stopa. Kreslí se v pevných
+jednotkách, ne v `em` — v `em` se u nadpisu odsune dál, než sahá odsazení
+obsahu, a ořízne se o levý okraj.
+
+## Hledání je panel, ne dialog
+
+„Najít další" a „Nahradit" potřebují, aby bylo na obsah vidět — nález se ukazuje
+v něm. Panel se proto otevírá přes `show()`, ne `showModal()`: nemá backdrop
+a pod ním se dá dál pracovat.
+
+Nález se kreslí přes **`CSS.highlights`**, ne obalením do `<mark>`. Hledání nemá
+důvod sahat do dokumentu, ve kterém jen hledá — a obalování by ho měnilo. Kde
+API není (starší Safari a Firefox), zbývá obyčejný výběr; ten je v rozostřeném
+editoru bledý, ale vidět je. Obojí naráz nemá smysl: výběr se podle specifikace
+kreslí přes vlastní zvýraznění a žluté podbarvení by přebil.
+
+Panel si drží jen to, co se z obsahu přečíst nedá — **kolikátý nález je na řadě**.
+Samotné nálezy se pokaždé hledají znovu: obsah se mezitím mohl změnit nahrazením
+i tím, že do něj někdo psal, a uložený seznam uzlů by po takové změně ukazoval
+jinam. Za posledním nálezem se pokračuje od prvního.
+
+Nemodální panel a tlačítka, po kterých se nezavírá, umí dialog obecně —
+`modeless: true` a `actions` v `DialogSpec`.
+
+## Ikony
+
+Ikony jsou z **[Lucide](https://lucide.dev)** (ISC). Do repozitáře je zapisuje
+`npm run icons`, který je vytáhne z `@iconify-json/lucide` podle mapy jmen
+v `tools/build-icons.mjs`. Nové tlačítko znamená přidat tam řádek a skript
+spustit — `packages/ui/src/icons.ts` se needituje ručně.
+
+Generuje se, ne načítá za běhu: do balíčku jde 52 ikon místo celé sady
+a `@iconify-json/lucide` zůstává vývojovou závislostí, kterou nikdo, kdo Nibble
+používá, neinstaluje.
+
+Jediný zásah do tvaru je síla čáry — z 2 na 1.75, protože v liště se ikona
+zmenšuje na 18 px a plná dvojka je tam zbytečně tučná.
+
+Licence a copyright jsou v [`licenses/lucide.txt`](licenses/lucide.txt). ISC
+vyžaduje, aby copyright zůstal u všech kopií, takže ten soubor patří i do
+distribuce.
+
+## Seznam definic
+
+`<dl>` má proti `<ul>` a `<ol>` dva druhy položek, které se střídají: `<dt>` je
+termín, `<dd>` jeho vysvětlení. Psaní v něm proto vypadá jinak — **Enter
+nepokračuje tím, čím uživatel právě psal**, ale přepne na ten druhý druh. Po
+termínu se čeká vysvětlení, po vysvětlení další termín:
+
+| Kde je kurzor | Enter |
+|---|---|
+| v `<dt>` | vznikne `<dd>` |
+| v `<dd>` | vznikne `<dt>` |
+| v prázdném prvku | odstavec za seznamem |
+
+Dva odstavce v jednom vysvětlení se dělají Shift+Enterem, tedy `<br>`.
+
+Zapnutí z odstavců je střídá stejně: první termín, druhý vysvětlení, třetí zase
+termín. Kdo píše seznam definic jako odstavce, píše je právě takhle — a po
+převodu tedy nemusí nic překlikávat.
+
+**Zanořování tady schválně není.** `<dl>` uvnitř `<dd>` je platné HTML, ale
+ovládat ho Tabem jako u seznamu by znamenalo rozhodnout, jestli se zanořuje
+termín, vysvětlení, nebo obojí — a žádná z odpovědí není zjevná. Tab proto
+v seznamu definic zůstává na fokusu.
+
+V liště tlačítko není: definiční seznamy jsou málo časté a lišta je plná.
+Najdete ho v *Formát → Seznam* a v nastavení lišty, kdyby ho někdo chtěl mít
+po ruce.
+
+## Vlastnosti seznamu
+
+Druh značky, odsazení a počáteční číslo. Dialog se otevře z kontextové lišty
+u kurzoru nebo z *Formát → Seznam*.
+
+Zapisuje se **atribut i vlastnost stylu současně**:
+
+```html
+<ol type="a" style="list-style-type: lower-alpha;" start="3">
+<ul type="square" style="list-style-type: square;">
+<ol style="list-style-type: none;">     <!-- „bez značky": atribut na to není -->
+```
+
+Vypadá to jako zbytečná dvojkolejnost, ale každá půlka je jinde k něčemu:
+`list-style-type` umí i to, na co atribut nestačí, a `type` projde i tam, kde
+se inline styl seznamu nedodrží. Uložené HTML se čte i jinde než v prohlížeči.
+
+Odrážky jdou nastavit i na znak — pomlčka, šipka, fajfka. `list-style-type`
+bere kromě klíčových slov i řetězec, takže se obejdou bez stylopisu u obsahu:
+
+```html
+<ul style="list-style-type: &quot;– &quot;;">
+```
+
+**Oddělovač za číslem — tečka, závorka — Nibble nenabízí, a je v tom rozdíl
+proti znakovým odrážkám.** Řetězec v `list-style-type` je statický: jako
+odrážka poslouží, ale počítat neumí. HTML na to nemá nic
+a přenositelné CSS taky ne: `::marker { content }` i `@counter-style` potřebují
+stylopis u obsahu a jinde spadnou zpátky na tečku. Slíbit v dialogu něco, co se
+v půlce míst nezobrazí, je horší než to nenabídnout.
+
+Každá úroveň je vlastní `<ul>`/`<ol>`, takže se nastavuje samostatně. Dialog
+proto vysází skupinu polí pro každou úroveň nad kurzorem — u jednoúrovňového
+seznamu jsou dvě pole, ve třetí úrovni devět. Rozbalovátko „která úroveň" by
+nešlo: dialog se vrací až při potvrzení, takže po jeho přepnutí se zbylá pole
+nemají jak přenačíst.
+
+Otevřít dialog a potvrdit beze změny **nesmí obsahem hnout**. Zápis do `style`
+jde přes CSSOM, který atribut vždycky přepíše kanonickým tvarem — z
+`style="list-style-type:lower-alpha"` by se stalo `list-style-type: lower-alpha;`
+a přeformátoval by se blok, kterého se nikdo nedotkl. Zápis proto při shodné
+hodnotě nesáhne na nic.
+
 ## Vlastnosti tabulky a řádku
 
 Dialogy nabízejí to, co je v datech vidět: `cellpadding` (5×), `border` (2×),
