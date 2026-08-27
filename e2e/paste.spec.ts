@@ -337,3 +337,68 @@ test.describe('inline obal kolem bloku', () => {
     expect(await html(page)).toMatch(/<(b|strong)>/);
   });
 });
+
+/**
+ * Číslování z Wordu.
+ *
+ * Word posílá seznamy jako odstavce se značkou v textu. Kdo psal římskými
+ * číslicemi, chtěl římské číslice — sem se to dostane až přes celý řetěz
+ * čištění, takže to stojí za ověření i v prohlížeči.
+ */
+test.describe('seznam z Wordu si nechá druh číslování', () => {
+  const item = (marker: string, text: string) =>
+    '<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">'
+    + `<span style="mso-list:Ignore">${marker}<span style="font:7.0pt">&nbsp;&nbsp; </span></span>`
+    + `${text}</p>`;
+
+  const vloz = (page: import('@playwright/test').Page, source: string) =>
+    page.evaluate((src) => {
+      const ed = (window as any).ed;
+      ed.selection.collapseTo(ed.root.children[0].firstChild, 1);
+      ed.root.focus();
+      const dt = new DataTransfer();
+      dt.setData('text/html', src);
+      ed.root.dispatchEvent(new ClipboardEvent('paste', {
+        clipboardData: dt, bubbles: true, cancelable: true,
+      }));
+    }, source);
+
+  test('římské číslice přežijí vložení', async ({ page }) => {
+    await mount(page, '<p>X</p>');
+    await vloz(page, item('i.', 'Prvni') + item('ii.', 'Druhy'));
+
+    await expect.poll(() => html(page)).toContain('type="i"');
+    const out = await html(page);
+    expect(out).toContain('list-style-type: lower-roman');
+    expect(out).toContain('<li>Prvni</li>');
+    expect(out).not.toContain('i.&nbsp;');
+  });
+
+  test('písmena taky', async ({ page }) => {
+    await mount(page, '<p>X</p>');
+    await vloz(page, item('a.', 'Prvni') + item('b.', 'Druhy'));
+
+    await expect.poll(() => html(page)).toContain('type="a"');
+    expect(await html(page)).toContain('<li>Prvni</li>');
+  });
+
+  test('vložený seznam se dá dál upravovat', async ({ page }) => {
+    await mount(page, '<p>X</p>');
+    await vloz(page, item('i.', 'Prvni') + item('ii.', 'Druhy'));
+    await expect.poll(() => html(page)).toContain('<ol');
+
+    // Enter na konci poslední položky přidá další — druh číslování zůstane.
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      const last = [...ed.root.querySelectorAll('li')].pop()!;
+      ed.selection.collapseTo(last.firstChild, (last.textContent ?? '').length);
+      ed.root.focus();
+      ed.exec('insertParagraph');
+    });
+    await page.keyboard.type('Treti');
+
+    const out = await html(page);
+    expect(out).toContain('type="i"');
+    expect(out).toContain('<li>Treti</li>');
+  });
+});

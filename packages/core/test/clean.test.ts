@@ -130,6 +130,107 @@ describe('Word', () => {
   });
 });
 
+/**
+ * Druh číslování z Wordu.
+ *
+ * Word posílá seznamy jako odstavce se značkou v textu a rozliší je jen
+ * `mso-list`. Kdo psal římskými číslicemi, chtěl římské číslice — bez
+ * rozpoznání druhu se ze všeho staly odrážky a značka zůstala v textu.
+ */
+describe('Word: druh číslování seznamu', () => {
+  /** Odstavec tak, jak ho Word posílá: značka ve `<span style="mso-list:Ignore">`. */
+  const item = (marker: string, text: string) =>
+    '<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">'
+    + `<span style="mso-list:Ignore">${marker}<span style="font:7.0pt">&nbsp;&nbsp; </span></span>`
+    + `${text}</p>`;
+
+  it.each([
+    ['římské malé', ['i.', 'ii.', 'iii.'], 'i', 'lower-roman'],
+    ['římské velké', ['I.', 'II.'], 'I', 'upper-roman'],
+    ['písmena malá', ['a.', 'b.'], 'a', 'lower-alpha'],
+    ['písmena velká', ['A)', 'B)'], 'A', 'upper-alpha'],
+  ])('%s', (_name, markers, type, style) => {
+    const { html } = clean(markers.map((m, i) => item(m, 'Polozka' + i)).join(''));
+
+    expect(html).toContain(`type="${type}"`);
+    expect(html).toContain(`list-style-type: ${style}`);
+    // Značka je vzhled, ne text — v položce nemá co dělat.
+    expect(html).not.toMatch(/<li>\s*[ivxIVXab]+[.)]/);
+  });
+
+  it('arabské číslování zůstane bez atributu — je výchozí', () => {
+    const { html } = clean(item('1.', 'Prvni') + item('2.', 'Druhy'));
+
+    expect(html).toBe('<ol><li>Prvni</li><li>Druhy</li></ol>');
+  });
+
+  it('odrážky dají <ul> a značka zmizí', () => {
+    const { html } = clean(item('·', 'Prvni') + item('·', 'Druhy'));
+
+    expect(html).toBe('<ul><li>Prvni</li><li>Druhy</li></ul>');
+  });
+
+  it('řada, která nejde po sobě, se za seznam nepovažuje', () => {
+    // „i, j, k" jsou písmena, ne římské číslice — a jako písmena po sobě nejdou.
+    const { html } = clean(item('i.', 'A') + item('j.', 'B') + item('q.', 'C'));
+
+    expect(html).not.toContain('<ol');
+  });
+
+  it('řada písmen po sobě je seznam', () => {
+    const { html } = clean(item('i.', 'A') + item('j.', 'B'));
+
+    expect(html).toContain('type="a"');
+  });
+
+  it('značka rozdělená mezi uzly se sundá celá', () => {
+    // Word dá „i." do jednoho uzlu a mezery za ní do vnořeného `<span>`.
+    const { html } = clean(item('i.', 'Text') + item('ii.', 'Dalsi'));
+
+    expect(html).toContain('<li>Text</li>');
+    expect(html).toContain('<li>Dalsi</li>');
+  });
+
+  it('věta začínající římskou číslicí zůstane větou', () => {
+    // Bez `mso-list` nemá Nibble důvod myslet si, že jde o seznam.
+    const source = '<p class="MsoNormal">I. svetova valka</p>'
+      + '<p class="MsoNormal">II. svetova valka</p>';
+    const { html } = clean(source);
+
+    expect(html).not.toContain('<ol');
+    expect(html).toContain('I. svetova valka');
+  });
+});
+
+describe('druh značky ze skutečného seznamu', () => {
+  it('list-style-type na <ol> se zachová', () => {
+    const { html } = clean('<ol style="list-style-type: lower-roman"><li>a</li></ol>');
+    expect(html).toContain('list-style-type: lower-roman');
+  });
+
+  it('list-style-position taky', () => {
+    const { html } = clean('<ul style="list-style-position: inside"><li>a</li></ul>');
+    expect(html).toContain('list-style-position: inside');
+  });
+
+  it('atribut type a start projdou', () => {
+    const { html } = clean('<ol type="I" start="5"><li>a</li></ol>');
+    expect(html).toContain('type="I"');
+    expect(html).toContain('start="5"');
+  });
+
+  it('na odstavci se list-style-type nepouští — tam nic neznamená', () => {
+    const { html } = clean('<p style="list-style-type: lower-roman">text</p>');
+    expect(html).not.toContain('list-style-type');
+  });
+
+  it('prázdný seznam povolených stylů zahodí i druh značky', () => {
+    const { html } = clean('<ol style="list-style-type: lower-roman"><li>a</li></ol>',
+      { keepStyles: [] });
+    expect(html).not.toContain('list-style-type');
+  });
+});
+
 describe('styly', () => {
   it('barva a zarovnání zůstávají', () => {
     expect(clean('<p style="color: rgb(255, 0, 0); text-align: center;">t</p>').html)

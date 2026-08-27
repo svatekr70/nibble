@@ -86,6 +86,17 @@ const TABLE_KEEP_STYLES = [
   'width', 'height', 'padding', 'font-size',
 ];
 
+const LIST_TAGS = new Set(['ul', 'ol']);
+
+/**
+ * Vlastnosti stylu, které se pouštějí na seznamech.
+ *
+ * Druh značky je informace, ne vzhled zdrojového dokumentu: kdo psal seznam
+ * římskými číslicemi, chtěl římské číslice. Google Docs je posílá právě takhle,
+ * ve stylu — bez tohohle by se ze všeho staly obyčejné arabské.
+ */
+const LIST_KEEP_STYLES = ['list-style-type', 'list-style-position'];
+
 /** Vlastnosti stylu, které nesou úmysl autora, ne vzhled zdrojového dokumentu. */
 const KEEP_STYLES = new Set([
   'color', 'background-color', 'text-align', 'font-weight',
@@ -207,43 +218,145 @@ function isJunkAttr(name: string): boolean {
   return JUNK_ATTR_PREFIXES.some((prefix) => n.startsWith(prefix));
 }
 
+/** Značka na začátku odstavce: „1.", „iv)", „a.", „·". */
+const MARKER = /^\s*([·•●▪‣⁃o]|\d+|[ivxlcdm]+|[IVXLCDM]+|[a-zA-Z])([.)])?(?:\s|\u00a0)+/;
+
+const BULLETS = /^[·•●▪‣⁃o]$/;
+const ROMAN_VALUES: Record<string, number> = { i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000 };
+
+/** Hodnota římské číslice, nebo 0, když to římská číslice není. */
+function romanValue(text: string): number {
+  const chars = text.toLowerCase().split('');
+  if (chars.some((ch) => !(ch in ROMAN_VALUES))) return 0;
+
+  let total = 0;
+  for (let i = 0; i < chars.length; i += 1) {
+    const value = ROMAN_VALUES[chars[i]!]!;
+    const next = i + 1 < chars.length ? ROMAN_VALUES[chars[i + 1]!]! : 0;
+    total += value < next ? -value : value;
+  }
+  return total;
+}
+
 /**
- * Rozpozná seznam, který Word poslal jako odstavce s odrážkou v textu.
+ * Druh číslování odvozený z celé řady značek.
+ *
+ * Z jedné značky se poznat nedá: „i." je římská jednička i písmeno „i".
+ * Rozhodne až posloupnost — po „i." přijde u římských „ii.", u písmen „j.".
+ */
+function listKind(markers: readonly string[]): { tag: 'ul' | 'ol'; type: string } | null {
+  if (markers.length === 0) return null;
+  if (markers.every((m) => BULLETS.test(m))) return { tag: 'ul', type: '' };
+
+  const follows = (values: readonly number[]): boolean =>
+    values.every((v, i) => v > 0 && (i === 0 || v === values[i - 1]! + 1));
+
+  if (markers.every((m) => /^\d+$/.test(m))) {
+    return follows(markers.map(Number)) ? { tag: 'ol', type: '1' } : null;
+  }
+
+  // Římské číslice napřed: „i, ii, iii" je řada, „i, j, k" už ne.
+  const roman = markers.map(romanValue);
+  if (follows(roman)) {
+    return { tag: 'ol', type: markers[0]! === markers[0]!.toLowerCase() ? 'i' : 'I' };
+  }
+
+  if (markers.every((m) => /^[a-zA-Z]$/.test(m))) {
+    const letters = markers.map((m) => m.toLowerCase().charCodeAt(0) - 96);
+    if (follows(letters)) {
+      return { tag: 'ol', type: markers[0]! === markers[0]!.toLowerCase() ? 'a' : 'A' };
+    }
+  }
+
+  return null;
+}
+
+/** Odstavce, které Word poslal jako jeden seznam, i se značkami z jejich textu. */
+function wordListRuns(root: Element): Array<{ items: Element[]; markers: string[] }> {
+  const runs: Array<{ items: Element[]; markers: string[] }> = [];
+  let current: { items: Element[]; markers: string[] } | null = null;
+
+  for (const p of Array.from(root.querySelectorAll('p'))) {
+    const style = p.getAttribute('style') ?? '';
+    const marked = /mso-list/i.test(style) || p.classList.contains('MsoListParagraph');
+    const found = MARKER.exec(p.textContent ?? '');
+    const marker = found?.[1] ?? '';
+
+    // Odrážku a číslici pozná i neoznačený odstavec — Word je někdy pošle bez
+    // `mso-list`. Písmeno a římská číslice se ale běžně vyskytují i ve větě
+    // („I. světová válka"), takže u nich musí Word sám říct, že jde o seznam.
+    const safe = BULLETS.test(marker) || /^\d+$/.test(marker);
+    if (!found || (!marked && !safe)) { current = null; continue; }
+
+    if (!current) { current = { items: [], markers: [] }; runs.push(current); }
+    current.items.push(p);
+    current.markers.push(marker);
+  }
+
+  return runs;
+}
+
+/**
+ * Rozpozná seznam, který Word poslal jako odstavce se značkou v textu.
  *
  * Bez tohohle kroku zůstane v obsahu „·<span> </span>text" jako obyčejný
  * odstavec a uživatel s tím pak nic nezmůže.
+ *
+ * Druh číslování se odvozuje z celé řady značek, ne z jedné: „i." je římská
+ * jednička i písmeno „i", a rozhodne až to, co přijde po ní. Zapíše se pak
+ * `type` i `list-style-type` — stejně, jako když ho uživatel nastaví sám.
  */
 function rebuildWordLists(root: Element, doc: Document): void {
-  const paragraphs = Array.from(root.querySelectorAll('p'));
-  let current: Element | null = null;
+  for (const run of wordListRuns(root)) {
+    const kind = listKind(run.markers);
+    if (!kind) continue;
 
-  for (const p of paragraphs) {
-    const style = p.getAttribute('style') ?? '';
-    const text = p.textContent ?? '';
-    const bullet = /^\s*[·•●▪‣⁃o]\s+/.test(text);
-    const numbered = /^\s*\d+[.)]\s+/.test(text);
-    const marked = /mso-list/i.test(style) || p.classList.contains('MsoListParagraph');
-
-    if (!bullet && !numbered && !marked) { current = null; continue; }
-
-    const tag = numbered && !bullet ? 'ol' : 'ul';
-    if (!current || current.tagName.toLowerCase() !== tag) {
-      current = doc.createElement(tag);
-      p.parentNode?.insertBefore(current, p);
+    const list = doc.createElement(kind.tag);
+    if (kind.type !== '' && kind.type !== '1') {
+      list.setAttribute('type', kind.type);
+      list.setAttribute('style', 'list-style-type: ' + LIST_STYLE_FOR[kind.type] + ';');
     }
+    run.items[0]!.parentNode?.insertBefore(list, run.items[0]!);
 
-    const li = doc.createElement('li');
-    while (p.firstChild) li.appendChild(p.firstChild);
+    for (const p of run.items) {
+      const li = doc.createElement('li');
+      while (p.firstChild) li.appendChild(p.firstChild);
 
-    // Odrážka je znak v textu, ne struktura — musí pryč.
-    const first = li.firstChild;
-    if (first && first.nodeType === 3) {
-      first.nodeValue = (first.nodeValue ?? '').replace(/^\s*([·•●▪‣⁃o]|\d+[.)])\s+/, '');
+      stripMarker(li);
+      list.appendChild(li);
+      dropNode(p);
     }
-
-    current.appendChild(li);
-    dropNode(p);
   }
+}
+
+/** Atribut `type` na hodnotu `list-style-type`. */
+const LIST_STYLE_FOR: Record<string, string> = {
+  a: 'lower-alpha', A: 'upper-alpha', i: 'lower-roman', I: 'upper-roman',
+};
+
+/**
+ * Sundá značku z textu položky.
+ *
+ * Ubírá se napříč textovými uzly, ne z toho prvního: Word značku roztrhá —
+ * „i." dá do jednoho uzlu a mezery za ní do vnořeného `<span>`. Ořez podle
+ * jednoho uzlu by tak nechal v textu půlku značky nebo nesundal nic.
+ */
+function stripMarker(li: Element): void {
+  const found = MARKER.exec(li.textContent ?? '');
+  if (!found) return;
+
+  let left = found[0].length;
+  for (const text of textNodesOf(li)) {
+    if (left <= 0) break;
+    const take = Math.min(left, text.data.length);
+    text.deleteData(0, take);
+    left -= take;
+  }
+}
+
+function textNodesOf(node: Node): Text[] {
+  if (node.nodeType === 3) return [node as Text];
+  return Array.from(node.childNodes).flatMap(textNodesOf);
 }
 
 /** Zahodí obaly, ve kterých po vyčištění nic nezbylo. */
@@ -286,6 +399,7 @@ export function cleanPastedContent(
   const keep = new Set(options.keepStyles ?? KEEP_STYLES);
   // Prázdný seznam znamená „styly pryč" a platí i na tabulky.
   const tableKeep = keep.size === 0 ? keep : new Set([...keep, ...TABLE_KEEP_STYLES]);
+  const listKeep = keep.size === 0 ? keep : new Set([...keep, ...LIST_KEEP_STYLES]);
   const removed: string[] = [];
 
   // Bezpečnost první — na cizí obsah se nesmí spoléhat vůbec.
@@ -313,7 +427,13 @@ export function cleanPastedContent(
     for (const attr of Array.from(el.attributes)) {
       const name = attr.name.toLowerCase();
 
-      if (name === 'style') { cleanStyle(el, TABLE_TAGS.has(tag) ? tableKeep : keep); continue; }
+      if (name === 'style') {
+        let allowed = keep;
+        if (TABLE_TAGS.has(tag)) allowed = tableKeep;
+        else if (LIST_TAGS.has(tag)) allowed = listKeep;
+        cleanStyle(el, allowed);
+        continue;
+      }
 
       // dir="ltr" je výchozí hodnota — Google Docs ji jen sype všude.
       // dir="rtl" naopak nese informaci a zůstává.

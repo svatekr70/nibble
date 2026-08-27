@@ -252,6 +252,26 @@ na textu. Proto je to jedna třída na společném obalu, ne dvě nastavení.
 > kódu v dialogu zmizela — `max-height` přebije i výšku nastavenou inline.
 > Rozměry se proto nastavují výslovně včetně stropů.
 
+## Číslování seznamu přežije vložení
+
+Kdo psal seznam římskými číslicemi, chtěl římské číslice. Druh značky je proto
+informace, ne vzhled zdrojového dokumentu, a při vkládání se zachovává —
+u skutečných seznamů jako `list-style-type` a `list-style-position`, u Wordu
+odvozený ze značek v textu.
+
+Word totiž seznamy neposílá jako `<ol>`, ale jako odstavce se značkou v textu
+a atributem `mso-list`. Druh číslování se odvozuje **z celé řady značek**, ne
+z jedné: „i." je římská jednička i písmeno „i" a rozhodne až to, co přijde po
+ní — „ii." znamená římské číslice, „j." písmena. Když řada nejde po sobě, není
+to seznam.
+
+Značka se z textu sundává napříč uzly, ne z toho prvního: Word ji roztrhá —
+„i." dá do jednoho uzlu a mezery za ní do vnořeného `<span>`.
+
+Písmeno a římskou číslici uzná Nibble jen tam, kde Word sám řekl, že jde
+o seznam. „I. světová válka" je věta, ne první položka — odrážku a arabské
+číslo pozná i bez toho, protože ty ve větě takhle nezačínají.
+
 ## Přetahování obsahu
 
 Text i obrázek se dají přetáhnout myší. Kurzor jde za myší už při `dragover`,

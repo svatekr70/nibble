@@ -17,6 +17,12 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 
 ### Přidáno
 
+- Seznam vložený z Wordu si nechá druh číslování. Word posílá seznamy jako
+  odstavce se značkou v textu; římské číslice a písmena se dosud nepoznaly
+  vůbec — vznikly z nich odrážky a značka („i.", „a.") zůstala v textu položky.
+  Druh se odvozuje z celé řady značek, protože „i." je římská jednička
+  i písmeno „i". `list-style-type` a `list-style-position` se nově pouštějí
+  i u seznamů vložených jako skutečné `<ol>`/`<ul>` (Google Docs).
 - **Přetahování obsahu myší.** Text i obrázek přistanou tam, kam se pustí —
   kurzor jde za myší už při `dragover`. Dřív se vložilo na místo, kde náhodou
   stál kurzor, a originál zůstal, takže z přesunu byla kopie. Tažení uvnitř
