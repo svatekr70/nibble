@@ -252,6 +252,26 @@ na textu. Proto je to jedna třída na společném obalu, ne dvě nastavení.
 > kódu v dialogu zmizela — `max-height` přebije i výšku nastavenou inline.
 > Rozměry se proto nastavují výslovně včetně stropů.
 
+## Přetahování obsahu
+
+Text i obrázek se dají přetáhnout myší. Kurzor jde za myší už při `dragover`,
+ne až při puštění — uživatel tak vidí, kam obsah přistane, a platí to i pro
+obrázky, které si vkládá plugin sám. Dřív se vložilo tam, kde náhodou stál
+kurzor, což u přetahování nedává smysl vůbec.
+
+Tažení uvnitř editoru je **přesun**: originál zmizí. S Altem (nebo Ctrl, podle
+systému) je to kopie. Puštění doprostřed vlastního výběru neudělá nic — obsah
+by se posunul sám do sebe.
+
+Do schránky si Nibble při tažení serializuje výběr sám, stejně jako při
+kopírování: prohlížeč by přibalil spočítané styly a přetažený odstavec by se
+o kus níž obarvil. Prázdné bloky na krajích klonu se zahazují — výběr tažený
+myší běžně začíná na konci předchozího bloku a končí na začátku následujícího,
+takže by z těch slupek vznikly prázdné odstavce, které nikdo nekopíroval.
+
+Kurzor v místě myši hledá `caretRangeFromPoint` (Chrome, Safari) nebo
+`caretPositionFromPoint` (standard, Firefox).
+
 ## Buňka a položka drží strukturu
 
 `<td>`, `<th>`, `<li>`, `<dt>` a `<dd>` se **nepřejmenovávají ani neobalují**.

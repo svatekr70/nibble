@@ -211,7 +211,7 @@ export class Editor {
    * vkládá — jinak by vložení doprostřed věty větu roztrhlo na dva odstavce.
    */
   insertHTML(html: string): boolean {
-    const range = this.selection.getRange();
+    let range = this.selection.getRange();
     if (!range || html === '') return false;
 
     const box = this.document.createElement('div');
@@ -224,7 +224,15 @@ export class Editor {
       'p, div, h1, h2, h3, h4, h5, h6, ul, ol, li, table, blockquote, pre, hr, figure',
     ) !== null;
 
+    // `ensureBlock` může obsah položky nebo buňky zabalit do odstavce, a tím
+    // přeskládat uzly. Kurzor se proto zachytí a obnoví — bez toho by vložený
+    // text přistál vedle nově vzniklého odstavce, ne v místě, kde stál.
+    const anchor = captureCaret(this);
     const block = ensureBlock(range.startContainer, this.root, this.document);
+    restoreCaret(this, anchor);
+
+    const live = this.selection.getRange();
+    if (live) range = live;
 
     if (!hasBlocks || !block) {
       const frag = this.document.createDocumentFragment();

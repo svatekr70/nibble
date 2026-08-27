@@ -2,6 +2,7 @@ import type { Editor } from '../Editor.js';
 import {
   cleanPastedContent, detectSource, extractFragment, type PasteSource,
 } from '../model/clean.js';
+import { closestBlock, fillIfEmpty, pruneEmptyInline } from '../dom/blocks.js';
 import { collectStyleRules, inlineStyleRules } from '../model/pasteCss.js';
 import { looksLikeMarkdown, markdownToHtml, plainTextToHtml } from '../model/markdown.js';
 
@@ -130,12 +131,58 @@ export function bindPaste(editor: Editor, options: PasteOptions = {}): () => voi
     }
   };
 
+  /** Úsek, který uživatel právě táhne. Null, když tažení začalo jinde. */
+  let dragged: Range | null = null;
+
+  const onDragStart = (event: Event): void => {
+    const e = event as DragEvent;
+    const range = editor.selection.getRange();
+    dragged = range && !range.collapsed ? range.cloneRange() : null;
+
+    // Vlastní serializace ze stejného důvodu jako u kopírování: prohlížeč by
+    // do `text/html` přibalil spočítané styly a přetažení odstavce o kus níž
+    // by ho obarvilo.
+    if (dragged && e.dataTransfer) {
+      e.dataTransfer.setData('text/html', selectionHtml(editor, dragged));
+      e.dataTransfer.setData('text/plain', dragged.toString());
+    }
+  };
+
+  const onDragEnd = (): void => { dragged = null; };
+
+  /**
+   * Kurzor jde za myší.
+   *
+   * Bez `preventDefault` prohlížeč drop vůbec nepovolí. A kurzor se posouvá
+   * průběžně, ne až při puštění: uživatel tak vidí, kam obsah přistane —
+   * a hlavně to platí i pro obrázky, které si vkládá plugin sám.
+   */
+  const onDragOver = (event: Event): void => {
+    const e = event as DragEvent;
+    if (editor.mode !== 'design') return;
+    e.preventDefault();
+
+    const caret = caretAtPoint(editor.document, e.clientX, e.clientY);
+    if (caret && editor.root.contains(caret.startContainer)) editor.selection.setRange(caret);
+  };
+
   const onDrop = (event: Event): void => {
     const e = event as DragEvent;
+    const source = dragged;
+    dragged = null;
+
     if (editor.mode !== 'design') return;
 
     const data = e.dataTransfer;
     if (!data) return;
+
+    // Puštění doprostřed vlastního výběru je „nikam" — obsah by se posunul
+    // sám do sebe.
+    const target = editor.selection.getRange();
+    if (source && target && withinRange(source, target)) {
+      e.preventDefault();
+      return;
+    }
 
     const html = data.getData('text/html');
     const text = data.getData('text/plain');
@@ -147,6 +194,21 @@ export function bindPaste(editor: Editor, options: PasteOptions = {}): () => voi
     }
 
     e.preventDefault();
+
+    // Tažení uvnitř editoru je přesun, ne kopie: originál musí zmizet. Živé
+    // rozsahy se mazáním samy posunou, takže cíl zůstane, kde byl.
+    if (source && !copyRequested(e)) {
+      const home = closestBlock(source.startContainer, editor.root);
+      source.deleteContents();
+
+      // Po vyjmutí zbývá slupka obalu a případně blok bez obsahu, do kterého
+      // by nešlo kliknout.
+      if (home && editor.root.contains(home)) {
+        pruneEmptyInline(home);
+        fillIfEmpty(home, editor.document);
+      }
+    }
+
     const result = html
       ? cleanPastedHtml(html, editor.document, options).html
       : textToHtml(text, options);
@@ -176,6 +238,9 @@ export function bindPaste(editor: Editor, options: PasteOptions = {}): () => voi
   editor.root.addEventListener('drop', onDrop);
   editor.root.addEventListener('copy', onCopy);
   editor.root.addEventListener('cut', onCut);
+  editor.root.addEventListener('dragstart', onDragStart);
+  editor.root.addEventListener('dragend', onDragEnd);
+  editor.root.addEventListener('dragover', onDragOver);
 
   return () => {
     editor.root.removeEventListener('paste', onPaste);
@@ -183,7 +248,69 @@ export function bindPaste(editor: Editor, options: PasteOptions = {}): () => voi
     editor.root.removeEventListener('drop', onDrop);
     editor.root.removeEventListener('copy', onCopy);
     editor.root.removeEventListener('cut', onCut);
+    editor.root.removeEventListener('dragstart', onDragStart);
+    editor.root.removeEventListener('dragend', onDragEnd);
+    editor.root.removeEventListener('dragover', onDragOver);
   };
+}
+
+/**
+ * Zahodí prázdné bloky na krajích klonu.
+ *
+ * Výběr tažený myší běžně začíná na konci předchozího bloku a končí na začátku
+ * následujícího, takže `cloneContents` vrátí prázdné slupky navíc. Vložením by
+ * z nich vznikly prázdné odstavce, které nikdo nekopíroval.
+ */
+function trimEmptyEdges(holder: Element): void {
+  const blank = (el: Element | null): boolean => !!el
+    && (el.textContent ?? '') === ''
+    && el.querySelector('br,img,hr,table,iframe,video,audio') === null;
+
+  while (blank(holder.firstElementChild)) holder.removeChild(holder.firstElementChild!);
+  while (blank(holder.lastElementChild)) holder.removeChild(holder.lastElementChild!);
+}
+
+/**
+ * Kurzor v místě, kam ukazuje myš.
+ *
+ * Dvě cesty: `caretRangeFromPoint` má Chrome a Safari, `caretPositionFromPoint`
+ * je ve standardu a má ho Firefox. Bez jedné z nich by obsah přistál tam, kde
+ * kurzor náhodou stál — ne tam, kam ho uživatel pustil.
+ */
+function caretAtPoint(doc: Document, x: number, y: number): Range | null {
+  const view = doc as Document & {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    caretPositionFromPoint?: (x: number, y: number)
+      => { offsetNode: Node; offset: number } | null;
+  };
+
+  if (typeof view.caretRangeFromPoint === 'function') return view.caretRangeFromPoint(x, y);
+
+  const pos = view.caretPositionFromPoint?.(x, y);
+  if (!pos) return null;
+
+  const range = doc.createRange();
+  range.setStart(pos.offsetNode, pos.offset);
+  range.collapse(true);
+  return range;
+}
+
+/** Leží bod uvnitř úseku, který se táhne? */
+function withinRange(source: Range, point: Range): boolean {
+  try {
+    return source.comparePoint(point.startContainer, point.startOffset) === 0;
+  } catch {
+    return false;   // jiný strom — s taženým úsekem nesouvisí
+  }
+}
+
+/**
+ * Chce uživatel kopii místo přesunu?
+ *
+ * Na Macu se drží Alt, jinde Ctrl — tak to má systém i ostatní editory.
+ */
+function copyRequested(event: DragEvent): boolean {
+  return event.altKey || event.ctrlKey;
 }
 
 /** Inline obaly, které se při kopírování musí přenést i zvenčí výběru. */
@@ -203,6 +330,7 @@ const COPY_WRAPPERS: ReadonlySet<string> = new Set([
 function selectionHtml(editor: Editor, range: Range): string {
   const holder = editor.document.createElement('div');
   holder.appendChild(range.cloneContents());
+  trimEmptyEdges(holder);
 
   // `cloneContents` nezahrne obaly nad výběrem. Bez nich by se z vybraného
   // kusu tučného textu stal při vložení text obyčejný.

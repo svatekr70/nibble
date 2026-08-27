@@ -17,6 +17,15 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 
 ### Přidáno
 
+- **Přetahování obsahu myší.** Text i obrázek přistanou tam, kam se pustí —
+  kurzor jde za myší už při `dragover`. Dřív se vložilo na místo, kde náhodou
+  stál kurzor, a originál zůstal, takže z přesunu byla kopie. Tažení uvnitř
+  editoru je přesun, s Altem kopie; puštění doprostřed vlastního výběru
+  neudělá nic. Do schránky si Nibble výběr serializuje sám, aby nepřibral
+  spočítané styly, a zahazuje prázdné bloky na krajích.
+- `insertHTML` vloží text na místo kurzoru i uvnitř položky, buňky a `<dd>`.
+  `ensureBlock` tam obsah zabalí do odstavce a přeskládá uzly — text pak
+  přistál vedle nově vzniklého odstavce místo do něj.
 - Buňka, položka a `<dt>`/`<dd>` se nepřejmenovávají ani neobalují. `<td>`
   přepsané na `<h3>` z tabulky zmizelo a odrážky kolem `<td>` ji rozbily;
   nově se pracuje s obsahem takového bloku. Týká se seznamů, seznamů definic,
