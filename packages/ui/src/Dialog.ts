@@ -102,7 +102,9 @@ function readValue(form: HTMLFormElement, field: DialogField): unknown {
 
 export function openDialog(spec: DialogSpec, doc: Document): Promise<Record<string, unknown> | null> {
   const dialog = doc.createElement('dialog');
-  dialog.className = 'nb-dialog' + (spec.size === 'large' ? ' nb-dialog-large' : '');
+  dialog.className = 'nb-dialog'
+    + (spec.size === 'large' ? ' nb-dialog-large' : '')
+    + (spec.modeless ? ' nb-dialog-modeless' : '');
 
   const form = doc.createElement('form');
   form.method = 'dialog';
@@ -120,8 +122,32 @@ export function openDialog(spec: DialogSpec, doc: Document): Promise<Record<stri
   }
   form.appendChild(body);
 
+  /** Přečte pole tak, jak jsou právě vyplněná. */
+  const readAll = (): Record<string, unknown> => {
+    const values: Record<string, unknown> = {};
+    for (const field of spec.fields) {
+      if (field.type === 'html') continue;
+      values[field.name] = readValue(form, field);
+    }
+    return values;
+  };
+
   const footer = doc.createElement('div');
   footer.className = 'nb-dialog-footer';
+
+  // Tlačítka, po kterých panel zůstane otevřený, jdou před Zrušit a Použít.
+  for (const action of spec.actions ?? []) {
+    const button = doc.createElement('button');
+    button.type = 'button';
+    button.className = 'nb-dialog-btn';
+    button.dataset.action = action.name;
+    button.textContent = action.label;
+    button.addEventListener('click', () => {
+      if (!form.reportValidity()) return;
+      spec.onAction?.(action.name, readAll());
+    });
+    footer.appendChild(button);
+  }
 
   const cancel = doc.createElement('button');
   cancel.type = 'button';
@@ -146,17 +172,13 @@ export function openDialog(spec: DialogSpec, doc: Document): Promise<Record<stri
       event.preventDefault();
       if (!form.reportValidity()) return;
 
-      result = {};
-      for (const field of spec.fields) {
-        if (field.type === 'html') continue;
-        result[field.name] = readValue(form, field);
+      result = readAll();
 
-        // U kódu se vrací i poloha kurzoru, aby se dala přenést zpátky
-        // do obsahu.
-        if (field.type === 'code') {
-          const area = form.elements.namedItem(field.name) as HTMLTextAreaElement | null;
-          if (area) result['__caret'] = area.selectionStart;
-        }
+      // U kódu se vrací i poloha kurzoru, aby se dala přenést zpátky do obsahu.
+      for (const field of spec.fields) {
+        if (field.type !== 'code') continue;
+        const area = form.elements.namedItem(field.name) as HTMLTextAreaElement | null;
+        if (area) result['__caret'] = area.selectionStart;
       }
       dialog.close();
     });
@@ -165,10 +187,14 @@ export function openDialog(spec: DialogSpec, doc: Document): Promise<Record<stri
 
     dialog.addEventListener('close', () => {
       dialog.remove();
+      spec.onClose?.();
       resolve(result);
     });
 
-    dialog.showModal();
+    // `show()` nekreslí backdrop a nechá zbytek stránky přístupný. Escape
+    // dialog zavře v obou režimech, past na fokus je jen u modálního.
+    if (spec.modeless) dialog.show();
+    else dialog.showModal();
 
     // Pole s kódem si kurzor umístí samo — má ho postavit na místo, kde
     // uživatel stál v obsahu, ne na začátek.

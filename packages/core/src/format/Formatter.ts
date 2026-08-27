@@ -1,16 +1,18 @@
 /**
  * Inline formátování nad výběrem.
  *
- * Zapnutí a vypnutí formátu jsou dvě různé operace a schválně se dělají jinak.
+ * Všechno se děje **v živém DOMu**: krajní textové uzly se rozdělí, najdou se
+ * ty, které rozsah opravdu obsahuje, a s každým se pracuje na místě.
  *
- * Zapnutí: rozsah se vyjme přes `extractContents()`, obalí po textových uzlech
- * a vloží zpět. Prohlížeč tím sám vyřeší dělení uzlů na hranicích výběru.
- * Obaluje se po textových uzlech, takže `<strong>` nikdy neskončí kolem `<p>`.
+ * Dřív se zapínalo přes `extractContents()` — obsah se vyjmul, obalil a vložil
+ * zpátky. Vypadalo to úsporně, ale přes hranici bloků to obsah trhalo: rozsah
+ * od poloviny jednoho odstavce do poloviny druhého vyjme dva kusy `<p>` a vloží
+ * je jako sourozence, takže ze dvou odstavců vzniknou čtyři. U seznamu totéž
+ * s položkami. Vyjímat se proto nesmí nic, co přesahuje jeden blok.
  *
- * Vypnutí to takhle udělat nejde. Když výběr leží uvnitř `<strong>`, vyjmutím
- * obsahu se obal nezruší — zůstane prázdný a vložený text spadne zpátky dovnitř.
- * Formát se proto odstraňuje v živém DOMu: krajní textové uzly se rozdělí a
- * každý zasažený uzel se z obalu vyzuje rozdělením předků.
+ * Vypnutí `extractContents()` neumělo nikdy: kdyby výběr ležel uvnitř
+ * `<strong>`, vyjmutím obsahu se obal nezruší — zůstane prázdný a vložený text
+ * spadne zpátky dovnitř. Obě operace jsou tak teď symetrické.
  */
 
 const NODE_ELEMENT = 1;
@@ -89,8 +91,18 @@ function unwrap(el: Element): void {
   parent.removeChild(el);
 }
 
+/**
+ * Zahodí obal, ve kterém po rozdělení nic nezbylo.
+ *
+ * Nestačí se ptát na `firstChild`. Dělení vnořených obalů nechá
+ * `<strong><em></em></strong>` — dítě to má, ale nenese nic, a v uloženém HTML
+ * je taková slupka vidět.
+ */
 function removeIfEmpty(el: Element | null): void {
-  if (el && !el.firstChild) el.parentNode?.removeChild(el);
+  if (!el) return;
+  if ((el.textContent ?? '') !== '') return;
+  if (el.querySelector('br,img,hr,input,video,audio,iframe,svg,canvas,object')) return;
+  el.parentNode?.removeChild(el);
 }
 
 /** Slije sousední <span> se stejnou hodnotou dané vlastnosti. */
@@ -166,6 +178,34 @@ export class Formatter {
     return this.matches(range, tag) ? this.remove(range, tag) : this.apply(range, tag);
   }
 
+  /**
+   * Sundá z výběru všechny zadané značky naráz.
+   *
+   * Značka po značce, každá v živém DOMu. Přes `extractContents()` to nešlo:
+   * obal nad výběrem se vyjmutím nezruší — zůstane prázdný a text spadne
+   * zpátky dovnitř. V obsahu tak po „vyčistit formát" zbývaly slupky
+   * `<strong></strong>` a odkaz se dokonce zdvojil.
+   */
+  clear(range: Range, tags: readonly string[]): Range {
+    let current = range;
+    for (const tag of tags) current = this.remove(current, tag);
+    return current;
+  }
+
+  /**
+   * Textové uzly, které rozsah obsahuje. Krajní uzly se přitom rozdělí, aby
+   * hranice výběru padly na hranice uzlů.
+   *
+   * Kdo se ptá „čeho se výběr týká", nesmí se ptát `startContainer`. Ten při
+   * výběru taženém myší běžně leží **mimo** to, co uživatel vybral: u výběru
+   * textu odkazu začíná rozsah na konci uzlu před ním, takže `closestLink`
+   * z něj vrátí null a „odebrat odkaz" nedělá nic.
+   */
+  textsInside(range: Range): Text[] {
+    this.splitBoundaries(range);
+    return this.textsIn(range);
+  }
+
   private withinTag(node: Node | null, tag: string): boolean {
     let cur: Node | null = node;
     while (cur && cur !== this.root) {
@@ -178,34 +218,63 @@ export class Formatter {
   }
 
   private apply(range: Range, tag: string): Range {
-    const frag = range.extractContents();
+    this.splitBoundaries(range);
 
-    // Ať se obaly nevnořují do sebe.
-    for (const el of Array.from((frag as unknown as Element).querySelectorAll?.(tag) ?? [])) {
-      unwrap(el);
-    }
+    const targets = this.textsIn(range);
+    if (targets.length === 0) return range;
 
-    for (const text of collectTextNodes(frag)) {
-      if (text.data === '') continue;
+    for (const text of targets) {
+      // Co už uvnitř té značky je, se neobaluje podruhé — jinak by vznikl
+      // `<strong>` ve `<strong>`. Sousední obaly pak slije `mergeAdjacent`.
+      if (hasAncestorTag(text, tag, this.root)) continue;
+
       const wrapper = this.doc.createElement(tag);
       text.parentNode?.insertBefore(wrapper, text);
       wrapper.appendChild(text);
     }
 
-    const first = frag.firstChild;
-    const last = frag.lastChild;
-    range.insertNode(frag);
+    const out = this.rangeAround(targets, range);
+    mergeAdjacent(this.root, tag);
+    return out;
+  }
 
+  /**
+   * Textové uzly, které rozsah opravdu obsahuje.
+   *
+   * `intersectsNode` na tohle nestačí: vrací true i pro uzel, který se rozsahu
+   * jen dotýká hranicí. Odtučnění „c" v `a<strong>b|c|d</strong>ef` tak sáhlo
+   * i na „b" a „d" a formát zmizel i tam, kde ho nikdo nevybral.
+   *
+   * Volá se až po `splitBoundaries`, takže každý uzel je buď celý uvnitř, nebo
+   * celý venku — stačí ověřit oba jeho konce.
+   */
+  private textsIn(range: Range): Text[] {
+    if (range.collapsed) return [];
+
+    return collectTextNodes(this.root).filter((text) => {
+      if (text.data === '') return false;
+      try {
+        return range.comparePoint(text, 0) === 0
+          && range.comparePoint(text, text.data.length) === 0;
+      } catch {
+        return false;   // uzel mimo strom rozsahu
+      }
+    });
+  }
+
+  /** Rozsah kolem toho, s čím se pracovalo. Když nezbylo nic, kurzor na místě. */
+  private rangeAround(targets: readonly Text[], fallback: Range): Range {
     const out = this.doc.createRange();
-    if (first && last) {
+    const first = targets[0];
+    const last = targets[targets.length - 1];
+
+    if (first?.parentNode && last?.parentNode) {
       out.setStartBefore(first);
       out.setEndAfter(last);
     } else {
-      out.setStart(range.startContainer, range.startOffset);
+      out.setStart(fallback.startContainer, fallback.startOffset);
       out.collapse(true);
     }
-
-    mergeAdjacent((first?.parentNode ?? this.root) as Element, tag);
     return out;
   }
 
@@ -258,47 +327,27 @@ export class Formatter {
   /**
    * Obarví výběr. Stávající hodnotu téže vlastnosti přepíše.
    *
-   * Nejdřív se vlastnost sundá, teprve pak nastaví. Bez toho by výběr ležící
-   * uvnitř obarveného `<span>` skončil ve druhém `<span>` uvnitř prvního:
-   * `extractContents()` obal nezruší a vložený obsah spadne zpátky dovnitř.
+   * Sundat a pak nastavit, vždycky v tomhle pořadí. Vnitřní `<span>` s toutéž
+   * vlastností by jinak ten nový přebil a barva by se neprojevila. Sundává se
+   * bez ptaní i tam, kde žádná není — `removeStyle` v takovém případě neudělá
+   * nic a je to levnější než se nejdřív ptát na každý uzel zvlášť.
    */
   applyStyle(range: Range, property: string, value: string): Range {
-    const cleared = this.queryStyle(range, property) !== null
-      ? this.removeStyle(range, property)
-      : range;
+    const cleared = this.removeStyle(range, property);
 
-    const frag = cleared.extractContents();
-    range = cleared;
+    this.splitBoundaries(cleared);
+    const targets = this.textsIn(cleared);
+    if (targets.length === 0) return cleared;
 
-    // Uvnitř výběru se stará hodnota ruší — jinak by vnitřní <span> vyhrál.
-    for (const el of Array.from((frag as unknown as Element).querySelectorAll?.('[style]') ?? [])) {
-      (el as HTMLElement).style.removeProperty(property);
-      if ((el as HTMLElement).getAttribute('style') === '') el.removeAttribute('style');
-      if (el.tagName.toLowerCase() === 'span' && el.attributes.length === 0) unwrap(el);
-    }
-
-    for (const text of collectTextNodes(frag)) {
-      if (text.data === '') continue;
+    for (const text of targets) {
       const span = this.doc.createElement('span');
       span.style.setProperty(property, value);
       text.parentNode?.insertBefore(span, text);
       span.appendChild(text);
     }
 
-    const first = frag.firstChild;
-    const last = frag.lastChild;
-    range.insertNode(frag);
-
-    const out = this.doc.createRange();
-    if (first && last) {
-      out.setStartBefore(first);
-      out.setEndAfter(last);
-    } else {
-      out.setStart(range.startContainer, range.startOffset);
-      out.collapse(true);
-    }
-
-    mergeStyled((first?.parentNode ?? this.root) as Element, property);
+    const out = this.rangeAround(targets, cleared);
+    mergeStyled(this.root, property);
     return out;
   }
 
@@ -312,9 +361,7 @@ export class Formatter {
   removeStyle(range: Range, property: string): Range {
     this.splitBoundaries(range);
 
-    const targets = collectTextNodes(this.root).filter(
-      (t) => t.data !== '' && range.intersectsNode(t),
-    );
+    const targets = this.textsIn(range);
 
     for (const text of targets) {
       let guard = 0;
@@ -339,17 +386,7 @@ export class Formatter {
       }
     }
 
-    const out = this.doc.createRange();
-    const first = targets[0];
-    const last = targets[targets.length - 1];
-    if (first && last && first.parentNode && last.parentNode) {
-      out.setStartBefore(first);
-      out.setEndAfter(last);
-    } else {
-      out.setStart(range.startContainer, range.startOffset);
-      out.collapse(true);
-    }
-
+    const out = this.rangeAround(targets, range);
     this.root.normalize();
     return out;
   }
@@ -385,9 +422,9 @@ export class Formatter {
   private remove(range: Range, tag: string): Range {
     this.splitBoundaries(range);   // rozsahy jsou živé a upraví se samy
 
-    const targets = collectTextNodes(this.root).filter(
-      (t) => t.data !== '' && range.intersectsNode(t),
-    );
+    const targets = this.textsIn(range);
+    // Není co sundávat. Vrátit prázdný rozsah by přerušilo řetěz v `clear`.
+    if (targets.length === 0) return range;
 
     for (const text of targets) {
       let guard = 0;
@@ -405,17 +442,7 @@ export class Formatter {
       }
     }
 
-    const out = this.doc.createRange();
-    const first = targets[0];
-    const last = targets[targets.length - 1];
-    if (first && last && first.parentNode && last.parentNode) {
-      out.setStartBefore(first);
-      out.setEndAfter(last);
-    } else {
-      out.setStart(range.startContainer, range.startOffset);
-      out.collapse(true);
-    }
-
+    const out = this.rangeAround(targets, range);
     this.root.normalize();
     return out;
   }

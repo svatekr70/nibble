@@ -77,6 +77,140 @@ test.describe('Backspace a Delete', () => {
   });
 });
 
+/**
+ * Smazání výběru přes víc bloků.
+ *
+ * `deleteContents()` bloky vyprázdní, ale nechá je stát: z výběru přes tři
+ * odstavce zbyly dva prázdné krajní a kurzor skončil mezi nimi — v kořeni,
+ * kde další psaní vyrobilo holý text mimo blok.
+ */
+test.describe('mazání výběru přes bloky', () => {
+  /** Vybere od offsetu v jednom bloku po offset v jiném. */
+  async function across(
+    page: import('@playwright/test').Page,
+    fromBlock: number, fromOffset: number, toBlock: number, toOffset: number,
+  ) {
+    await page.evaluate(([fb, fo, tb, to]) => {
+      const ed = (window as any).ed;
+      const text = (i: number) => {
+        const w = document.createTreeWalker(ed.root.children[i], NodeFilter.SHOW_TEXT);
+        return (w.nextNode() ?? ed.root.children[i]) as Node;
+      };
+      const r = document.createRange();
+      r.setStart(text(fb as number), fo as number);
+      r.setEnd(text(tb as number), to as number);
+      ed.selection.setRange(r);
+      ed.root.focus();
+    }, [fromBlock, fromOffset, toBlock, toOffset] as const);
+  }
+
+  test('zbytky krajních odstavců se spojí do jednoho', async ({ page }) => {
+    await mount(page, '<p>abc</p><p>def</p><p>ghi</p>');
+    await across(page, 0, 1, 2, 2);
+    await page.keyboard.press('Backspace');
+
+    expect(await html(page)).toBe('<p>ai</p>');
+  });
+
+  test('psaní po smazání pokračuje v tom odstavci, ne mimo něj', async ({ page }) => {
+    await mount(page, '<p>abc</p><p>def</p><p>ghi</p>');
+    await across(page, 0, 1, 2, 2);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('X');
+
+    expect(await html(page)).toBe('<p>aXi</p>');
+  });
+
+  test('výběr uvnitř jednoho odstavce se chová jako dřív', async ({ page }) => {
+    await mount(page, '<p>abcdef</p>');
+    await across(page, 0, 1, 0, 4);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('X');
+
+    expect(await html(page)).toBe('<p>aXef</p>');
+  });
+
+  test('Delete maže výběr stejně jako Backspace', async ({ page }) => {
+    await mount(page, '<p>abc</p><p>def</p>');
+    await across(page, 0, 1, 1, 2);
+    await page.keyboard.press('Delete');
+
+    expect(await html(page)).toBe('<p>af</p>');
+  });
+
+  test('nadpis a odstavec se spojí do toho prvního', async ({ page }) => {
+    await mount(page, '<h2>abc</h2><p>def</p>');
+    await across(page, 0, 1, 1, 2);
+    await page.keyboard.press('Backspace');
+
+    expect(await html(page)).toBe('<h2>af</h2>');
+  });
+
+  test('položky seznamu se spojí a seznam zůstane', async ({ page }) => {
+    await mount(page, '<ul><li>abc</li><li>def</li></ul>');
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      const li = ed.root.querySelectorAll('li');
+      const r = document.createRange();
+      r.setStart(li[0].firstChild, 1);
+      r.setEnd(li[1].firstChild, 2);
+      ed.selection.setRange(r);
+      ed.root.focus();
+    });
+    await page.keyboard.press('Backspace');
+
+    expect(await html(page)).toBe('<ul><li>af</li></ul>');
+  });
+});
+
+/**
+ * Ctrl+A a smazat.
+ *
+ * Nejběžnější úkon vůbec — a zbývaly po něm prázdné slupky: `<h2></h2>`
+ * a `<ul><li></li></ul>`, do kterých pak psaní pokračovalo.
+ */
+test.describe('smazání celého obsahu', () => {
+  const selectAll = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => {
+      const ed = (window as any).ed;
+      ed.root.focus();
+      ed.exec('selectall');
+    });
+
+  test('po smazání všeho zbude prázdný odstavec', async ({ page }) => {
+    await mount(page, '<h2>Nadpis</h2><p>text</p><ul><li>a</li></ul>');
+    await selectAll(page);
+    await page.keyboard.press('Backspace');
+
+    expect(await html(page)).toBe('<p><br></p>');
+  });
+
+  test('psaní po smazání všeho jde do toho odstavce', async ({ page }) => {
+    await mount(page, '<h2>Nadpis</h2><p>text</p><ul><li>a</li></ul>');
+    await selectAll(page);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('novy text');
+
+    expect(await html(page)).toBe('<p>novy text</p>');
+  });
+
+  test('po smazání všeho nezbude prázdný seznam', async ({ page }) => {
+    await mount(page, '<ul><li>a</li><li>b</li></ul>');
+    await selectAll(page);
+    await page.keyboard.press('Backspace');
+
+    expect(await html(page)).toBe('<p><br></p>');
+  });
+
+  test('smazání všeho i s tabulkou', async ({ page }) => {
+    await mount(page, '<p>a</p><table><tbody><tr><td>b</td></tr></tbody></table>');
+    await selectAll(page);
+    await page.keyboard.press('Backspace');
+
+    expect(await html(page)).toBe('<p><br></p>');
+  });
+});
+
 test.describe('druh bloku', () => {
   test('výběr v liště přepne odstavec na nadpis', async ({ page }) => {
     await mount(page, '<p>text</p>');
@@ -112,6 +246,106 @@ test.describe('druh bloku', () => {
     await expect.poll(() => page.inputValue('.nb-select[data-control=blocks]')).toBe('h3');
     await caret(page, 1, 1);
     await expect.poll(() => page.inputValue('.nb-select[data-control=blocks]')).toBe('p');
+  });
+});
+
+/**
+ * Vyčistit formát.
+ *
+ * Dřív se dělalo přes `extractContents()` a nechávalo po sobě prázdné slupky
+ * `<strong></strong>`, odkaz dokonce zdvojilo, a na části úseku ani na
+ * vnořeném formátu neudělalo nic.
+ */
+test.describe('vyčistit formát', () => {
+  async function sel(page: import('@playwright/test').Page, from: number, to: number) {
+    await page.evaluate(([a, b]) => {
+      const ed = (window as any).ed;
+      const w = document.createTreeWalker(ed.root, NodeFilter.SHOW_TEXT);
+      const nodes: Text[] = [];
+      let n: Node | null;
+      while ((n = w.nextNode())) nodes.push(n as Text);
+      const at = (off: number): [Text, number] => {
+        let p = 0;
+        for (const t of nodes) {
+          if (off <= p + t.data.length) return [t, off - p];
+          p += t.data.length;
+        }
+        const l = nodes[nodes.length - 1]!;
+        return [l, l.data.length];
+      };
+      const r = document.createRange();
+      const [sn, so] = at(a as number);
+      const [en, eo] = at(b as number);
+      r.setStart(sn, so);
+      r.setEnd(en, eo);
+      ed.selection.setRange(r);
+      ed.root.focus();
+    }, [from, to] as const);
+  }
+
+  const clear = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => {
+      const ed = (window as any).ed;
+      ed.focus();
+      ed.exec('removeFormat');
+    });
+
+  test('sundá formát a nenechá po sobě prázdný obal', async ({ page }) => {
+    await mount(page, '<p>a<strong>bcd</strong>ef</p>');
+    await sel(page, 1, 4);
+    await clear(page);
+    expect(await html(page)).toBe('<p>abcdef</p>');
+  });
+
+  test('vnořené formáty sundá oba', async ({ page }) => {
+    await mount(page, '<p><strong><em>abc</em></strong></p>');
+    await sel(page, 0, 3);
+    await clear(page);
+    expect(await html(page)).toBe('<p>abc</p>');
+  });
+
+  test('část úseku se vyčistí a zbytek si formát nechá', async ({ page }) => {
+    await mount(page, '<p>a<strong>bcd</strong>ef</p>');
+    await sel(page, 2, 3);
+    await clear(page);
+    expect(await html(page)).toBe('<p>a<strong>b</strong>c<strong>d</strong>ef</p>');
+  });
+
+  test('barva zmizí se spanem, který ji nesl', async ({ page }) => {
+    await mount(page, '<p><span style="color: red;">abc</span></p>');
+    await sel(page, 0, 3);
+    await clear(page);
+    expect(await html(page)).toBe('<p>abc</p>');
+  });
+
+  test('odkaz zůstane a nezdvojí se', async ({ page }) => {
+    // Cíl odkazu nikdo mazat nechtěl — na to je vlastní tlačítko.
+    await mount(page, '<p>a<a href="https://x.cz"><strong>bcd</strong></a>ef</p>');
+    await sel(page, 1, 4);
+    await clear(page);
+    expect(await html(page)).toBe('<p>a<a href="https://x.cz">bcd</a>ef</p>');
+  });
+
+  test('značka bloku i jeho zarovnání zůstávají', async ({ page }) => {
+    await mount(page, '<h2 style="text-align: center;"><strong>abc</strong></h2>');
+    await sel(page, 0, 3);
+    await clear(page);
+    expect(await html(page)).toBe('<h2 style="text-align: center;">abc</h2>');
+  });
+
+  test('vyčištění napříč odstavci je nechá být', async ({ page }) => {
+    await mount(page, '<p><strong>abc</strong></p><p><em>def</em></p>');
+    await sel(page, 1, 5);
+    await clear(page);
+    expect(await html(page)).toBe('<p><strong>a</strong>bc</p><p>de<em>f</em></p>');
+  });
+
+  test('na nenaformátovaném textu neudělá nic', async ({ page }) => {
+    const original = '<p>abcdef</p>';
+    await mount(page, original);
+    await sel(page, 1, 4);
+    await clear(page);
+    expect(await html(page)).toBe(original);
   });
 });
 

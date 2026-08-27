@@ -216,6 +216,167 @@ test.describe('hledání a nahrazování', () => {
   });
 });
 
+/**
+ * Panel hledání.
+ *
+ * Nemodální schválně — nález se ukazuje v obsahu, takže na obsah musí být
+ * vidět a musí se v něm dát dál pracovat. Testy proto kontrolují i to,
+ * že panel po akci zůstane otevřený.
+ */
+test.describe('krokování nálezů', () => {
+  const panel = '.nb-dialog-modeless';
+  const btn = (page: import('@playwright/test').Page, label: string) =>
+    page.locator(`${panel} .nb-dialog-btn`, { hasText: new RegExp(`^${label}$`) });
+
+  /** Co je právě zvýrazněné. Panel nesahá do DOMu, kreslí přes CSS.highlights. */
+  const zvyrazneno = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => {
+      const hl = (window as any).CSS?.highlights?.get('nb-find');
+      return hl ? [...hl][0].toString() : null;
+    });
+
+  const stav = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => (window as any).ed.ui.getStatus().get('find') ?? null);
+
+  async function otevri(page: import('@playwright/test').Page, obsah: string, hledat: string) {
+    await mount(page, obsah);
+    await caret(page, 0, 0);
+    await page.evaluate(() => (window as any).ed.exec('searchreplace'));
+    await page.locator(`${panel}[open]`).waitFor();
+    await page.locator(`${panel} [name=find]`).fill(hledat);
+  }
+
+  test('panel je nemodální, aby bylo na obsah vidět', async ({ page }) => {
+    await otevri(page, '<p>alfa</p>', 'alfa');
+    // `showModal()` by přidal backdrop a editor znepřístupnil.
+    expect(await page.locator(panel).evaluate((el) => (el as HTMLDialogElement).matches(':modal')))
+      .toBe(false);
+  });
+
+  test('Najít další prochází nálezy a počítá je', async ({ page }) => {
+    await otevri(page, '<p>alfa beta alfa</p><p>alfa</p>', 'alfa');
+
+    await btn(page, 'Najít další').click();
+    await expect.poll(() => stav(page)).toBe('1 z 3');
+    expect(await zvyrazneno(page)).toBe('alfa');
+
+    await btn(page, 'Najít další').click();
+    await expect.poll(() => stav(page)).toBe('2 z 3');
+  });
+
+  test('za posledním nálezem se pokračuje od prvního', async ({ page }) => {
+    await otevri(page, '<p>alfa beta alfa</p>', 'alfa');
+    for (let i = 0; i < 3; i++) await btn(page, 'Najít další').click();
+    await expect.poll(() => stav(page)).toBe('1 z 2');
+  });
+
+  test('nálezy se hledají bez ohledu na velikost písmen', async ({ page }) => {
+    await otevri(page, '<p>Alfa a ALFA a alfa</p>', 'alfa');
+    await btn(page, 'Najít další').click();
+    await expect.poll(() => stav(page)).toBe('1 z 3');
+    expect(await zvyrazneno(page)).toBe('Alfa');
+  });
+
+  test('Rozlišovat velikost písmen zúží nálezy', async ({ page }) => {
+    await otevri(page, '<p>Alfa a ALFA a alfa</p>', 'alfa');
+    await page.locator(`${panel} [name=matchCase]`).check();
+    await btn(page, 'Najít další').click();
+    await expect.poll(() => stav(page)).toBe('1 z 1');
+    expect(await zvyrazneno(page)).toBe('alfa');
+  });
+
+  test('Nahradit vymění jen ten jeden nález', async ({ page }) => {
+    await otevri(page, '<p>alfa beta alfa</p>', 'alfa');
+    await page.locator(`${panel} [name=replace]`).fill('gama');
+    await btn(page, 'Najít další').click();
+    await btn(page, 'Nahradit').click();
+
+    await expect.poll(() => html(page)).toBe('<p>gama beta alfa</p>');
+  });
+
+  test('po nahrazení se rovnou stojí na dalším nálezu', async ({ page }) => {
+    await otevri(page, '<p>alfa beta alfa</p>', 'alfa');
+    await page.locator(`${panel} [name=replace]`).fill('gama');
+    await btn(page, 'Najít další').click();
+    await btn(page, 'Nahradit').click();
+
+    // Zbyl jediný nález a panel na něm stojí — další Nahradit vymění právě jeho.
+    await expect.poll(() => stav(page)).toBe('1 z 1');
+    await btn(page, 'Nahradit').click();
+    await expect.poll(() => html(page)).toBe('<p>gama beta gama</p>');
+  });
+
+  test('Nahradit bez předchozího hledání vezme první nález', async ({ page }) => {
+    await otevri(page, '<p>alfa beta alfa</p>', 'alfa');
+    await page.locator(`${panel} [name=replace]`).fill('gama');
+    await btn(page, 'Nahradit').click();
+
+    await expect.poll(() => html(page)).toBe('<p>gama beta alfa</p>');
+  });
+
+  test('panel po Najít další i Nahradit zůstane otevřený', async ({ page }) => {
+    await otevri(page, '<p>alfa alfa</p>', 'alfa');
+    await page.locator(`${panel} [name=replace]`).fill('gama');
+    await btn(page, 'Najít další').click();
+    await expect(page.locator(`${panel}[open]`)).toBeVisible();
+    await btn(page, 'Nahradit').click();
+    await expect(page.locator(`${panel}[open]`)).toBeVisible();
+  });
+
+  test('změna hledaného textu začne počítat znovu od prvního', async ({ page }) => {
+    await otevri(page, '<p>alfa beta alfa beta</p>', 'alfa');
+    await btn(page, 'Najít další').click();
+    await btn(page, 'Najít další').click();
+    await expect.poll(() => stav(page)).toBe('2 z 2');
+
+    await page.locator(`${panel} [name=find]`).fill('beta');
+    await btn(page, 'Najít další').click();
+    await expect.poll(() => stav(page)).toBe('1 z 2');
+    expect(await zvyrazneno(page)).toBe('beta');
+  });
+
+  test('Nahradit vše dodělá zbytek a panel zavře', async ({ page }) => {
+    await otevri(page, '<p>alfa beta alfa</p>', 'alfa');
+    await page.locator(`${panel} [name=replace]`).fill('gama');
+    await btn(page, 'Najít další').click();
+    await page.locator(`${panel} .nb-dialog-btn-primary`).click();
+
+    await expect.poll(() => html(page)).toBe('<p>gama beta gama</p>');
+    await expect(page.locator(panel)).toHaveCount(0);
+  });
+
+  test('zavření panelu uklidí zvýraznění i počítadlo', async ({ page }) => {
+    await otevri(page, '<p>alfa beta</p>', 'alfa');
+    await btn(page, 'Najít další').click();
+    await btn(page, 'Zavřít').click();
+    await page.locator(panel).waitFor({ state: 'detached' });
+
+    expect(await zvyrazneno(page)).toBe(null);
+    expect(await stav(page)).toBe(null);
+  });
+
+  test('po zavření zůstane kurzor na posledním nálezu', async ({ page }) => {
+    await otevri(page, '<p>alfa beta alfa</p>', 'beta');
+    await btn(page, 'Najít další').click();
+    await btn(page, 'Zavřít').click();
+    await page.locator(panel).waitFor({ state: 'detached' });
+
+    // Obnova výběru se odkládá o tik, protože prohlížeč po zavření dialogu
+    // vrací fokus asynchronně.
+    await expect.poll(() => page.evaluate(() => (window as any).ed.selection.getText()))
+      .toBe('beta');
+  });
+
+  test('hledání nesáhne do obsahu, dokud se nenahrazuje', async ({ page }) => {
+    const original = '<p>alfa <strong>beta</strong> alfa</p>';
+    await otevri(page, original, 'alfa');
+    await btn(page, 'Najít další').click();
+    await btn(page, 'Najít další').click();
+
+    expect(await html(page)).toBe(original);
+  });
+});
+
 test.describe('česká typografie', () => {
   test('uvozovky se sázejí česky', async ({ page }) => {
     await mount(page, '<p><br></p>');

@@ -163,6 +163,18 @@ export interface DialogField {
   categories?: readonly GlyphCategory[];
 }
 
+/**
+ * Tlačítko, které dialog nezavře.
+ *
+ * Hledání potřebuje „Najít další" a „Nahradit" — obojí sáhne do obsahu a nechá
+ * panel otevřený, aby se dalo hledat dál. Běžná tlačítka to neumí: potvrzení
+ * dialog zavírá, protože jednorázový formulář nic jiného neznamená.
+ */
+export interface DialogAction {
+  name: string;
+  label: string;
+}
+
 export interface DialogSpec {
   title: string;
   fields: readonly DialogField[];
@@ -171,6 +183,20 @@ export interface DialogSpec {
   cancelLabel?: string;
   /** `large` je pro dialogy, ve kterých se pracuje — třeba se zdrojovým kódem. */
   size?: 'normal' | 'large';
+  /**
+   * Nemodální panel místo dialogu.
+   *
+   * Modální okno editor zakryje backdropem a znepřístupní. Hledání takhle
+   * fungovat nemůže: výsledek se ukazuje v obsahu, takže na něj musí být vidět
+   * a musí se v něm dát dál pracovat.
+   */
+  modeless?: boolean;
+  /** Tlačítka, po kterých panel zůstane otevřený. */
+  actions?: readonly DialogAction[];
+  /** Zavolá se po stisku tlačítka z `actions`, s tím, co je zrovna v polích. */
+  onAction?: (name: string, values: Record<string, unknown>) => void;
+  /** Zavolá se, až panel zmizí — ať po potvrzení, zrušení, nebo Escapem. */
+  onClose?: () => void;
 }
 
 export type StatusHandler = (name: string, text: string | null) => void;

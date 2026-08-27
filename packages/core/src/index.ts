@@ -34,13 +34,22 @@ export type { ColorCommand } from './commands/colors.js';
 export type {
   ButtonSpec, SelectSpec, ColorSpec, MenuSpec, MenuItem, GridSpec,
   ControlSpec, ContextToolbarSpec,
-  DialogSpec, DialogField, DialogFieldType, DialogHandler, NotifyHandler, StatusHandler,
+  DialogSpec, DialogField, DialogFieldType, DialogAction, DialogHandler,
+  NotifyHandler, StatusHandler,
 } from './ui/Registry.js';
 export {
   registerBlockCommands, insertParagraph, deleteInDirection, closestQuote,
   currentLineHeight,
 } from './commands/blocks.js';
 export { registerListCommands, handleTab } from './commands/lists.js';
+export { registerDefListCommands } from './commands/deflist.js';
+export {
+  registerAnchorCommands, anchorSlug, uniqueAnchor, anchorTarget, suggestAnchor,
+} from './commands/anchor.js';
+export {
+  isDefList, isDefItem, closestDefItem, defListOf, otherKind,
+  normalizeDefList, isEmptyDefItem, splitDefItem, liftDefItem,
+} from './dom/deflist.js';
 export {
   isTable, isCell, closestCell, closestTable, rowsOf, buildGrid, findCell, cellAt,
   normalizeTable, createTable, insertRow, deleteRow, insertColumn, deleteColumn,
@@ -52,6 +61,10 @@ export {
   normalizeList, syncAriaLevel, mergeAdjacentLists, indentItem, outdentItem,
   splitListItem, isEmptyItem,
 } from './dom/lists.js';
+export {
+  MARKERS, MARKER_NONE, isOrdered, readListProps, applyListProps, listChain,
+} from './dom/listProps.js';
+export type { ListProps, MarkerKind } from './dom/listProps.js';
 export type { Alignment } from './commands/blocks.js';
 export {
   TEXT_BLOCKS, isBlock, closestBlock, ensureBlock, blocksInRange,

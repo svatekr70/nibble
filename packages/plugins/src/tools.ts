@@ -242,6 +242,43 @@ function findMatches(root: Element, needle: string, matchCase: boolean): Array<[
   return out;
 }
 
+/**
+ * Zvýrazní nalezený výskyt.
+ *
+ * Přednost má `CSS.highlights`: obarví nález, i když kurzor stojí v panelu,
+ * a DOM přitom nechá být — hledání nemá důvod sahat do obsahu, ve kterém jen
+ * hledá. Kde API není (starší Safari a Firefox), zbývá obyčejný výběr; ten je
+ * v rozostřeném editoru bledý, ale vidět je.
+ *
+ * Obojí naráz nemá smysl. Výběr se podle specifikace kreslí přes vlastní
+ * zvýraznění, takže by ho přebil a žluté podbarvení by nikdo neviděl.
+ */
+function markMatch(editor: Editor, range: Range | null): void {
+  const view = editor.document.defaultView as unknown as {
+    CSS?: { highlights?: Map<string, unknown> };
+    Highlight?: new (...ranges: Range[]) => unknown;
+  } | null;
+
+  const store = view?.CSS?.highlights;
+  const Ctor = view?.Highlight;
+
+  if (store && Ctor) {
+    if (range) store.set('nb-find', new Ctor(range));
+    else store.delete('nb-find');
+    return;
+  }
+
+  if (range) editor.selection.setRange(range);
+}
+
+/** Rozsah kolem jednoho nálezu. */
+function rangeOf(editor: Editor, [text, at]: [Text, number], length: number): Range {
+  const range = editor.document.createRange();
+  range.setStart(text, at);
+  range.setEnd(text, at + length);
+  return range;
+}
+
 export const searchreplace: Plugin = {
   name: 'searchreplace',
 
@@ -266,35 +303,135 @@ export const searchreplace: Plugin = {
   },
 };
 
+/**
+ * Panel hledání.
+ *
+ * Nemodální schválně: nález se ukazuje v obsahu, takže na obsah musí být vidět.
+ * Panel si drží jen to, co se z obsahu přečíst nedá — kde stojí v pořadí
+ * nálezů. Samotné nálezy se pokaždé hledají znovu, protože obsah se mezitím
+ * mohl změnit (nahrazením i tím, že uživatel psal), a uložený seznam uzlů by
+ * po takové změně ukazoval jinam.
+ */
 async function openSearchDialog(editor: Editor): Promise<void> {
-  const data = await editor.ui.dialog({
+  /** Kolikátý nález je právě vybraný. −1 = zatím žádný. */
+  let cursor = -1;
+  let lastNeedle = '';
+  let lastCase = false;
+  /** Poslední nález — po zavření panelu se na něj postaví kurzor. */
+  let current: Range | null = null;
+
+  const matchesFor = (values: Record<string, unknown>): {
+    needle: string; matchCase: boolean; found: Array<[Text, number]>;
+  } => {
+    const needle = String(values.find ?? '');
+    const matchCase = Boolean(values.matchCase);
+    // Změna hledaného textu začíná hledat od začátku, ne od posledního místa.
+    if (needle !== lastNeedle || matchCase !== lastCase) cursor = -1;
+    lastNeedle = needle;
+    lastCase = matchCase;
+    return { needle, matchCase, found: findMatches(editor.root, needle, matchCase) };
+  };
+
+  /** Posune se na další nález a vybere ho. Vrátí false, když žádný není. */
+  const findNext = (values: Record<string, unknown>): boolean => {
+    const { needle, found } = matchesFor(values);
+    if (needle === '' || found.length === 0) {
+      current = null;
+      markMatch(editor, null);
+      editor.ui.notify('Nic nenalezeno.', 'warn');
+      return false;
+    }
+
+    // Za posledním nálezem se začíná znovu od prvního — hledání se nezastaví
+    // na konci dokumentu, to od něj nikdo nečeká.
+    cursor = (cursor + 1) % found.length;
+    current = rangeOf(editor, found[cursor]!, needle.length);
+    markMatch(editor, current);
+    editor.ui.setStatus('find', (cursor + 1) + ' z ' + found.length);
+    return true;
+  };
+
+  const replaceOne = (values: Record<string, unknown>): void => {
+    const { needle, found } = matchesFor(values);
+    if (needle === '' || found.length === 0) {
+      editor.ui.notify('Nic nenalezeno.', 'warn');
+      return;
+    }
+
+    // Bez předchozího „Najít další" se nahradí první nález — jinak by tlačítko
+    // po otevření panelu nedělalo nic a nebylo by poznat proč.
+    if (cursor < 0) cursor = 0;
+    if (cursor >= found.length) cursor = 0;
+
+    const [text, at] = found[cursor]!;
+    text.replaceData(at, needle.length, String(values.replace ?? ''));
+    editor.commit('replace');
+
+    // Nález zmizel, takže další v pořadí má teď index toho zrušeného.
+    cursor -= 1;
+    if (!findNext(values)) editor.ui.setStatus('find', null);
+  };
+
+  const replaceAll = (values: Record<string, unknown>): void => {
+    const { needle, found } = matchesFor(values);
+    if (needle === '' || found.length === 0) {
+      editor.ui.notify('Nic nenalezeno.', 'warn');
+      return;
+    }
+
+    // Odzadu, aby si nahrazení navzájem neposouvala pozice.
+    const replacement = String(values.replace ?? '');
+    for (const [text, at] of [...found].reverse()) {
+      text.replaceData(at, needle.length, replacement);
+    }
+
+    editor.commit('replace');
+    current = null;
+    markMatch(editor, null);
+    cursor = -1;
+    editor.ui.notify('Nahrazeno: ' + found.length + '×');
+  };
+
+  await editor.ui.dialog({
     title: 'Najít a nahradit',
+    modeless: true,
     fields: [
       { type: 'text', name: 'find', label: 'Najít', required: true },
       { type: 'text', name: 'replace', label: 'Nahradit čím' },
       { type: 'checkbox', name: 'matchCase', label: 'Rozlišovat velikost písmen' },
     ],
+    actions: [
+      { name: 'next', label: 'Najít další' },
+      { name: 'replace', label: 'Nahradit' },
+    ],
     submitLabel: 'Nahradit vše',
-  });
+    cancelLabel: 'Zavřít',
+    onAction: (name, values) => {
+      if (name === 'next') findNext(values);
+      else replaceOne(values);
+    },
+    onClose: () => {
+      // Zvýraznění zmizí s panelem, ale kurzor má zůstat u posledního nálezu —
+      // uživatel v něm většinou chce hned pokračovat.
+      //
+      // Fokus se musí vrátit do obsahu dřív, než se výběr nastaví. Panel ho
+      // drží až do zavření a výběr nastavený do rozostřeného editoru by
+      // prohlížeč zahodil.
+      markMatch(editor, null);
 
-  if (!data) return;
-
-  const needle = String(data.find ?? '');
-  const replacement = String(data.replace ?? '');
-  const matches = findMatches(editor.root, needle, Boolean(data.matchCase));
-
-  if (matches.length === 0) {
-    editor.ui.notify('Nic nenalezeno.', 'warn');
-    return;
-  }
-
-  // Odzadu, aby si nahrazení navzájem neposouvala pozice.
-  for (const [text, at] of matches.reverse()) {
-    text.replaceData(at, needle.length, replacement);
-  }
-
-  editor.commit('replace');
-  editor.ui.notify('Nahrazeno: ' + matches.length + '×');
+      // Až za tímto tikem. Prohlížeč po zavření `<dialog>` vrací fokus tomu,
+      // kdo ho měl předtím, a dělá to asynchronně — výběr nastavený rovnou tady
+      // by to zrušilo a kurzor by skončil na začátku dokumentu.
+      const landing = current;
+      if (landing) {
+        setTimeout(() => {
+          editor.focus();
+          editor.selection.setRange(landing);
+        }, 0);
+      }
+      editor.ui.setStatus('find', null);
+    },
+  }).then((values) => { if (values) replaceAll(values); });
 }
 
 // ---------------------------------------------------------------- typografie

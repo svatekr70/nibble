@@ -32,6 +32,7 @@
   ],
   "scripts": {
     "build": "node tools/build.mjs",
+    "icons": "node tools/build-icons.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "demo": "node tools/serve.mjs",
@@ -45,6 +46,7 @@
     "site:build": "node tools/build-site.mjs"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "^1.2.126",
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "esbuild": "^0.28.2",

@@ -26,7 +26,12 @@ const { metafile } = await build({
   minify: true,
   metafile: true,
   // Bez banneru by v souboru nebylo poznat, co to je a odkud se to vzalo.
-  banner: { js: '/*! Nibble — https://github.com/svatekr70/nibble — MIT */' },
+  // Lucide je tu proto, že ISC žádá copyright u všech kopií — a minifikovaný
+  // balíček z jsDelivr je kopie jako každá jiná. Plné znění: licenses/lucide.txt.
+  banner: {
+    js: '/*! Nibble — https://github.com/svatekr70/nibble — MIT\n'
+      + ' * Ikony: Lucide — https://lucide.dev — ISC, (c) Lucide Icons and Contributors */',
+  },
   logLevel: 'info',
 });
 

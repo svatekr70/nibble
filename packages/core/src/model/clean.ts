@@ -29,6 +29,41 @@ const JUNK_TAGS = new Set([
 /** Obaly, které nesou jen formátování zdrojové aplikace. */
 const UNWRAP_TAGS = new Set(['font', 'center', 'big', 'tt', 'basefont', 'marquee', 'blink']);
 
+/** Inline značky, které nemají co obalovat blok. */
+const INLINE_TAGS = new Set([
+  'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'span', 'small', 'mark',
+  'sub', 'sup', 'code', 'font',
+]);
+
+const BLOCK_TAGS = new Set([
+  'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre',
+  'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'dl', 'dt', 'dd', 'hr',
+]);
+
+/**
+ * Rozbalí inline značku, která obaluje blokový obsah.
+ *
+ * Google Docs kolem celého zkopírovaného úseku dává
+ * `<b style="font-weight:normal" id="docs-internal-guid-…">` — kontejner, ne
+ * formátování. `<b>` kolem `<p>` je navíc neplatné HTML a v editoru se pak
+ * blok chová divně. Pravidlo je obecné schválně: platí i pro `<span>` kolem
+ * tabulky a další podobné obaly, ať přijdou odkudkoli.
+ */
+function unwrapInlineAroundBlocks(root: Element): void {
+  for (const el of Array.from(root.querySelectorAll('*'))) {
+    if (!el.parentNode) continue;
+    if (!INLINE_TAGS.has(el.tagName.toLowerCase())) continue;
+
+    const hasBlock = Array.from(el.children)
+      .some((child) => BLOCK_TAGS.has(child.tagName.toLowerCase()));
+    if (!hasBlock) continue;
+
+    const parent = el.parentNode;
+    while (el.firstChild) parent.insertBefore(el.firstChild, el);
+    parent.removeChild(el);
+  }
+}
+
 /** Atributy, které jsou jen stopa po tom, odkud se kopírovalo. */
 const JUNK_ATTR_PREFIXES = ['data-pm-', 'data-sheets', 'data-docs-', 'data-ccp-', 'w:', 'o:', 'v:'];
 const JUNK_ATTRS = new Set([
@@ -322,6 +357,9 @@ export function cleanPastedContent(
   for (const span of Array.from(root.querySelectorAll('span'))) {
     if (span.attributes.length === 0) unwrapNode(span);
   }
+
+  // Až po úklidu atributů: teprve teď je vidět, že obal nic nenese.
+  unwrapInlineAroundBlocks(root);
 
   collapseEmpty(root);
   return { source, removed };

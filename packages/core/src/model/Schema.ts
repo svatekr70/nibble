@@ -16,6 +16,7 @@ const STRICT_TAGS = new Set([
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code', 'hr',
   'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'colgroup', 'col',
   'img', 'span', 'div', 'sub', 'sup', 'figure', 'figcaption',
+  'dl', 'dt', 'dd',
 ]);
 
 /** Značky, které v moderním obsahu nemají co dělat, ale ve starém jsou. */

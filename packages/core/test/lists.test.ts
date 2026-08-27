@@ -82,8 +82,23 @@ describe('indentItem', () => {
 describe('outdentItem', () => {
   it('vysune zanořenou položku o úroveň', () => {
     const { root, document } = build('<ul><li>a<ul><li>b</li></ul></li></ul>');
-    expect(outdentItem(li(root, 1), root, document)).toBe(true);
+    expect(outdentItem(li(root, 1), root, document)).toBe(li(root, 1));
     expect(root.innerHTML).toBe('<ul><li>a</li><li>b</li></ul>');
+  });
+
+  it('vrátí prvek, ve kterém obsah skončil', () => {
+    // Kurzor se po vysunutí musí mít o co opřít. Na nejvyšší úrovni <li>
+    // zaniká, takže samotná položka jako návratová hodnota nestačí.
+    const { root, document } = build('<ul><li>a</li></ul>');
+    const landing = outdentItem(li(root, 0), root, document);
+    expect(landing).toBe(root.firstElementChild);
+    expect(landing?.tagName.toLowerCase()).toBe('p');
+    expect(root.contains(landing!)).toBe(true);
+  });
+
+  it('vrátí null, když položka v seznamu není', () => {
+    const { root, document } = build('<p>a</p>');
+    expect(outdentItem(root.firstElementChild!, root, document)).toBe(null);
   });
 
   it('z nejvyšší úrovně udělá odstavec', () => {

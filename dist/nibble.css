@@ -212,6 +212,37 @@
 .nb-content li > ul,
 .nb-content li > ol { margin: .2em 0; }
 
+/*
+ * Kotva.
+ *
+ * Blok s `id` dostane v editoru značku, jinak by nebylo poznat, že tam kotva
+ * je. Kreslí se přes `::before` mimo tok textu, takže se do obsahu nic
+ * nepřidává a v uloženém HTML po ní není stopa.
+ */
+.nb-content :is(p, h1, h2, h3, h4, h5, h6, blockquote, pre, li, dt, dd)[id] {
+  position: relative;
+}
+
+.nb-content :is(p, h1, h2, h3, h4, h5, h6, blockquote, pre, li, dt, dd)[id]::before {
+  content: "⚓";
+  position: absolute;
+  /* Pevné jednotky, ne `em`: v `em` se značka u nadpisu odsune dál, než sahá
+     odsazení obsahu, a ořízne se o levý okraj. */
+  left: -13px;
+  top: 0;
+  font-size: 10px;
+  line-height: 2.2;
+  opacity: .5;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Seznam definic. Odsazení vysvětlení nechává prohlížeč na svém — mění se jen
+   svislé mezery, ať sedí se zbytkem obsahu. */
+.nb-content dl { margin: .6em 0; }
+.nb-content dt { font-weight: 600; margin: .4em 0 .1em; }
+.nb-content dd { margin: 0 0 .2em 1.6em; }
+
 .nb-content hr {
   border: 0;
   border-top: 1px solid var(--nb-border);
@@ -285,6 +316,38 @@
 }
 
 .nb-dialog::backdrop { background: rgba(0, 0, 0, .35); }
+
+/*
+ * Nemodální panel — hledání.
+ *
+ * Sedí v pravém dolním rohu, aby nezakrýval text, ve kterém se hledá. Backdrop
+ * nemá, takže se pod ním dá dál pracovat; `showModal()` by editor znepřístupnil
+ * a nález by nebyl vidět.
+ *
+ * Tlačítka jsou čtyři a do řady se vejdou jen tak tak — proto je panel širší
+ * než běžný dialog. Na úzké obrazovce se patička zalomí, ale popisky se
+ * netrhají uprostřed slova.
+ */
+.nb-dialog-modeless {
+  position: fixed;
+  inset: auto 16px 16px auto;
+  width: min(440px, calc(100vw - 32px));
+}
+
+.nb-dialog-modeless .nb-dialog-footer { flex-wrap: wrap; }
+.nb-dialog-modeless .nb-dialog-btn { white-space: nowrap; }
+
+/*
+ * Aktuální nález.
+ *
+ * Kreslí se přes `::highlight`, ne obalením do `<mark>`: obsah se tím nemění,
+ * takže hledání nemůže sáhnout do dokumentu, ve kterém jen hledá. Prohlížeč
+ * bez `CSS.highlights` ukáže obyčejný výběr — bledší, ale vidět je.
+ */
+::highlight(nb-find) {
+  background: #ffd54a;
+  color: #1a1a1a;
+}
 
 /*
  * Dialog, ve kterém se pracuje.

@@ -153,13 +153,71 @@ export function bindPaste(editor: Editor, options: PasteOptions = {}): () => voi
     editor.insertHTML(result);
   };
 
+  const onCopy = (event: Event): void => {
+    const e = event as ClipboardEvent;
+    const range = editor.selection.getRange();
+    if (!range || range.collapsed || !e.clipboardData) return;
+
+    e.clipboardData.setData('text/html', selectionHtml(editor, range));
+    e.clipboardData.setData('text/plain', range.toString());
+    e.preventDefault();
+  };
+
+  const onCut = (event: Event): void => {
+    onCopy(event);
+    // `preventDefault` v `onCopy` zrušil i vyjmutí, takže se maže vlastní
+    // cestou. Je to tak i lepší: prohlížeč po sobě nechával `&nbsp;` tam,
+    // kde byla obyčejná mezera.
+    if (event.defaultPrevented) editor.exec('deleteBackward');
+  };
+
   editor.root.addEventListener('paste', onPaste);
   editor.root.addEventListener('keydown', onKeyDown);
   editor.root.addEventListener('drop', onDrop);
+  editor.root.addEventListener('copy', onCopy);
+  editor.root.addEventListener('cut', onCut);
 
   return () => {
     editor.root.removeEventListener('paste', onPaste);
     editor.root.removeEventListener('keydown', onKeyDown);
     editor.root.removeEventListener('drop', onDrop);
+    editor.root.removeEventListener('copy', onCopy);
+    editor.root.removeEventListener('cut', onCut);
   };
+}
+
+/** Inline obaly, které se při kopírování musí přenést i zvenčí výběru. */
+const COPY_WRAPPERS: ReadonlySet<string> = new Set([
+  'strong', 'em', 'b', 'i', 'u', 's', 'strike', 'a', 'span',
+  'code', 'sub', 'sup', 'mark', 'small', 'font',
+]);
+
+/**
+ * Co dát do schránky při kopírování.
+ *
+ * Vlastní serializace, ne ta prohlížečova. Chrome do `text/html` přibalí
+ * spočítané styly — `color`, `background-color`, `text-align: start` — a při
+ * vložení zpátky do editoru je obsah dostane, přestože je nikdo nenastavil.
+ * Zkopírovat slovo a vložit ho o kus dál tak pokaždé přidalo kus balastu.
+ */
+function selectionHtml(editor: Editor, range: Range): string {
+  const holder = editor.document.createElement('div');
+  holder.appendChild(range.cloneContents());
+
+  // `cloneContents` nezahrne obaly nad výběrem. Bez nich by se z vybraného
+  // kusu tučného textu stal při vložení text obyčejný.
+  let cur: Node | null = range.commonAncestorContainer;
+  if (cur.nodeType === 3) cur = cur.parentNode;
+
+  while (cur && cur !== editor.root) {
+    const el = cur as Element;
+    if (cur.nodeType === 1 && COPY_WRAPPERS.has(el.tagName.toLowerCase())) {
+      const wrap = el.cloneNode(false) as Element;
+      while (holder.firstChild) wrap.appendChild(holder.firstChild);
+      holder.appendChild(wrap);
+    }
+    cur = cur.parentNode;
+  }
+
+  return holder.innerHTML;
 }

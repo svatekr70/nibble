@@ -63,6 +63,7 @@ export const DEFAULT_MENUBAR: readonly MenubarMenu[] = [
     items: [
       { control: 'link' }, { control: 'image' }, { control: 'media' },
       { ...S(), control: 'table' }, { control: 'hr' },
+      { ...S(), control: 'anchor' },
       { ...S(), control: 'emoji' }, { control: 'charmap' },
     ],
   },
@@ -89,6 +90,14 @@ export const DEFAULT_MENUBAR: readonly MenubarMenu[] = [
         items: [
           { control: 'alignleft' }, { control: 'aligncenter' },
           { control: 'alignright' }, { control: 'alignjustify' },
+        ],
+      },
+      {
+        label: 'Seznam',
+        items: [
+          { control: 'bullist' }, { control: 'numlist' },
+          { control: 'deflist' },
+          { ...S(), control: 'listprops' },
         ],
       },
       { ...S(), control: 'forecolor' }, { control: 'backcolor' },

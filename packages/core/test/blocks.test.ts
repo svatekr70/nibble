@@ -120,6 +120,27 @@ describe('ensureBlock', () => {
     expect(block).toBe(root.children[0]);
     expect(root.innerHTML).toBe('<h2>nadpis</h2>');
   });
+
+  it('úsek končí i na hranici seznamu', () => {
+    // Seznam není `isBlock` — `closestBlock` musí vracet položku, ne <ol>.
+    // Bez vlastní hranice by ho obalení holého textu spolklo a vzniklo by
+    // <p><ol>…</ol>text</p>.
+    const { root, document } = build('<ol><li>a</li></ol>volný text');
+    ensureBlock(root.lastChild, root, document);
+    expect(root.innerHTML).toBe('<ol><li>a</li></ol><p>volný text</p>');
+  });
+
+  it('úsek se nerozlije přes seznam dopředu', () => {
+    const { root, document } = build('volný text<ul><li>a</li></ul>');
+    ensureBlock(root.firstChild, root, document);
+    expect(root.innerHTML).toBe('<p>volný text</p><ul><li>a</li></ul>');
+  });
+
+  it('holý text vedle seznamu v položce dostane vlastní odstavec', () => {
+    const { root, document } = build('<blockquote>text<ul><li>a</li></ul></blockquote>');
+    ensureBlock(root.children[0]!.firstChild, root, document);
+    expect(root.innerHTML).toBe('<blockquote><p>text</p><ul><li>a</li></ul></blockquote>');
+  });
 });
 
 describe('pruneEmptyInline', () => {

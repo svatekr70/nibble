@@ -19,6 +19,8 @@ import {
 const MERGEABLE = new Set(['p', 'div']);
 import { deleteInDirection, insertParagraph, registerBlockCommands } from './commands/blocks.js';
 import { registerListCommands } from './commands/lists.js';
+import { registerDefListCommands } from './commands/deflist.js';
+import { registerAnchorCommands } from './commands/anchor.js';
 import { registerColorCommands } from './commands/colors.js';
 import { registerClipboardCommands } from './commands/clipboard.js';
 import { captureCaret, restoreCaret } from './selection/caret.js';
@@ -37,6 +39,18 @@ const FORMAT_TAGS: Record<string, string> = {
   superscript: 'sup',
   subscript: 'sub',
   inlinecode: 'code',
+};
+
+/**
+ * Formáty, které se navzájem vylučují.
+ *
+ * Text nemůže být zároveň horní a dolní index. Bez tohohle šlo zapnout obojí
+ * a vzniklo `<sup><sub>…</sub></sup>` — v prohlížeči nesmysl, který se navíc
+ * nedal jednoduše vypnout.
+ */
+const OPPOSITE: Record<string, string> = {
+  sup: 'sub',
+  sub: 'sup',
 };
 
 export class Editor {
@@ -90,6 +104,8 @@ export class Editor {
     this.registerCoreCommands();
     registerBlockCommands(this);
     registerListCommands(this);
+    registerDefListCommands(this);
+    registerAnchorCommands(this);
     registerColorCommands(this);
     registerClipboardCommands(this);
     registerCoreControls(this, this.ui);
@@ -355,15 +371,27 @@ export class Editor {
         const range = ed.selection.getRange();
         if (!range) return false;
 
+        const opposite = OPPOSITE[tag];
+
         if (range.collapsed) {
           // Bez výběru se formát jen předepíše pro další napsaný znak.
-          if (ed.pendingMarks.has(tag)) ed.pendingMarks.delete(tag);
-          else ed.pendingMarks.add(tag);
+          if (ed.pendingMarks.has(tag)) {
+            ed.pendingMarks.delete(tag);
+          } else {
+            ed.pendingMarks.add(tag);
+            if (opposite) ed.pendingMarks.delete(opposite);
+          }
           ed.events.dispatch('selectionchange');
           return true;
         }
 
-        ed.selection.setRange(ed.formatter.toggle(range, tag));
+        // Zapnutí jednoho z dvojice vypne ten druhý — jinak by se zanořily
+        // do sebe a text by byl horní i dolní index zároveň.
+        const live = opposite && !ed.formatter.matches(range, tag)
+          ? ed.formatter.clear(range, [opposite])
+          : range;
+
+        ed.selection.setRange(ed.formatter.toggle(live, tag));
         ed.commit('format');
         return true;
       });
