@@ -3,7 +3,7 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
-## Nevydáno
+## [0.4.0] — 2026-08-28
 
 ### Změněno
 
@@ -142,6 +142,20 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 - Testy seznamů po každé operaci píšou. Dosud kontrolovaly jen výslednou
   strukturu, a ta bývala v pořádku i tehdy, když kurzor skončil mimo ni —
   přesně to byla tahle chyba.
+
+### Ověření
+
+- 638 jednotkových testů (vitest + linkedom) a 494 v prohlížeči (Playwright
+  + Chromium). Přibyly testy Formatteru, který je dosud neměl vůbec —
+  v linkedomu se spustit nedají, protože `Range` neimplementuje.
+- Editor se dvakrát prošel ručně v prohlížeči, funkci po funkci. První průchod
+  dal 17 nálezů, druhý 9; všechny jsou opravené a pokryté testy. Většina měla
+  společnou příčinu: `extractContents()` přes hranice bloků, `intersectsNode`
+  beroucí i uzly jen se dotýkající výběru, a kurzor, který po zásahu do
+  struktury zůstal v kořeni.
+- Vložení skutečné tabulky z Google Sheets se sloučenými buňkami: 0 zbytků
+  po zdrojové aplikaci, sloučení i šířky sloupců zachované, round-trip beze
+  změny.
 
 ## [0.3.0] — 2026-08-26
 
