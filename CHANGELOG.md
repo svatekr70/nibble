@@ -3,7 +3,7 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
-## Nevydáno
+## [0.5.0] — 2026-08-29
 
 ### Změněno
 
@@ -33,6 +33,24 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   i tam, kde tvrdé načtení nestačí) a u každé ikony ukáže, kterou sadu
   prohlížeč opravdu kreslí. Lucide a Tabler mají `bold`, `italic` i zarovnání
   skoro totožné, takže „nic se nezměnilo" nemusí znamenat, že překlad neproběhl.
+
+### Ověření
+
+- 638 jednotkových testů (vitest + linkedom) a 494 v prohlížeči (Playwright
+  + Chromium), typecheck čistý. Testovací sada se neměnila — výměna ikon se
+  nemá čeho dotknout a nedotkla se.
+- Všech 54 ikon prošlo očima ve skutečné velikosti 18 px na srovnávací
+  stránce; `source-code` se v ní ukázal jako nečitelný chumel a zdrojový kód
+  se vrátil na jednoznačné `</>`.
+- `demo/icons-live.html` hlásí 54 z 54 ikon jako Tabler, tedy že prohlížeč
+  kreslí přeložený stav, ne cache.
+
+### Poznámka
+
+- Sada se nevybírala mezi Applími SF Symbols a zbytkem: **SF Symbols použít
+  nejde.** Licence je omezená na vývoj aplikací pro platformy Applu a Nibble
+  běží v jakémkoli prohlížeči, navíc se ikony do repozitáře zapisují — byla by
+  to redistribuce cizí kresby pod licencí, která ji nedovoluje.
 
 ## [0.4.0] — 2026-08-28
 

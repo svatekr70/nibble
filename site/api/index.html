@@ -22,7 +22,7 @@
       </svg>
       Nibble
     </a>
-    <span class="ver">v0.4.0</span>
+    <span class="ver">v0.5.0</span>
     <span class="spacer"></span>
     <a class="navlink" href="../demo/">Demo</a>
     <a class="navlink" href="../guide/">Příručka</a>
@@ -106,13 +106,13 @@ npm run build</pre>
         nesestavuje — stačí adresa:</p>
 
       <pre class="code">&lt;<span class="t">link</span> rel=<span class="s">"stylesheet"</span>
-      href=<span class="s">"https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.4.0/dist/nibble.css"</span>&gt;
+      href=<span class="s">"https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.5.0/dist/nibble.css"</span>&gt;
 
 &lt;<span class="t">div</span> id=<span class="s">"obsah"</span>&gt;&lt;<span class="t">p</span>&gt;Ahoj.&lt;/<span class="t">p</span>&gt;&lt;/<span class="t">div</span>&gt;
 
 &lt;<span class="t">script</span> type=<span class="s">"module"</span>&gt;
   <span class="k">import</span> { Nibble, attachToolbar, link, image, table }
-    <span class="k">from</span> <span class="s">'https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.4.0/dist/nibble.min.js'</span>
+    <span class="k">from</span> <span class="s">'https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.5.0/dist/nibble.min.js'</span>
 
   <span class="k">const</span> editor = <span class="k">await</span> Nibble.<span class="t">create</span>({
     target: <span class="s">'#obsah'</span>,
@@ -126,7 +126,7 @@ npm run build</pre>
 
       <div class="callout">
         <strong>Verzi v adrese si pište vždycky</strong>
-        <p><code>@v0.4.0</code> je neměnné: ten soubor už se nikdy nezmění a jsDelivr ho
+        <p><code>@v0.5.0</code> je neměnné: ten soubor už se nikdy nezmění a jsDelivr ho
           drží v mezipaměti natrvalo. Bez verze (<code>@main</code>) se tahá poslední stav
           hlavní větve — dobré na zkoušení, nebezpečné v ostrém provozu.</p>
       </div>

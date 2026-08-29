@@ -349,7 +349,7 @@ chování, jen se s ním musí počítat.
 
 ## Verze je vidět v nastavení
 
-*Nastavení editoru* ukazuje pod tlačítky „Nibble 0.4.0". Hodnotu dosazuje
+*Nastavení editoru* ukazuje pod tlačítky „Nibble 0.5.0". Hodnotu dosazuje
 bundler z `package.json` (`define` v `tools/build*.mjs`), takže se nemůže
 rozejít s vydáním — a nemusí se udržovat na dvou místech, kde by jedno bylo
 dřív nebo později zapomenuté. Bez bundleru, tedy v jednotkových testech,
@@ -818,19 +818,19 @@ neinstaluje a nic nesestavuje:
 
 ```html
 <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.4.0/dist/nibble.css">
+      href="https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.5.0/dist/nibble.css">
 <div id="obsah"><p>Ahoj.</p></div>
 
 <script type="module">
   import { Nibble, attachToolbar, link, image, table }
-    from 'https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.4.0/dist/nibble.min.js';
+    from 'https://cdn.jsdelivr.net/gh/svatekr70/nibble@v0.5.0/dist/nibble.min.js';
 
   const editor = await Nibble.create({ target: '#obsah', plugins: [link, image, table] });
   attachToolbar(editor, { menubar: true });
 </script>
 ```
 
-**Verzi v adrese si pište vždycky.** `@v0.4.0` je neměnné — ten soubor už se
+**Verzi v adrese si pište vždycky.** `@v0.5.0` je neměnné — ten soubor už se
 nikdy nezmění a jsDelivr ho drží v mezipaměti natrvalo. Bez verze (`@main`) se
 tahá poslední stav hlavní větve, což je fajn na zkoušení a nebezpečné v ostrém
 provozu.
