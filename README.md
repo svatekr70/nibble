@@ -444,21 +444,39 @@ Nemodální panel a tlačítka, po kterých se nezavírá, umí dialog obecně �
 
 ## Ikony
 
-Ikony jsou z **[Lucide](https://lucide.dev)** (ISC). Do repozitáře je zapisuje
-`npm run icons`, který je vytáhne z `@iconify-json/lucide` podle mapy jmen
-v `tools/build-icons.mjs`. Nové tlačítko znamená přidat tam řádek a skript
-spustit — `packages/ui/src/icons.ts` se needituje ručně.
+Ikony jsou z **[Tabler Icons](https://tabler.io/icons)** (MIT). Do repozitáře je
+zapisuje `npm run icons`, který je vytáhne z `@iconify-json/tabler` podle mapy
+jmen v `tools/build-icons.mjs`. Nové tlačítko znamená přidat řádek do `LABELS`
+i do mapy sady a skript spustit — `packages/ui/src/icons.ts` se needituje ručně.
 
-Generuje se, ne načítá za běhu: do balíčku jde 52 ikon místo celé sady
-a `@iconify-json/lucide` zůstává vývojovou závislostí, kterou nikdo, kdo Nibble
+Generuje se, ne načítá za běhu: do balíčku jde 54 ikon místo celé sady
+a `@iconify-json/*` zůstává vývojovou závislostí, kterou nikdo, kdo Nibble
 používá, neinstaluje.
 
 Jediný zásah do tvaru je síla čáry — z 2 na 1.75, protože v liště se ikona
 zmenšuje na 18 px a plná dvojka je tam zbytečně tučná.
 
-Licence a copyright jsou v [`licenses/lucide.txt`](licenses/lucide.txt). ISC
+Skript zná víc sad naráz. `npm run icons -- tabler` přepne zdroj,
+`npm run icons -- --preview` vygeneruje `demo/icons.html` — všech 54 ikon
+z každé sady vedle sebe ve skutečné velikosti 18 px. Sada se vybírá tam, ne od
+stolu: v 18 px se pozná, co je čitelné a co je chumel.
+
+`npm run icons -- --live` vygeneruje `demo/icons-live.html`. Ta stránka si modul
+natáhne dynamickým importem s časovým razítkem, takže obejde cache i tam, kde
+tvrdé načtení na `type="module"` nestačí, a ukáže, kterou sadu prohlížeč
+opravdu kreslí. Hodí se po výměně sady: Lucide a Tabler mají `bold`, `italic`
+i zarovnání skoro totožné, takže „nic se nezměnilo" nemusí znamenat, že překlad
+neproběhl.
+
+Proč Tabler a ne něco od Applu: **SF Symbols nejde použít.** Licence je
+omezená na vývoj aplikací pro platformy Applu a Nibble běží v jakémkoli
+prohlížeči, navíc se ikony do repozitáře zapisují — to by byla redistribuce
+cizí kresby pod licencí, která ji nedovoluje.
+
+Licence a copyright jsou v [`licenses/tabler.txt`](licenses/tabler.txt). MIT
 vyžaduje, aby copyright zůstal u všech kopií, takže ten soubor patří i do
-distribuce.
+distribuce. Sady, které srovnávací stránka jen vykresluje a nedistribuují se,
+mají licenci v `licenses/lucide.txt` a `licenses/phosphor.txt`.
 
 ## Seznam definic
 

@@ -1,6 +1,6 @@
-Ikony v packages/ui/src/icons.ts pocházejí ze sady Lucide a generuje je
-tools/build-icons.mjs. Nibble je nijak neupravuje kromě síly čáry, která se
-z 2 ztenčuje na 1.75 kvůli menší velikosti v liště.
+Lucide se nedistribuuje. Do verze 0.4.0 z něj Nibble ikony bral, teď je jen
+jednou ze sad na srovnávací stránce demo/icons.html, kterou generuje
+tools/build-icons.mjs --preview.
 
     https://lucide.dev
     https://github.com/lucide-icons/lucide

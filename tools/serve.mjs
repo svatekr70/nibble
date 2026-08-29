@@ -19,7 +19,12 @@ const server = createServer(async (req, res) => {
   const rel = normalize(path).replace(/^(\.\.[/\\])+/, '');
   try {
     const body = await readFile(join(process.cwd(), ROOT, rel));
-    res.writeHead(200, { 'content-type': TYPES[extname(rel)] ?? 'application/octet-stream' });
+    res.writeHead(200, {
+      'content-type': TYPES[extname(rel)] ?? 'application/octet-stream',
+      // Bez tohohle prohlížeč drží starý modul i po přestavbě a člověk pak
+      // kouká na demo, které se nezměnilo, a hledá chybu v kódu.
+      'cache-control': 'no-store, must-revalidate',
+    });
     res.end(body);
   } catch {
     res.writeHead(404).end('404');

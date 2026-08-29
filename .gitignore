@@ -15,3 +15,7 @@ packages/core/test/fixtures/provenance.json
 
 # Vzorky ze schránky. Jsou v nich reálná data ze sešitů — do repozitáře nepatří.
 samples/
+
+# Stránky kolem ikon: generuje je tools/build-icons.mjs (--preview a --live).
+demo/icons.html
+demo/icons-live.html

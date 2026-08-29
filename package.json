@@ -47,6 +47,8 @@
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.126",
+    "@iconify-json/ph": "^1.2.2",
+    "@iconify-json/tabler": "^1.2.38",
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "esbuild": "^0.28.2",

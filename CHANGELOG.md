@@ -3,6 +3,37 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
+## Nevydáno
+
+### Změněno
+
+- Ikony lišty jsou z [Tabler Icons](https://tabler.io/icons) (MIT) místo Lucide.
+  Důvod je čitelnost v tabulce: Lucide nemá mazání řádku ani sloupce, takže
+  `rowminus` a `colminus` kreslily ikonu vkládání — na tlačítku „Smazat řádek"
+  byl obrázek přidávání. Tabler má vkládání i mazání zvlášť (`row-insert-bottom`
+  vs. `row-remove`) a v 18 px je od sebe poznáte. Zároveň byly `table-cells-merge`
+  a `table-cells-split` v té velikosti k nerozeznání jedna od druhé.
+  Copyright je v `licenses/tabler.txt` — MIT ho vyžaduje u všech kopií.
+  Sahá to na 53 z 54 ikon, ale API zůstává: `ICONS` má stejný tvar hodnot
+  i `viewBox`, `iconSvg(name)` funguje beze změny.
+- Dev server (`npm run demo`) posílá `cache-control: no-store`. Bez toho si
+  prohlížeč držel starý ES modul i po přestavbě a tvrdé načtení se na
+  `type="module"` nemuselo projevit — člověk pak koukal na demo, které se
+  nezměnilo, a hledal chybu v kódu.
+
+### Přidáno
+
+- `tools/build-icons.mjs` umí víc sad naráz. `npm run icons -- <sada>` přepne
+  zdroj, `npm run icons -- --preview` vygeneruje `demo/icons.html` se všemi
+  54 ikonami z každé sady vedle sebe ve skutečné velikosti 18 px. Sada se tak
+  vybírá okem, ne od stolu. Skript navíc padá, když ikona v sadě chybí, místo
+  aby nechal v liště tichou díru.
+- `npm run icons -- --live` vygeneruje `demo/icons-live.html` — stránku, která
+  si modul natáhne dynamickým importem s časovým razítkem (obejde cache
+  i tam, kde tvrdé načtení nestačí) a u každé ikony ukáže, kterou sadu
+  prohlížeč opravdu kreslí. Lucide a Tabler mají `bold`, `italic` i zarovnání
+  skoro totožné, takže „nic se nezměnilo" nemusí znamenat, že překlad neproběhl.
+
 ## [0.4.0] — 2026-08-28
 
 ### Změněno
