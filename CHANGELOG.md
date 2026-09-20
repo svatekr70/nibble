@@ -3,6 +3,42 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
+## [0.5.1] — 2026-09-20
+
+### Přidáno
+
+- Text oddělený tabulátory se vloží jako tabulka. Excel a Sheets dávají do
+  schránky i `text/html`, takže mřížku nesou s sebou a stará se o ně
+  `pasteTable.ts`; bez HTML se ale chodí častěji, než by se čekalo — výpis
+  z terminálu, uložené `.tsv`, sloupce z textového editoru nebo Ctrl+Shift+V
+  ze sešitu. Ve všech těch případech je mřížka ve vstupu zapsaná a přesto
+  z ní dosud vznikl jeden odstavec. Nic se nedomýšlí: buď mají všechny řádky
+  stejný počet tabulátorů, a pak je to tabulka, nebo nemají, a pak je to text
+  s tabulátory. Záhlaví se nedělá — že je první řádek popisek sloupců, bývá
+  pravda, ale je to dohad o významu, ne o zápisu, a špatně uhodnuté záhlaví
+  uživatel neopraví, protože si ho nevšimne.
+- `textTableToHtml(text)` je veřejné API jádra (`packages/core/src/model/textTable.ts`).
+  Vrátí `null`, když vstup mřížku nenese.
+
+### Změněno
+
+- Barevný popover otevírá list **Palety** místo **Kola**. Skoro vždycky jde
+  o „prostě červenou"; kdo ladí odstín, přepne se na Kolo jedním klepnutím.
+- Tabulka se v `textToHtml` zkouší dřív než Markdown. Buňka může začínat
+  pomlčkou nebo číslem s tečkou a Markdown by z takového sloupce udělal
+  seznam — mřížka zapsaná tabulátory je jistota, kdežto odrážka na začátku
+  buňky je náhoda.
+
+### Ověření
+
+- 655 jednotkových testů (vitest + linkedom) a 498 v prohlížeči (Playwright
+  + Chromium), typecheck čistý. Proti 0.5.0 přibylo 17 jednotkových testů
+  (`packages/core/test/textTable.test.ts`) a 4 v prohlížeči (vkládání
+  v `e2e/paste.spec.ts`).
+- Čtyři testy v `e2e/colors.spec.ts` stály na tom, že se popover otevře na
+  Kole. Kolo je v nich teď o jedno klepnutí dál; test „má dva listy
+  a přepínají se" kontroluje nové výchozí otevření.
+
 ## [0.5.0] — 2026-08-29
 
 ### Změněno
