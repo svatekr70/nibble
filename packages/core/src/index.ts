@@ -9,6 +9,7 @@ export { parseInto, normalizeNewlines } from './model/Parser.js';
 export { cleanPastedContent, extractFragment, detectSource } from './model/clean.js';
 export type { PasteSource, CleanOptions } from './model/clean.js';
 export { markdownToHtml, plainTextToHtml, looksLikeMarkdown } from './model/markdown.js';
+export { textTableToHtml } from './model/textTable.js';
 export {
   textOffsetOf, htmlIndexForTextOffset, textOffsetForHtmlIndex, positionAtTextOffset,
 } from './model/sourceMap.js';

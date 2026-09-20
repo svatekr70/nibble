@@ -5,6 +5,7 @@ import {
 import { closestBlock, fillIfEmpty, pruneEmptyInline } from '../dom/blocks.js';
 import { collectStyleRules, inlineStyleRules } from '../model/pasteCss.js';
 import { looksLikeMarkdown, markdownToHtml, plainTextToHtml } from '../model/markdown.js';
+import { textTableToHtml } from '../model/textTable.js';
 
 /**
  * Vkládání ze schránky.
@@ -67,8 +68,14 @@ export function cleanPastedHtml(
   return { source, removed, html: box.innerHTML };
 }
 
-/** Převede čistý text na HTML — případně přes Markdown. */
+/** Převede čistý text na HTML — případně přes tabulku nebo Markdown. */
 export function textToHtml(text: string, options: PasteOptions = {}): string {
+  // Tabulka se zkouší první. Buňka může začínat pomlčkou nebo číslem s tečkou
+  // a Markdown by z takového sloupce udělal seznam — jenže mřížka zapsaná
+  // tabulátory je jistota, kdežto odrážka na začátku buňky je náhoda.
+  const table = textTableToHtml(text);
+  if (table) return table;
+
   const useMarkdown = options.markdown ?? true;
   return useMarkdown && looksLikeMarkdown(text)
     ? markdownToHtml(text)

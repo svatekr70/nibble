@@ -6,6 +6,12 @@ async function openPicker(page: import('@playwright/test').Page, which: 'forecol
   await page.locator('.nb-picker').waitFor();
 }
 
+// Popover otevírá Palety, takže kolo je o jedno klepnutí dál.
+async function openWheel(page: import('@playwright/test').Page, which: 'forecolor' | 'backcolor') {
+  await openPicker(page, which);
+  await page.locator('.nb-picker-tab', { hasText: 'Kolo' }).click();
+}
+
 test.describe('barva písma', () => {
   test('z palety obarví výběr', async ({ page }) => {
     await mount(page, '<p>abcdef</p>');
@@ -21,7 +27,7 @@ test.describe('barva písma', () => {
   test('vlastní barva z kola', async ({ page }) => {
     await mount(page, '<p>abc</p>');
     await select(page, 0, 0, 3);
-    await openPicker(page, 'forecolor');
+    await openWheel(page, 'forecolor');
     await page.locator('.nb-wheel-cell').nth(20).click();
 
     await expect.poll(() => html(page)).toContain('style="color:');
@@ -93,16 +99,18 @@ test.describe('popover', () => {
     await select(page, 0, 0, 3);
     await openPicker(page, 'forecolor');
 
-    await expect(page.locator('.nb-wheel')).toBeVisible();
-    await page.locator('.nb-picker-tab', { hasText: 'Palety' }).click();
-    await expect(page.locator('.nb-wheel')).toBeHidden();
+    // Otevírají se Palety; kolo je pro toho, kdo odstín ladí.
     await expect(page.locator('.nb-picker-grid')).toBeVisible();
+    await expect(page.locator('.nb-wheel')).toBeHidden();
+    await page.locator('.nb-picker-tab', { hasText: 'Kolo' }).click();
+    await expect(page.locator('.nb-wheel')).toBeVisible();
+    await expect(page.locator('.nb-picker-grid')).toBeHidden();
   });
 
   test('jezdec jasu přebarví kolo', async ({ page }) => {
     await mount(page, '<p>abc</p>');
     await select(page, 0, 0, 3);
-    await openPicker(page, 'forecolor');
+    await openWheel(page, 'forecolor');
 
     const before = await page.locator('.nb-wheel-cell').nth(30).getAttribute('fill');
     await page.locator('.nb-picker-bright input').fill('40');
@@ -132,7 +140,7 @@ test.describe('popover', () => {
   test('vybraná barva se zapamatuje mezi otevřeními', async ({ page }) => {
     await mount(page, '<p>abcdef</p>');
     await select(page, 0, 0, 3);
-    await openPicker(page, 'forecolor');
+    await openWheel(page, 'forecolor');
     await page.locator('.nb-wheel-cell').nth(25).click();
 
     // Po obarvení je text rozdělený na <span>abc</span>def, takže druhý výběr

@@ -4,10 +4,10 @@
  * Dva listy, stejně jako to má Lattice v cílovém projektu — lidé to tam znají a nemá
  * smysl je učit něco jiného:
  *
+ *  - **Palety** — otevírají se jako první: skoro vždycky jde o „prostě červenou".
+ *    Hotové barvy plus systémový výběr pro cokoli přesného.
  *  - **Kolo** — hexagonální mřížka, kde úhel je odstín a vzdálenost od středu
  *    sytost; jezdec pod ním řídí jas. Odstín se hledá okem, ne číslem.
- *  - **Palety** — hotové barvy pro případ, kdy má být text prostě červený,
- *    plus systémový výběr barvy pro cokoli přesného.
  *
  * K tomu naposledy použité barvy a „Bez barvy". Nic z toho není objev; smysl
  * je v tom, že se to chová jako zbytek aplikace.
@@ -197,13 +197,16 @@ export function openColorPicker(
     return tab;
   };
 
-  const tabWheel = makeTab('Kolo', true);
-  const tabPalette = makeTab('Palety', false);
+  // Palety jsou první volba: skoro vždycky jde o „prostě červenou", ne o odstín
+  // vybíraný z kola. Kdo chce ladit, přepne se na Kolo jedním klikem.
+  const tabWheel = makeTab('Kolo', false);
+  const tabPalette = makeTab('Palety', true);
   menu.appendChild(tabs);
 
   // --- kolo ---
   const wheelPane = doc.createElement('div');
   wheelPane.className = 'nb-picker-pane';
+  wheelPane.hidden = true;
 
   const wheel = buildWheel(196, doc, (hex) => finish(hex));
   wheelPane.appendChild(wheel.element);
@@ -226,7 +229,6 @@ export function openColorPicker(
   // --- palety ---
   const palettePane = doc.createElement('div');
   palettePane.className = 'nb-picker-pane';
-  palettePane.hidden = true;
 
   const grid = doc.createElement('div');
   grid.className = 'nb-picker-grid';

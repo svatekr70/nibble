@@ -185,6 +185,55 @@ test.describe('vkládání čistého textu', () => {
   });
 });
 
+test.describe('text oddělený tabulátory se stane tabulkou', () => {
+  test('mřížka zapsaná tabulátory projde bez HTML ve schránce', async ({ page }) => {
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await paste(page, { text: 'Kód\tKs\nX-1\t50' });
+    await expect.poll(() => html(page)).toBe(
+      '<table><tbody><tr><td>Kód</td><td>Ks</td></tr>'
+      + '<tr><td>X-1</td><td>50</td></tr></tbody></table>');
+  });
+
+  test('odsazený text zůstane textem', async ({ page }) => {
+    // Tabulátory tu jen odsazují a řádky se v počtu buněk neshodnou. Kdyby se
+    // z toho stala tabulka, dostane uživatel mřížku, o kterou nežádal.
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await paste(page, { text: 'Pozor:\n\tprvní\n\tdruhá\ta ještě' });
+    await expect.poll(() => html(page)).not.toContain('<table>');
+  });
+
+  test('mřížka má přednost před Markdownem', async ({ page }) => {
+    // Buňka smí začínat pomlčkou. Markdown by z takového sloupce udělal
+    // seznam, protože vidí dva řádky s odrážkou.
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await paste(page, { text: '- a\tx\n- b\ty' });
+    await expect.poll(() => html(page)).toContain('<table>');
+  });
+
+  test('vložená tabulka se dá dál upravovat', async ({ page }) => {
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await paste(page, { text: 'a\tb\nc\td' });
+    await expect.poll(() => html(page)).toContain('<table>');
+
+    // Kurzor do první buňky a napsat — tabulka musí být živá, ne jen text.
+    await page.evaluate(() => {
+      const cell = (window as any).ed.root.querySelector('td');
+      const r = document.createRange();
+      r.setStart(cell.firstChild, 1);
+      r.collapse(true);
+      const sel = getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(r);
+    });
+    await page.keyboard.type('X');
+    await expect.poll(() => html(page)).toContain('<td>aX</td>');
+  });
+});
+
 test.describe('vkládání z tabulkového procesoru', () => {
   test('tabulka má přednost před náhledem ve schránce', async ({ page }) => {
     // Excel posílá tabulku i její obrázek zároveň. Bez rozlišení by v obsahu
