@@ -749,6 +749,27 @@ Dvě věci, které mapa znaků řeší a mřížka emotikonů ne:
 - **Hledání podle kódu.** `U+00A9` i `00a9` najde `©`. Je to jediná cesta ke
   znaku, jehož český název člověk nezná, a kód se pod mřížkou i ukazuje.
 
+## Markdown při psaní
+
+Plugin `markdownShortcuts` převádí za psaní zkratky známé z Markdownu. Blokové
+platí, jen když je vzor celý začátek odstavce:
+
+| Napíšu | Spouští | Výsledek |
+|---|---|---|
+| `#`–`######` | mezera | nadpis `h1`–`h6` |
+| `-`, `*` | mezera | odrážkový seznam |
+| `1.` (libovolné číslo) | mezera | číslovaný seznam (číslo ≠ 1 nastaví `start`) |
+| `>` | mezera | citace |
+| `---` | Enter | `<hr>` a za ním nový odstavec |
+| ```` ``` ```` | Enter | `<pre>` |
+
+Řádkové se spouštějí zavírací značkou: `**x**` → tučně, `*x*` a `_x_` →
+kurzíva, `` `x` `` → kód, `~~x~~` → přeškrtnutí. Obsah nesmí začínat ani končit
+mezerou (`2 * 3 * 4` je násobení) a `_` uprostřed slova nic nespustí
+(`snake_case_name` zůstane textem). V kódu a v odkazech se zkratky nespouštějí.
+
+První Ctrl+Z převod vrátí a nechá napsaný text.
+
 ## Editor ukazuje, jak to bude vypadat
 
 Tabulka s vlastním `border` nebo `style` se v editoru vykreslí přesně tak, jak

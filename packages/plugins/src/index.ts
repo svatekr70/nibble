@@ -25,3 +25,7 @@ export {
   DEFAULT_GOOGLE_FONTS,
 } from './fonts.js';
 export type { FontOptions } from './fonts.js';
+export {
+  markdownShortcuts, matchBlockShortcut, matchEnterShortcut, matchInlineShortcut,
+} from './markdown.js';
+export type { BlockShortcut, InlineShortcut } from './markdown.js';

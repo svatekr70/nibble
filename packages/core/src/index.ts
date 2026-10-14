@@ -78,6 +78,7 @@ export { Autosave, draftKey } from './storage/Autosave.js';
 export type { Draft, AutosaveOptions } from './storage/Autosave.js';
 export { captureCaret, restoreCaret, withCaret } from './selection/caret.js';
 export type { CaretRef } from './selection/caret.js';
+export { textBeforeCaret } from './selection/textBefore.js';
 export type {
   NibbleConfig, Plugin, SchemaMode, SchemaViolation, EntityEncoding,
 } from './types.js';

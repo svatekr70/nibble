@@ -18,6 +18,10 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   po překročení zčervená a editor vyšle událost `limit` s `{ count, max, over }`.
   Psát jde dál a nic se neusekne; formulář si podle události může zakázat
   odeslání. S limitem se počítají i mezery, jako u `maxlength`.
+- Plugin `markdownShortcuts` — při psaní převádí `# `–`###### `, `- `, `* `,
+  `1. `, `> `, `---`+Enter, ```` ``` ````+Enter, `**tučně**`, `*kurzíva*`,
+  `_kurzíva_`, `` `kód` `` a `~~přeškrtnutí~~`. První Ctrl+Z převod vrátí.
+  V kódu a v odkazech se nespouští.
 
 ## [0.5.1] — 2026-09-20
 
