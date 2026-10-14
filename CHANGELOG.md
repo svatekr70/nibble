@@ -13,7 +13,8 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   a `<code>` zůstane adresa textem.
 - Volba `placeholder` — šedá nápověda v prázdném editoru. Bez uvedení se
   převezme z atributu `placeholder` nahrazované `<textarea>`, takže stávající
-  formuláře ji ukážou bez úprav. Do uloženého HTML se nedostane.
+  formuláře ji ukážou bez úprav. Do uloženého HTML se nedostane. Při psaní
+  s IME zmizí hned s prvním skládaným znakem.
 - `createWordcountPlugin({ maxChars })` — počítadlo ukáže „152 / 160 znaků“,
   po překročení zčervená a editor vyšle událost `limit` s `{ count, max, over }`.
   Psát jde dál a nic se neusekne; formulář si podle události může zakázat
@@ -47,7 +48,8 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 - Plugin `dragHandle` — při najetí myší na blok se vlevo ukáže úchyt ⠿;
   tažením se blok přesune, klikem se označí celý. Blok se přesouvá beze
   změny a přesun je jeden krok historie. Na dotykových zařízeních se úchyt
-  neukazuje.
+  neukazuje. Skryté prvky v kořeni (`<style>` ze starého obsahu) se
+  nepřesouvají ani nepočítají do místa puštění.
 
 ### Změněno
 

@@ -55,10 +55,12 @@ export const dragHandle: Plugin = {
 
     // Jen prvky: bílé textové uzly mezi bloky zůstanou, kde jsou. A jen
     // blokové: starší obsah mívá `<b>` nebo `<img>` přímo v kořeni a takový
-    // prvek je kus věty — přesunem by se z ní vytrhl.
+    // prvek je kus věty — přesunem by se z ní vytrhl. A jen viditelné:
+    // `<style>` ze starého obsahu nemá obdélník, jeho nulová poloha by
+    // posunula výpočet místa puštění a blok by se přesunul i tam, kde stojí.
     const isDraggable = (el: Element): boolean => {
       const display = win.getComputedStyle(el).display;
-      return display !== 'inline' && display !== 'inline-block' && display !== 'contents';
+      return display !== 'inline' && display !== 'inline-block' && display !== 'contents' && display !== 'none';
     };
     const blocks = (): Element[] => Array.from(root.children).filter(isDraggable);
 

@@ -36,6 +36,15 @@ test.describe('úchyt bloku', () => {
     expect(await page.evaluate(() => (window as any).ed.history.canUndo)).toBe(false);
   });
 
+  test('skrytý <style> mezi bloky nepočítá — puštění pod sebe nic nezapíše', async ({ page }) => {
+    const before = '<p>a</p><style>p{}</style><p>b</p>';
+    await mount(page, before);
+    // Těsně nad b je pořád hned pod a, tedy na původním místě.
+    await drag(page, 0, (b) => b[2]!.y + 2);
+    expect(await html(page)).toBe(before);
+    expect(await page.evaluate(() => (window as any).ed.history.canUndo)).toBe(false);
+  });
+
   test('úchyt ani čára nejsou v HTML', async ({ page }) => {
     await mount(page, '<p>a</p>');
     const box = (await page.locator(`${CONTENT} p`).boundingBox())!;

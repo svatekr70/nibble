@@ -20,6 +20,17 @@ test.describe('placeholder', () => {
     await expect(page.locator(CONTENT)).toHaveClass(/nb-empty/);
   });
 
+  test('během psaní s IME je nápověda schovaná', async ({ page }) => {
+    await mount(page, '', { placeholder: 'Piš' });
+    await caret(page, 0, 0);
+    await expect(page.locator(CONTENT)).toHaveClass(/nb-empty/);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.imeSetComposition', { text: 'か', selectionStart: 1, selectionEnd: 1 });
+    await expect(page.locator(CONTENT)).not.toHaveClass(/nb-empty/);
+    await cdp.send('Input.insertText', { text: 'か' });
+    await expect(page.locator(CONTENT)).not.toHaveClass(/nb-empty/);
+  });
+
   test('nápověda není v uloženém HTML', async ({ page }) => {
     await mount(page, '', { placeholder: 'Piš' });
     expect(await html(page)).not.toContain('Piš');

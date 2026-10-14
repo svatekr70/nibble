@@ -395,15 +395,23 @@ export class Editor {
    */
   private bindPlaceholder(text: string): () => void {
     this.root.dataset.placeholder = text;
+    // Psaní s IME do DOMu píše dřív, než přijde `change` — ten se ozve až po
+    // `compositionend`. Do té doby by se nápověda kreslila přes rozepsaný
+    // text, proto se při skládání schová a srovná se i na každé `input`.
     const sync = (): void => {
-      this.root.classList.toggle('nb-empty', isEmptyDocument(this.root));
+      this.root.classList.toggle('nb-empty', !this.composing && isEmptyDocument(this.root));
     };
+    const hide = (): void => { this.root.classList.remove('nb-empty'); };
     sync();
     const offChange = this.on('change', sync);
     const offSet = this.on('setcontent', sync);
+    this.root.addEventListener('input', sync);
+    this.root.addEventListener('compositionstart', hide);
     return () => {
       offChange();
       offSet();
+      this.root.removeEventListener('input', sync);
+      this.root.removeEventListener('compositionstart', hide);
       this.root.classList.remove('nb-empty');
       delete this.root.dataset.placeholder;
     };
