@@ -68,6 +68,39 @@ test.describe('lomítkové příkazy', () => {
     expect(await html(page)).toBe('<p>/nadx</p>');
   });
 
+  test('víceslovný popisek se dá dopsat i s mezerou', async ({ page }) => {
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await page.keyboard.type('/nadpis 2');
+    await expect(page.locator(`${MENU} .nb-menu-item`)).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('T');
+    expect(await html(page)).toBe('<h2>T</h2>');
+  });
+
+  test('mezera za dotazem bez shody nabídku zavře', async ({ page }) => {
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await page.keyboard.type('/xyz');
+    await expect(page.locator(MENU)).toHaveCount(0);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    await expect(page.locator(MENU)).toBeVisible();
+    await page.keyboard.type('xyz ');
+    await expect(page.locator(MENU)).toHaveCount(0);
+    expect(await html(page)).toBe('<p>/xyz </p>');
+  });
+
+  test('mezera hned za lomítkem nabídku zavře', async ({ page }) => {
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await page.keyboard.type('/');
+    await expect(page.locator(MENU)).toBeVisible();
+    await page.keyboard.type(' ');
+    await expect(page.locator(MENU)).toHaveCount(0);
+  });
+
   test('mezera bez shody nabídku zavře', async ({ page }) => {
     await mount(page, '<p><br></p>');
     await caret(page, 0, 0);
@@ -132,7 +165,10 @@ test.describe('lomítkové příkazy', () => {
       await (window as any).mount('<p><br></p>', { plugins: [slash] });
     });
     await caret(page, 0, 0);
-    await page.keyboard.type('/tab');
-    await expect(page.locator(MENU)).toHaveCount(0);
+    await page.keyboard.type('/');
+    // Nabídka je otevřená (jinak by test prošel naprázdno), jen bez tabulky.
+    await expect(page.locator(MENU)).toBeVisible();
+    await expect(page.locator(`${MENU} .nb-menu-item`).first()).toBeVisible();
+    await expect(page.locator(`${MENU} [data-value=table]`)).toHaveCount(0);
   });
 });

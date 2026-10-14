@@ -27,26 +27,43 @@ function escape(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Dotaz za spouštěčem, nebo null, když nabídka otevřená být nemá. */
+/**
+ * Dotaz za spouštěčem, nebo null, když nabídka otevřená být nemá.
+ *
+ * Dotaz smí obsahovat mezery — popisky jsou víceslovné („Nadpis 2“,
+ * „Číslovaný seznam“) a dají se dopsat celé. Nabídku zavře až mezera, pro
+ * kterou nic nesedí; to už pozná filtr. Mezerou ale začínat nesmí: `/ ` je
+ * obyčejné lomítko v textu.
+ */
 export function suggestionQuery(textBefore: string, trigger: string, startOfBlock: boolean): string | null {
   const t = escape(trigger);
+  const query = '((?:[^\\s' + t + '][^' + t + ']*)?)$';
   const pattern = startOfBlock
-    ? new RegExp('^' + t + '([^\\s' + t + ']*)$')
-    : new RegExp('(?:^|\\s)' + t + '([^\\s' + t + ']*)$');
+    ? new RegExp('^' + t + query)
+    : new RegExp('(?:^|\\s)' + t + query);
   const m = pattern.exec(textBefore);
   return m ? m[1]! : null;
 }
 
+/**
+ * Text pro porovnání: bez diakritiky a velikosti, mezery sjednocené.
+ * Contenteditable píše mezeru na konci textu jako U+00A0, takže `/nadpis 2`
+ * dorazí s nedělitelnou mezerou uprostřed.
+ */
+function words(text: string): string {
+  return foldText(text).replace(/\s+/g, ' ').trim();
+}
+
 /** Položky odpovídající dotazu; ty, jejichž popisek dotazem začíná, jdou první. */
 export function filterSuggestions<T extends SuggestionItem>(items: readonly T[], query: string): T[] {
-  const q = foldText(query.trim());
+  const q = words(query);
   if (q === '') return [...items];
 
   const starts: T[] = [];
   const contains: T[] = [];
   for (const item of items) {
-    const label = foldText(item.label);
-    const hay = label + ' ' + foldText((item.keywords ?? []).join(' '));
+    const label = words(item.label);
+    const hay = label + ' ' + words((item.keywords ?? []).join(' '));
     if (label.startsWith(q)) starts.push(item);
     else if (hay.includes(q)) contains.push(item);
   }

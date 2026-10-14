@@ -803,8 +803,10 @@ Plugin `slash`: `/` na začátku řádku otevře u kurzoru nabídku — nadpisy,
 odrážky, číslovaný seznam, úkoly, citace, blok kódu, čára, tabulka, obrázek,
 video a rozbalovací blok. Fokus zůstává v editoru: psaní za lomítkem nabídku
 filtruje (bez ohledu na diakritiku, `/odraz` najde Odrážky), šipky vybírají,
-Enter nebo Tab potvrdí, Escape zavře a napsaný text nechá. Mezera, pro kterou
-nic nesedí, nabídku zavře taky. V nadpisu rozbalovacího bloku se neotevírá.
+Enter nebo Tab potvrdí, Escape zavře a napsaný text nechá. Víceslovné
+popisky se dají dopsat celé (`/nadpis 2`, `/cislovany seznam`); nabídku zavře
+až dotaz, pro který nic nesedí — typicky mezera za obyčejným slovem. Hned za
+lomítkem mezera nabídku zavře. V nadpisu rozbalovacího bloku se neotevírá.
 
 Nabídka ukazuje jen to, co v editoru opravdu je: bez pluginu tabulek žádná
 Tabulka, bez `media` žádné Video. Výběr nahradí napsané `/dotaz` a první
