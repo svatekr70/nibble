@@ -283,6 +283,16 @@
 .nb-content:focus-visible { outline: none; }
 .nb-content > :first-child { margin-top: 0; }
 .nb-content > :last-child { margin-bottom: 0; }
+/* Nápověda v prázdném editoru. Plovoucí s nulovou výškou: kurzor stojí na
+   začátku řádku přes ni a text ji při prvním písmenu nahradí. */
+.nb-content.nb-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--nb-muted);
+  pointer-events: none;
+  user-select: none;
+}
 .nb-content table { border-collapse: collapse; }
 .nb-content blockquote {
   margin: 1em 0;

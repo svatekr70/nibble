@@ -33,7 +33,11 @@ export async function create(config: NibbleConfig): Promise<Editor> {
   const named = textarea?.name || textarea?.id || host.id;
   if (named) host.dataset.nibbleName = named;
 
-  const editor = new Editor(host, { ...config, target: host, content });
+  const placeholder = config.placeholder ?? (textarea?.placeholder || undefined);
+
+  const editor = new Editor(host, {
+    ...config, target: host, content, ...(placeholder ? { placeholder } : {}),
+  });
 
   if (textarea) {
     // Textarea zůstává zdrojem pravdy pro odeslání formuláře.

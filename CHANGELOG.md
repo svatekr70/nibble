@@ -10,6 +10,9 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 - Adresa nebo e-mail vložený ze schránky se rovnou stane odkazem. Když je
   označený text, odkazem se stane on — bez dialogu. Věta, ve které adresa
   je, se vkládá jako věta; Ctrl+Shift+V vloží vždy čistý text.
+- Volba `placeholder` — šedá nápověda v prázdném editoru. Bez uvedení se
+  převezme z atributu `placeholder` nahrazované `<textarea>`, takže stávající
+  formuláře ji ukážou bez úprav. Do uloženého HTML se nedostane.
 
 ## [0.5.1] — 2026-09-20
 

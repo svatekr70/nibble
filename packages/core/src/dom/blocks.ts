@@ -181,6 +181,20 @@ export function isEmptyBlock(block: Element): boolean {
   return true;
 }
 
+/**
+ * Je celý dokument „nic"? Tedy jediný prázdný odstavec — to, co editor
+ * vytvoří z prázdného vstupu a co zbude po smazání všeho.
+ *
+ * Nadpis bez textu prázdný dokument není: uživatel si ho zvolil, a nápověda
+ * přes něj by vypadala jako text v nadpisu.
+ */
+export function isEmptyDocument(root: Element): boolean {
+  if (root.children.length !== 1) return false;
+  const only = root.firstElementChild!;
+  return only.tagName.toLowerCase() === 'p' && isEmptyBlock(only)
+    && only.querySelector('img, iframe, video, audio, hr') === null;
+}
+
 /** Je kurzor na samém začátku bloku? */
 export function atBlockStart(range: Range, block: Element): boolean {
   const probe = block.ownerDocument.createRange();

@@ -3,10 +3,10 @@ import type { Page } from '@playwright/test';
 export const CONTENT = '.nb-content';
 
 /** Načte do editoru zadané HTML. */
-export async function mount(page: Page, html: string): Promise<void> {
+export async function mount(page: Page, html: string, opts: Record<string, unknown> = {}): Promise<void> {
   await page.goto('/e2e.html');
   await page.waitForFunction(() => (window as any).ready === true);
-  await page.evaluate((h) => (window as any).mount(h), html);
+  await page.evaluate(([h, o]) => (window as any).mount(h, o), [html, opts] as const);
 }
 
 /** Načte do editoru reálný dokument z ostrého provozu. */

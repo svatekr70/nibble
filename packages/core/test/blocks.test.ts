@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseWindow } from './dom.js';
 import {
-  convertBlock, ensureBlock, fillIfEmpty, isEmptyBlock, mergeBlocks, pruneEmptyInline,
+  convertBlock, ensureBlock, fillIfEmpty, isEmptyBlock, isEmptyDocument, mergeBlocks, pruneEmptyInline,
 } from '../src/dom/blocks.js';
 
 /**
@@ -166,5 +166,20 @@ describe('pruneEmptyInline', () => {
     const { root } = build('<p><strong>t</strong></p>');
     pruneEmptyInline(root.children[0]!);
     expect(root.innerHTML).toBe('<p><strong>t</strong></p>');
+  });
+});
+
+describe('prázdný dokument', () => {
+  const root = (html: string) => build(html).root;
+
+  it.each([
+    ['<p><br></p>', true],
+    ['<p></p>', true],
+    ['<p>x</p>', false],
+    ['<p><br></p><p><br></p>', false],
+    ['<h2><br></h2>', false],
+    ['<p><img src="a.png"></p>', false],
+  ])('%s → %s', (html, expected) => {
+    expect(isEmptyDocument(root(html))).toBe(expected);
   });
 });

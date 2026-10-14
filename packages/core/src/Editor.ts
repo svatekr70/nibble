@@ -12,7 +12,7 @@ import { Formatter } from './format/Formatter.js';
 import { bindInput } from './input/BeforeInput.js';
 import { bindPaste } from './input/Paste.js';
 import {
-  clearFiller, closestBlock, ensureBlock, fillIfEmpty, isEmptyBlock, splitBlock,
+  clearFiller, closestBlock, ensureBlock, fillIfEmpty, isEmptyBlock, isEmptyDocument, splitBlock,
 } from './dom/blocks.js';
 
 /** Bloky, jejichž obsah se při vkládání slije s okolím místo vzniku dalšího. */
@@ -116,6 +116,7 @@ export class Editor {
     registerColorCommands(this);
     registerClipboardCommands(this);
     registerCoreControls(this, this.ui);
+    if (config.placeholder) this.teardown.push(this.bindPlaceholder(config.placeholder));
     this.teardown.push(bindInput(this));
     this.teardown.push(bindPaste(this, config.paste ?? {}));
 
@@ -384,6 +385,28 @@ export class Editor {
     // a po obnovení stránky by se nabízela, přestože ji nikdo nechtěl.
     this.autosave?.schedule(html);
     this.events.dispatch('change', { html });
+  }
+
+  /**
+   * Nápověda v prázdném editoru.
+   *
+   * Jen atribut a třída na kořeni, text kreslí CSS. Kořen do `getHTML()`
+   * nepatří, takže se nápověda nemůže dostat do uloženého obsahu.
+   */
+  private bindPlaceholder(text: string): () => void {
+    this.root.dataset.placeholder = text;
+    const sync = (): void => {
+      this.root.classList.toggle('nb-empty', isEmptyDocument(this.root));
+    };
+    sync();
+    const offChange = this.on('change', sync);
+    const offSet = this.on('setcontent', sync);
+    return () => {
+      offChange();
+      offSet();
+      this.root.classList.remove('nb-empty');
+      delete this.root.dataset.placeholder;
+    };
   }
 
   private registerCoreCommands(): void {

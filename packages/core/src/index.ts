@@ -70,7 +70,7 @@ export type { ListProps, MarkerKind } from './dom/listProps.js';
 export type { Alignment } from './commands/blocks.js';
 export {
   TEXT_BLOCKS, isBlock, closestBlock, ensureBlock, blocksInRange,
-  convertBlock, splitBlock, mergeBlocks, isEmptyBlock, atBlockStart, atBlockEnd,
+  convertBlock, splitBlock, mergeBlocks, isEmptyBlock, isEmptyDocument, atBlockStart, atBlockEnd,
   pruneEmptyInline, fillIfEmpty, clearFiller, normalizeContainer,
 } from './dom/blocks.js';
 export { Formatter } from './format/Formatter.js';

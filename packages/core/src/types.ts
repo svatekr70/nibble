@@ -27,6 +27,8 @@ export interface NibbleConfig {
   lang?: string;
   autofocus?: boolean;
   readonly?: boolean;
+  /** Šedý text v prázdném editoru. Bez uvedení se vezme z `<textarea placeholder>`. */
+  placeholder?: string;
   toolbar?: readonly (readonly string[])[];
   plugins?: readonly Plugin[];
   /** Chování při vkládání ze schránky. */

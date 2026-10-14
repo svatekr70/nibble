@@ -784,6 +784,7 @@ const editor = await Nibble.create({
   target: '#obsah',        // selector, element nebo textarea
   schema: 'legacy',
   height: 400,
+  placeholder: 'Začněte psát…',  // bez uvedení se bere z <textarea placeholder>
   plugins: [
     link,
     createImagePlugin({
