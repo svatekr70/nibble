@@ -3,6 +3,15 @@ import { caret, html, mount, select } from './helpers.js';
 
 const MENU = '.nb-caret-menu:not([hidden])';
 
+/** Kurzor na začátek prvního prvku podle selektoru — prázdná položka nemá text. */
+async function caretIn(page: import('@playwright/test').Page, selector: string): Promise<void> {
+  await page.evaluate((sel) => {
+    const ed = (window as any).ed;
+    ed.selection.collapseTo(ed.root.querySelector(sel), 0);
+    ed.root.focus();
+  }, selector);
+}
+
 test.describe('lomítkové příkazy', () => {
   test('/ na prázdném řádku otevře nabídku a fokus zůstane v editoru', async ({ page }) => {
     await mount(page, '<p><br></p>');
@@ -170,5 +179,45 @@ test.describe('lomítkové příkazy', () => {
     await expect(page.locator(MENU)).toBeVisible();
     await expect(page.locator(`${MENU} .nb-menu-item`).first()).toBeVisible();
     await expect(page.locator(`${MENU} [data-value=table]`)).toHaveCount(0);
+  });
+
+  test('/odr v odrážce nabídku odrážek nemá — seznam by vypnula', async ({ page }) => {
+    await mount(page, '<ul><li><br></li></ul>');
+    await caretIn(page, 'li');
+    await page.keyboard.type('/');
+    await expect(page.locator(MENU)).toBeVisible();
+    await expect(page.locator(`${MENU} [data-value=bullist]`)).toHaveCount(0);
+    await expect(page.locator(`${MENU} [data-value=numlist]`)).toHaveCount(1);
+    await page.keyboard.type('odr');
+    await page.keyboard.press('Enter');
+    expect(await html(page)).toMatch(/^<ul><li>/);
+  });
+
+  test('/cit v citaci citaci nenabízí', async ({ page }) => {
+    await mount(page, '<blockquote><p><br></p></blockquote>');
+    await caretIn(page, 'p');
+    await page.keyboard.type('/');
+    await expect(page.locator(MENU)).toBeVisible();
+    await expect(page.locator(`${MENU} [data-value=quote]`)).toHaveCount(0);
+    await page.keyboard.type('cit');
+    await page.keyboard.press('Enter');
+    expect(await html(page)).toMatch(/^<blockquote>/);
+  });
+
+  test('v nadpisu 2 chybí jen Nadpis 2', async ({ page }) => {
+    await mount(page, '<h2><br></h2>');
+    await caret(page, 0, 0);
+    await page.keyboard.type('/nad');
+    await expect(page.locator(`${MENU} [data-value=h2]`)).toHaveCount(0);
+    await expect(page.locator(`${MENU} [data-value=h1]`)).toHaveCount(1);
+  });
+
+  test('/cisl v úkolech dá obyčejný číslovaný seznam', async ({ page }) => {
+    await mount(page, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><br></li></ul>');
+    await caretIn(page, 'li');
+    await page.keyboard.type('/cisl');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('x');
+    expect(await html(page)).toBe('<ol><li>x</li></ol>');
   });
 });

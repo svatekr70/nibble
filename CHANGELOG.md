@@ -9,7 +9,8 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 
 - Adresa nebo e-mail vložený ze schránky se rovnou stane odkazem. Když je
   označený text, odkazem se stane on — bez dialogu. Věta, ve které adresa
-  je, se vkládá jako věta; Ctrl+Shift+V vloží vždy čistý text.
+  je, se vkládá jako věta; Ctrl+Shift+V vloží vždy čistý text. V `<pre>`
+  a `<code>` zůstane adresa textem.
 - Volba `placeholder` — šedá nápověda v prázdném editoru. Bez uvedení se
   převezme z atributu `placeholder` nahrazované `<textarea>`, takže stávající
   formuláře ji ukážou bez úprav. Do uloženého HTML se nedostane.
@@ -39,7 +40,8 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 - Plugin `slash` — `/` na začátku řádku otevře nabídku (nadpisy, seznamy,
   úkoly, citace, kód, čára, tabulka, obrázek, video, rozbalovací blok).
   Psaní filtruje i bez diakritiky, Enter vybere, Escape zavře. Ukazuje jen
-  to, co je v editoru zapnuté.
+  to, co je v editoru zapnuté, a nenabízí formát, ve kterém kurzor už je —
+  odrážky v odrážkách nebo citace v citaci by se vypnuly.
 - `ui.addSuggestion(name, spec)` — obecná nabídka u kurzoru vyvolaná znakem.
   Vykresluje ji `@nibble/ui` (`bindCaretMenu`), fokus zůstává v editoru.
 - Plugin `dragHandle` — při najetí myší na blok se vlevo ukáže úchyt ⠿;

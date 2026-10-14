@@ -184,6 +184,11 @@ export const autolink: Plugin = {
       if (closestLink(range.startContainer, editor.root)
         || closestLink(range.endContainer, editor.root)) return;
 
+      // V kódu je adresa kus zdrojáku, ne odkaz. Vložení dostane jádro
+      // a adresa zůstane textem.
+      if (insideCode(range.startContainer, editor.root)
+        || insideCode(range.endContainer, editor.root)) return;
+
       // Přes víc bloků by `<a>` musel obalit odstavce. Radši vložit normálně.
       if (!range.collapsed
         && closestBlock(range.startContainer, editor.root)
@@ -218,6 +223,14 @@ export const autolink: Plugin = {
     };
   },
 };
+
+/** Leží uzel v `<pre>` nebo `<code>`, v mezích kořene? */
+function insideCode(node: Node, root: Element): boolean {
+  for (let cur: Node | null = node; cur && cur !== root; cur = cur.parentNode) {
+    if (cur.nodeType === 1 && ['pre', 'code'].includes((cur as Element).tagName.toLowerCase())) return true;
+  }
+  return false;
+}
 
 // ---------------------------------------------------------------- počítadlo
 

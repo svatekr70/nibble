@@ -78,4 +78,23 @@ test.describe('odkazy při vkládání', () => {
     await pasteText(page, 'https://example.com');
     expect(await html(page)).not.toContain('<a ');
   });
+
+  test('adresa vložená do <pre> zůstane textem', async ({ page }) => {
+    await mount(page, '<pre>kód </pre>');
+    await caret(page, 0, 4);
+    await pasteText(page, 'https://example.com');
+    expect(await html(page)).not.toContain('<a ');
+    expect(await html(page)).toContain('https://example.com');
+  });
+
+  test('adresa vložená do <code> zůstane textem', async ({ page }) => {
+    await mount(page, '<p>viz <code>x</code></p>');
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      ed.selection.collapseTo(ed.root.querySelector('code').firstChild, 1);
+      ed.root.focus();
+    });
+    await pasteText(page, 'https://example.com');
+    expect(await html(page)).not.toContain('<a ');
+  });
 });

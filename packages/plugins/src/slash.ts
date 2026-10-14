@@ -33,6 +33,22 @@ function available(editor: Editor, item: SlashItem): boolean {
   return 'command' in item.run ? editor.can(item.run.command) : editor.ui.get(item.run.button) !== undefined;
 }
 
+/**
+ * Formát, ve kterém kurzor už je.
+ *
+ * Seznamy a citace se přepínají: odrážky v odrážkách seznam zruší, citace
+ * v citaci citaci. Kdo píše `/odr` v odrážce, to nechce — položka se proto
+ * vůbec nenabídne. Stav se bere z tlačítka v liště, ať nabídka a lišta
+ * nemají každá svůj názor; nadpis a blok kódu tlačítko nemají.
+ */
+function active(editor: Editor, item: SlashItem): boolean {
+  if (!('command' in item.run)) return false;
+  const { command, args } = item.run;
+  if (command === 'formatBlock') return editor.getBlockTag() === args;
+  const spec = editor.ui.get(command);
+  return spec?.kind === 'button' && !!spec.active?.(editor);
+}
+
 export const slash: Plugin = {
   name: 'slash',
 
@@ -45,7 +61,7 @@ export const slash: Plugin = {
         // `touchesSummary`) — výběr by jen smazal `/dotaz`. Nabídka proto
         // vůbec nevyskočí.
         if (ed.getBlockTag() === 'summary') return [];
-        return filterSuggestions(SLASH_ITEMS.filter((i) => available(ed, i)), query);
+        return filterSuggestions(SLASH_ITEMS.filter((i) => available(ed, i) && !active(ed, i)), query);
       },
       opensDialog: (item) => 'button' in (item as SlashItem).run,
       onPick: (ed, item) => {
