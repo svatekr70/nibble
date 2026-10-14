@@ -73,9 +73,10 @@ export const tasks: Plugin = {
 
       // Z čehokoli jiného nejdřív odrážky — přes příkaz jádra, který umí
       // výběr přes více odstavců i převod z číslování. Jeho zápis do historie
-      // se zahodí: celý převod je jeden krok.
+      // se zahodí: celý převod je jeden krok. Druh seznamu jde do jádra hned,
+      // jinak by se nový seznam slil s obyčejnými odrážkami před ním.
       ed.history.transact(() => {
-        if (current?.tagName.toLowerCase() !== 'ul') ed.exec('bullist');
+        if (current?.tagName.toLowerCase() !== 'ul') ed.exec('bullist', { type: 'taskList' });
       });
 
       const list = listAtCaret(ed);
@@ -94,6 +95,13 @@ export const tasks: Plugin = {
     const offSplit = editor.on('itemsplit', (payload: never) => {
       const { from, to } = payload as { from: Element; to: Element };
       if (isTaskItem(from)) setTaskChecked(to, false);
+    });
+
+    // Číslovaný seznam úkolů formát nezná — kdo z úkolů dělá číslování,
+    // chce obyčejný číslovaný seznam, ne `<ol data-type="taskList">`.
+    const offRetag = editor.on('listretag', (payload: never) => {
+      const { list, tag } = payload as { list: Element; tag: string };
+      if (tag === 'ol' && isTaskList(list)) fromTaskList(list);
     });
 
     /**
@@ -115,6 +123,6 @@ export const tasks: Plugin = {
     };
 
     editor.root.addEventListener('mousedown', onMouseDown);
-    return () => { offSplit(); editor.root.removeEventListener('mousedown', onMouseDown); };
+    return () => { offSplit(); offRetag(); editor.root.removeEventListener('mousedown', onMouseDown); };
   },
 };

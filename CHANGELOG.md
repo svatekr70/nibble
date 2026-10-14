@@ -13,7 +13,6 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 - Volba `placeholder` — šedá nápověda v prázdném editoru. Bez uvedení se
   převezme z atributu `placeholder` nahrazované `<textarea>`, takže stávající
   formuláře ji ukážou bez úprav. Do uloženého HTML se nedostane.
-
 - `createWordcountPlugin({ maxChars })` — počítadlo ukáže „152 / 160 znaků“,
   po překročení zčervená a editor vyšle událost `limit` s `{ count, max, over }`.
   Psát jde dál a nic se neusekne; formulář si podle události může zakázat
@@ -21,12 +20,18 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 - Plugin `markdownShortcuts` — při psaní převádí `# `–`###### `, `- `, `* `,
   `1. `, `> `, `---`+Enter, ```` ``` ````+Enter, `**tučně**`, `*kurzíva*`,
   `_kurzíva_`, `` `kód` `` a `~~přeškrtnutí~~`. První Ctrl+Z převod vrátí.
-  V kódu a v odkazech se nespouští.
+  V kódu a v odkazech se nespouští. Číslo z `5. ` dostane jen nový seznam;
+  položka připojená k existujícímu číslování ho nepřečísluje.
 - Plugin `tasks` — seznam úkolů se zaškrtávátky (`<ul data-type="taskList">`,
   `<li data-type="taskItem" data-checked>`, formát jako TipTap). Klik do
   zaškrtávátka přepne stav, Enter dá nový nezaškrtnutý úkol, `[ ] ` a `[x] `
   při psaní úkol založí. CSS pro veřejný web je v README.
 - Událost `itemsplit` `{ from, to }` při dělení položky seznamu Enterem.
+- Událost `listretag` `{ list, tag }`, když `bullist`/`numlist` přepne značku
+  existujícího seznamu. Úkoly se přes ni převedou na obyčejný `<ol>` —
+  číslované úkoly formát nezná.
+- `bullist` a `numlist` berou `{ type }` — `data-type` nově zakládaného
+  seznamu, nastavený dřív, než se seznam slije se sousedy.
 - Plugin `details` — rozbalovací blok `<details><summary>`. V editoru je obsah
   vždy vidět a klik na nadpis nic nesbaluje; jestli bude blok na webu
   rozbalený, se přepíná v kontextové liště. `details` a `summary` projdou
@@ -45,6 +50,9 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 ### Změněno
 
 - `History.transact` jde vnořit.
+- Sousední seznamy se slévají jen při stejném `data-type` (chybějící je
+  vlastní druh). Úkol založený hned pod odrážkami z nich dřív udělal úkoly
+  všechny a odrážka pod úkoly se přidala do úkolů.
 - Seznam rozdělený Enterem v prázdné položce si v odštěpené části nechá
   atributy (`class`, `data-type` úkolů, styl) — kromě `id` a `start`.
 

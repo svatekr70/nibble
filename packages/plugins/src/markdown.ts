@@ -144,10 +144,16 @@ function applyBlock(editor: Editor, block: Element, range: Range, rule: BlockSho
       asOneStep(editor, () => {
         dropPrefix(editor, block, range);
         editor.exec('numlist');
+        // Číslo platí jen pro nový seznam. Když se položka připojila
+        // k existujícímu číslování, to už svůj začátek má — přepsat ho by
+        // přečíslovalo položky, na které uživatel nesáhl.
         if (rule.start !== 1) {
           const at = editor.selection.getRange()?.startContainer ?? null;
-          const list = at && (at.nodeType === 1 ? at as Element : at.parentElement)?.closest('ol');
-          list?.setAttribute('start', String(rule.start));
+          const li = at && (at.nodeType === 1 ? at as Element : at.parentElement)?.closest('li');
+          const list = li?.parentElement;
+          if (list?.tagName.toLowerCase() === 'ol' && list.firstElementChild === li) {
+            list.setAttribute('start', String(rule.start));
+          }
         }
       });
       return true;

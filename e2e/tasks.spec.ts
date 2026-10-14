@@ -106,4 +106,59 @@ test.describe('úkoly', () => {
     expect(out).toContain('<ul data-type="taskList">');
     expect(out).toContain('<li data-type="taskItem" data-checked="true">');
   });
+
+  test('úkol hned za obyčejným seznamem zůstane samostatný', async ({ page }) => {
+    await mount(page, '<ul><li>a</li><li>b</li></ul><p>c</p>');
+    await caret(page, 1, 1);
+    await page.locator('.nb-toolbar .nb-btn[data-control=tasklist]').click();
+    expect(await html(page)).toBe(
+      '<ul><li>a</li><li>b</li></ul>'
+      + '<ul data-type="taskList"><li data-type="taskItem" data-checked="false">c</li></ul>',
+    );
+  });
+
+  test('[ ] hned za obyčejným seznamem založí samostatný úkol', async ({ page }) => {
+    await mount(page, '<ul><li>a</li></ul><p><br></p>');
+    await caret(page, 1, 0);
+    await page.keyboard.type('[ ] x');
+    expect(await html(page)).toBe(
+      '<ul><li>a</li></ul>'
+      + '<ul data-type="taskList"><li data-type="taskItem" data-checked="false">x</li></ul>',
+    );
+  });
+
+  test('úkol hned za úkoly se k nim přidá', async ({ page }) => {
+    await mount(page, TASKS + '<p>b</p>');
+    await caret(page, 1, 1);
+    await page.locator('.nb-toolbar .nb-btn[data-control=tasklist]').click();
+    expect(await html(page)).toBe(
+      '<ul data-type="taskList"><li data-type="taskItem" data-checked="true">a</li>'
+      + '<li data-type="taskItem" data-checked="false">b</li></ul>',
+    );
+  });
+
+  test('odrážka hned za úkoly zůstane samostatná', async ({ page }) => {
+    await mount(page, TASKS + '<p><br></p>');
+    await caret(page, 1, 0);
+    await page.keyboard.type('- x');
+    expect(await html(page)).toBe(TASKS + '<ul><li>x</li></ul>');
+  });
+
+  test('tlačítko odrážek hned za úkoly založí samostatný seznam', async ({ page }) => {
+    await mount(page, TASKS + '<p>x</p>');
+    await caret(page, 1, 1);
+    await page.locator('.nb-toolbar .nb-btn[data-control=bullist]').click();
+    expect(await html(page)).toBe(TASKS + '<ul><li>x</li></ul>');
+  });
+
+  test('číslování z úkolů udělá obyčejný <ol> a Ctrl+Z vrátí úkoly', async ({ page }) => {
+    const before = '<ul data-type="taskList"><li data-type="taskItem" data-checked="true">a</li>'
+      + '<li data-type="taskItem" data-checked="false">b</li></ul>';
+    await mount(page, before);
+    await caret(page, 0, 1);
+    await page.locator('.nb-toolbar .nb-btn[data-control=numlist]').click();
+    expect(await html(page)).toBe('<ol><li>a</li><li>b</li></ol>');
+    await page.keyboard.press('ControlOrMeta+z');
+    expect(await html(page)).toBe(before);
+  });
 });

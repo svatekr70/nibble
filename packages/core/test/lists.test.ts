@@ -172,6 +172,19 @@ describe('mergeAdjacentLists', () => {
     mergeAdjacentLists(root.children[0]!, root);
     expect(root.innerHTML).toBe('<ul><li>a</li><li>b</li><li>c</li></ul>');
   });
+
+  it('seznamy s jiným data-type nechá být, chybějící se počítá jako jiný', () => {
+    const html = '<ul><li>a</li></ul><ul data-type="taskList"><li>b</li></ul><ul><li>c</li></ul>';
+    const { root } = build(html);
+    mergeAdjacentLists(root.children[1]!, root);
+    expect(root.innerHTML).toBe(html);
+  });
+
+  it('seznamy se stejným data-type spojí', () => {
+    const { root } = build('<ul data-type="taskList"><li>a</li></ul><ul data-type="taskList"><li>b</li></ul>');
+    mergeAdjacentLists(root.children[1]!, root);
+    expect(root.innerHTML).toBe('<ul data-type="taskList"><li>a</li><li>b</li></ul>');
+  });
 });
 
 describe('aria-level', () => {

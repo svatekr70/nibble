@@ -143,6 +143,20 @@ test.describe('Markdown zkratky', () => {
     await page.keyboard.press('Control+Enter');
     expect(await html(page)).not.toContain('<hr>');
   });
+
+  test('5. za existujícím číslováním seznam nepřečísluje', async ({ page }) => {
+    await mount(page, '<ol><li>a</li><li>b</li></ol><p><br></p>');
+    await caret(page, 1, 0);
+    await page.keyboard.type('5. x');
+    expect(await html(page)).toBe('<ol><li>a</li><li>b</li><li>x</li></ol>');
+  });
+
+  test('5. v prázdném dokumentu začne od pěti', async ({ page }) => {
+    await mount(page, '<p><br></p>');
+    await caret(page, 0, 0);
+    await page.keyboard.type('5. x');
+    expect(await html(page)).toBe('<ol start="5"><li>x</li></ol>');
+  });
 });
 
 // Sem, ne do vitestu: linkedom nemá `Range.setStart`.

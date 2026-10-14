@@ -60,8 +60,12 @@ function makeItem(block: Element, doc: Document, caret: CaretRef | null): HTMLLI
 
 /**
  * Zapne, vypne nebo přepne druh seznamu nad vybranými bloky.
+ *
+ * `type` je `data-type` nového seznamu. Musí na něm být dřív, než se seznam
+ * slije se sousedy — slévají se jen seznamy stejného druhu, a plugin, který
+ * by atribut doplnil až potom, by už dostal seznam slitý s cizími položkami.
  */
-function toggleList(editor: Editor, tag: ListTag): boolean {
+function toggleList(editor: Editor, tag: ListTag, type?: string): boolean {
   const range = editor.selection.getRange();
   // Nadpis rozbalovacího bloku do seznamu nepatří — viz `touchesSummary`.
   if (!range || touchesSummary(range, editor.root)) return false;
@@ -82,7 +86,12 @@ function toggleList(editor: Editor, tag: ListTag): boolean {
       for (const li of items.reverse()) outdentItemToTop(li, editor, caret);
     } else {
       const lists = new Set(items.map((li) => listOf(li)).filter(Boolean) as Element[]);
-      for (const list of lists) retagList(list, tag, doc);
+      for (const list of lists) {
+        // Seznam si atributy nese s sebou. Plugin, jehož druh seznamu se
+        // změnou značky ztrácí smysl (úkoly v `<ol>`), si ho tu srovná dřív,
+        // než se zapíše do historie — celé přepnutí je pak jeden krok.
+        editor.dispatch('listretag', { list: retagList(list, tag, doc), tag });
+      }
     }
 
     restoreCaret(editor, caret);
@@ -100,6 +109,7 @@ function toggleList(editor: Editor, tag: ListTag): boolean {
   }
 
   const list = doc.createElement(tag);
+  if (type) list.setAttribute('data-type', type);
   blocks[0]!.parentNode?.insertBefore(list, blocks[0]!);
   for (const block of blocks) list.appendChild(makeItem(block, doc, caret));
 
@@ -160,11 +170,17 @@ function outdentItemToTop(li: Element, editor: Editor, caret: CaretRef | null): 
   }
 }
 
+/** `{ type }` z argumentu příkazu — `data-type` nově zakládaného seznamu. */
+function listType(args: unknown): string | undefined {
+  const type = (args as { type?: unknown } | null | undefined)?.type;
+  return typeof type === 'string' ? type : undefined;
+}
+
 export function registerListCommands(editor: Editor): void {
   const { commands } = editor;
 
-  commands.add('bullist', (ed) => toggleList(ed, 'ul'));
-  commands.add('numlist', (ed) => toggleList(ed, 'ol'));
+  commands.add('bullist', (ed, args) => toggleList(ed, 'ul', listType(args)));
+  commands.add('numlist', (ed, args) => toggleList(ed, 'ol', listType(args)));
 
   commands.add('indent', (ed) => {
     const range = ed.selection.getRange();

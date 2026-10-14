@@ -112,19 +112,30 @@ export function syncAriaLevel(list: Element, root: Element): void {
   }
 }
 
+/**
+ * Stejný druh seznamu: stejná značka i stejný `data-type`.
+ *
+ * `data-type` nese druh, který značka neřekne — úkoly jsou `<ul>` jako
+ * odrážky. Slití podle značky by odrážky za úkoly přidalo do úkolů a úkol
+ * za odrážky by z nich všech udělal úkoly. Chybějící atribut je vlastní druh.
+ */
+function sameKind(a: Element, b: Element): boolean {
+  return a.tagName === b.tagName && a.getAttribute('data-type') === b.getAttribute('data-type');
+}
+
 /** Slije sousední seznamy stejného druhu. Vrátí ten, který zbyl. */
 export function mergeAdjacentLists(list: Element, root: Element): Element {
   let current = list;
 
   const prev = current.previousElementSibling;
-  if (isList(prev) && prev.tagName === current.tagName) {
+  if (isList(prev) && sameKind(prev, current)) {
     while (current.firstChild) prev.appendChild(current.firstChild);
     current.parentNode?.removeChild(current);
     current = prev;
   }
 
   let next = current.nextElementSibling;
-  while (isList(next) && next.tagName === current.tagName) {
+  while (isList(next) && sameKind(next, current)) {
     const after = next.nextElementSibling;
     while (next.firstChild) current.appendChild(next.firstChild);
     next.parentNode?.removeChild(next);
