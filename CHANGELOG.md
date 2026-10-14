@@ -3,7 +3,7 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
-## [Unreleased]
+## [0.6.0] — 2026-10-14
 
 ### Přidáno
 
@@ -69,6 +69,14 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 - Příklady v dokumentaci odpovídají skutečnému API: `commands.add(name, run, guard?)`
   místo neexistujícího `{ exec, canExec }` a `active`/`enabled` u `addButton`
   místo `isActive`/`isEnabled`.
+
+### Ověření
+
+- 759 jednotkových testů (vitest + linkedom) a 597 v prohlížeči (Playwright
+  + Chromium), typecheck čistý. Proti 0.5.1 přibylo 104 jednotkových testů
+  a 99 v prohlížeči — každá z osmi funkcí má vlastní spec v `e2e/`.
+- Všech 145 dokumentů z ostrého provozu projde načtením a uložením znak po
+  znaku beze změny, i se zapnutými všemi novými pluginy.
 
 ## [0.5.1] — 2026-09-20
 
