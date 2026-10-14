@@ -37,6 +37,10 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   to, co je v editoru zapnuté.
 - `ui.addSuggestion(name, spec)` — obecná nabídka u kurzoru vyvolaná znakem.
   Vykresluje ji `@nibble/ui` (`bindCaretMenu`), fokus zůstává v editoru.
+- Plugin `dragHandle` — při najetí myší na blok se vlevo ukáže úchyt ⠿;
+  tažením se blok přesune, klikem se označí celý. Blok se přesouvá beze
+  změny a přesun je jeden krok historie. Na dotykových zařízeních se úchyt
+  neukazuje.
 
 ### Změněno
 

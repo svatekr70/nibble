@@ -32,3 +32,4 @@ export type { BlockShortcut, InlineShortcut } from './markdown.js';
 export { tasks, isTaskList, isTaskItem, toTaskList, fromTaskList, setTaskChecked } from './tasks.js';
 export { details, closestDetails, wrapInDetails, unwrapDetails } from './details.js';
 export { slash, SLASH_ITEMS } from './slash.js';
+export { dragHandle, dropIndex, isNoopMove } from './dragHandle.js';

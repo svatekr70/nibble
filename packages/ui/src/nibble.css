@@ -431,6 +431,33 @@
 /* Táhlo šířky sloupce nic nepřidává do obsahu — mění se jen kurzor. */
 .nb-content.nb-col-resize { cursor: col-resize; }
 
+/* Úchyt bloku v levém okraji obsahu. */
+.nb-drag-handle {
+  position: absolute;
+  width: 14px;
+  height: 22px;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--nb-muted, #8a8f98);
+  font-size: 14px;
+  line-height: 22px;
+  cursor: grab;
+  user-select: none;
+  z-index: 5;
+}
+.nb-drag-handle:hover { background: var(--nb-hover); }
+.nb-drag-handle.nb-dragging { cursor: grabbing; }
+.nb-drop-line {
+  position: absolute;
+  height: 2px;
+  background: var(--nb-accent);
+  pointer-events: none;
+  z-index: 5;
+}
+
 /* ---------- plovoucí lišta ---------- */
 
 .nb-surface { position: relative; }
