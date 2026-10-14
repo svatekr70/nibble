@@ -181,6 +181,22 @@ export function indentItem(li: Element, root: Element, doc: Document): boolean {
 }
 
 /**
+ * Nový seznam, který vzniká rozdělením `list` — stejného druhu i vzhledu.
+ *
+ * Atributy se přenášejí, protože na nich visí, co seznam je (`data-type`
+ * u úkolů, `class`, `type`, styl). Kromě dvou: `id` musí zůstat jedinečné
+ * a `start` by zbytek očísloval od začátku původního seznamu.
+ */
+function siblingList(list: Element, doc: Document): Element {
+  const copy = doc.createElement(list.tagName.toLowerCase());
+  for (const attr of Array.from(list.attributes)) {
+    if (attr.name === 'id' || attr.name === 'start') continue;
+    copy.setAttribute(attr.name, attr.value);
+  }
+  return copy;
+}
+
+/**
  * Vysune položku o úroveň výš. Na nejvyšší úrovni z ní udělá odstavec.
  *
  * Co v seznamu následovalo za položkou, se musí přesunout dovnitř ní — jinak by
@@ -205,7 +221,7 @@ export function outdentItem(li: Element, root: Element, doc: Document): Element 
   if (following.length > 0) {
     let sub = sublistOf(li);
     if (!sub) {
-      sub = doc.createElement(list.tagName.toLowerCase());
+      sub = siblingList(list, doc);
       li.appendChild(sub);
     }
     for (const item of following) sub.appendChild(item);
@@ -235,7 +251,7 @@ export function outdentItem(li: Element, root: Element, doc: Document): Element 
   );
   let tailList: Element | null = null;
   if (tailItems.length > 0) {
-    tailList = doc.createElement(list.tagName.toLowerCase());
+    tailList = siblingList(list, doc);
     for (const item of tailItems) tailList.appendChild(item);
   }
 

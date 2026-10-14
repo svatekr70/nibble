@@ -119,6 +119,33 @@ describe('outdentItem', () => {
     expect(root.innerHTML).toBe('<p>a</p><ul><li>b</li></ul>');
   });
 
+  it('odštěpený zbytek seznamu převezme atributy, kromě id a start', () => {
+    const { root, document } = build(
+      '<ol id="s" class="x" start="3" data-type="taskList"><li>a</li><li>b</li><li>c</li></ol>',
+    );
+    outdentItem(li(root, 1), root, document);
+    const [head, tail] = Array.from(root.querySelectorAll('ol'));
+    // Původní seznam si své `id` i `start` nechá.
+    expect(head!.getAttribute('id')).toBe('s');
+    expect(head!.getAttribute('start')).toBe('3');
+    expect(tail!.textContent).toBe('c');
+    expect(tail!.getAttribute('class')).toBe('x');
+    expect(tail!.getAttribute('data-type')).toBe('taskList');
+    expect(tail!.hasAttribute('id')).toBe(false);
+    expect(tail!.hasAttribute('start')).toBe(false);
+  });
+
+  it('nový podseznam pro následující položky převezme atributy, kromě id a start', () => {
+    const { root, document } = build(
+      '<ul><li>a<ul id="s" class="x" data-type="taskList"><li>b</li><li>c</li></ul></li></ul>',
+    );
+    outdentItem(li(root, 1), root, document);
+    const sub = li(root, 1).querySelector('ul')!;
+    expect(sub.getAttribute('class')).toBe('x');
+    expect(sub.getAttribute('data-type')).toBe('taskList');
+    expect(sub.hasAttribute('id')).toBe(false);
+  });
+
   it('položka s vlastním blokem nedostane odstavec navíc', () => {
     const { root, document } = build('<ul><li><h3>nadpis</h3></li></ul>');
     outdentItem(li(root, 0), root, document);

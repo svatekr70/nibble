@@ -47,6 +47,33 @@ test.describe('úkoly', () => {
     expect(await html(page)).toMatch(/<\/ul><p>x<\/p>$/);
   });
 
+  test('Enter na prázdném úkolu uprostřed rozdělí seznam, zbytek zůstane úkoly', async ({ page }) => {
+    await mount(page,
+      '<ul data-type="taskList"><li data-type="taskItem" data-checked="false">a</li>'
+      + '<li data-type="taskItem" data-checked="false">b</li>'
+      + '<li data-type="taskItem" data-checked="true">c</li></ul>');
+    await caret(page, 0, 1);
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');
+    expect(await html(page)).toBe(
+      '<ul data-type="taskList"><li data-type="taskItem" data-checked="false">a</li></ul>'
+      + '<p><br></p>'
+      + '<ul data-type="taskList"><li data-type="taskItem" data-checked="false">b</li>'
+      + '<li data-type="taskItem" data-checked="true">c</li></ul>',
+    );
+  });
+
+  test('odštěpený seznam nepřevezme id ani start', async ({ page }) => {
+    await mount(page, '<ol id="kroky" start="3" class="x"><li>a</li><li>b</li><li>c</li></ol>');
+    await caret(page, 0, 1);
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');
+    expect(await html(page)).toBe(
+      '<ol id="kroky" start="3" class="x"><li>a</li></ol><p><br></p>'
+      + '<ol class="x"><li>b</li><li>c</li></ol>',
+    );
+  });
+
   test('[x] při psaní a Ctrl+Z', async ({ page }) => {
     await mount(page, '<p><br></p>');
     await caret(page, 0, 0);
@@ -75,6 +102,8 @@ test.describe('úkoly', () => {
       data.setData('text/html', '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>z TipTapu</p></li></ul>');
       (window as any).ed.root.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
     });
-    expect(await html(page)).toContain('data-checked="true"');
+    const out = await html(page);
+    expect(out).toContain('<ul data-type="taskList">');
+    expect(out).toContain('<li data-type="taskItem" data-checked="true">');
   });
 });

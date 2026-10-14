@@ -31,6 +31,8 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 ### Změněno
 
 - `History.transact` jde vnořit.
+- Seznam rozdělený Enterem v prázdné položce si v odštěpené části nechá
+  atributy (`class`, `data-type` úkolů, styl) — kromě `id` a `start`.
 
 ## [0.5.1] — 2026-09-20
 
