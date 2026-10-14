@@ -1154,6 +1154,7 @@
 .nb-path-sep { opacity: .5; }
 
 .nb-status-slots { display: flex; gap: 14px; flex: none; }
+.nb-status-over { color: var(--nb-danger, #c62828); font-weight: 600; }
 
 /* Úchyt pro změnu velikosti. Vlastní prvek, ne `resize` — výsledek se ukládá. */
 .nb-grip {

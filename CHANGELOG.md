@@ -14,6 +14,11 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   převezme z atributu `placeholder` nahrazované `<textarea>`, takže stávající
   formuláře ji ukážou bez úprav. Do uloženého HTML se nedostane.
 
+- `createWordcountPlugin({ maxChars })` — počítadlo ukáže „152 / 160 znaků“,
+  po překročení zčervená a editor vyšle událost `limit` s `{ count, max, over }`.
+  Psát jde dál a nic se neusekne; formulář si podle události může zakázat
+  odeslání. S limitem se počítají i mezery, jako u `maxlength`.
+
 ## [0.5.1] — 2026-09-20
 
 ### Přidáno

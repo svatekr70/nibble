@@ -780,3 +780,44 @@ test.describe('zalamování ve zdrojovém kódu', () => {
     expect(stav.okoli).toContain('CIL');
   });
 });
+
+test.describe('limit znaků', () => {
+  async function mountLimited(page: import('@playwright/test').Page, htmlIn: string, max: number) {
+    await page.goto('/e2e.html');
+    await page.waitForFunction(() => (window as any).ready === true);
+    await page.evaluate(([h, m]) => {
+      const w = window as any;
+      w.limits = [];
+      return w.mount(h, { plugins: [w.plugins.createWordcountPlugin({ maxChars: m })] }).then(() => {
+        w.ed.on('limit', (p: unknown) => w.limits.push(p));
+      });
+    }, [htmlIn, max] as const);
+  }
+
+  test('ukáže počet proti limitu a po překročení zčervená', async ({ page }) => {
+    await mountLimited(page, '<p>abcd</p>', 5);
+    const slot = page.locator('.nb-status[data-status=wordcount]');
+    await expect(slot).toHaveText('1 slov · 4 / 5 znaků');
+
+    await caret(page, 0, 4);
+    await page.keyboard.type('ef');
+    await expect(slot).toHaveText('1 slov · 6 / 5 znaků');
+    await expect(slot).toHaveClass(/nb-status-over/);
+    // Nic se neusekne.
+    expect(await html(page)).toBe('<p>abcdef</p>');
+  });
+
+  test('událost limit přijde při přechodu oběma směry', async ({ page }) => {
+    await mountLimited(page, '<p>abcd</p>', 5);
+    await caret(page, 0, 4);
+    await page.keyboard.type('ef');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    const limits = await page.evaluate(() => (window as any).limits);
+    // 5 → 6 přejde přes limit, 6 → 5 zpátky; druhý Backspace (5 → 4) už nic.
+    expect(limits).toEqual([
+      { count: 6, max: 5, over: true },
+      { count: 5, max: 5, over: false },
+    ]);
+  });
+});

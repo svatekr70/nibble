@@ -1,4 +1,4 @@
-import type { Editor } from '@nibble/core';
+import type { Editor, StatusTone } from '@nibble/core';
 
 /**
  * Stavový řádek.
@@ -14,7 +14,7 @@ import type { Editor } from '@nibble/core';
 
 export interface StatusBarHandle {
   element: HTMLElement;
-  setStatus(name: string, text: string | null): void;
+  setStatus(name: string, text: string | null, tone?: StatusTone): void;
   destroy(): void;
 }
 
@@ -91,7 +91,7 @@ export function buildStatusBar(editor: Editor, host: HTMLElement): StatusBarHand
   return {
     element: bar,
 
-    setStatus(name, text) {
+    setStatus(name, text, tone) {
       let slot = slots.querySelector<HTMLElement>('[data-status="' + name + '"]');
 
       if (text === null) { slot?.remove(); return; }
@@ -103,6 +103,7 @@ export function buildStatusBar(editor: Editor, host: HTMLElement): StatusBarHand
         slots.appendChild(slot);
       }
       slot.textContent = text;
+      slot.classList.toggle('nb-status-over', tone === 'over');
     },
 
     destroy() {

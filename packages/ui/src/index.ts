@@ -215,7 +215,7 @@ export function attachToolbar(
 
     if (value.statusbar) {
       statusbar = buildStatusBar(editor, foot);
-      editor.ui.setStatusHandler((name, text) => statusbar?.setStatus(name, text));
+      editor.ui.setStatusHandler((name, text, tone) => statusbar?.setStatus(name, text, tone));
 
       if (value.resizable) {
         releaseGrip = bindResizeGrip(statusbar.element, shell, (w, h, done) => {

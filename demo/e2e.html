@@ -19,8 +19,10 @@ import { Nibble, normalizeNewlines } from '/dist/core/src/index.js';
 import { attachToolbar } from '/dist/ui/src/index.js';
 import {
   link, createImagePlugin, table, media, emoji, charmap, code, autolink,
-  wordcount, fullscreen, searchreplace, typography, fonts,
+  wordcount, fullscreen, searchreplace, typography, fonts, createWordcountPlugin,
 } from '/dist/plugins/src/index.js';
+
+window.plugins = { createWordcountPlugin };
 
 // Test si může nahrávání podstrčit: window.uploadStub dostane soubor a vrátí URL.
 const imagePlugin = createImagePlugin({

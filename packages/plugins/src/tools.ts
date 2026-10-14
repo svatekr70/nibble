@@ -226,26 +226,59 @@ function countWords(text: string): number {
   return trimmed === '' ? 0 : trimmed.split(' ').length;
 }
 
-/** Počet slov a znaků ve stavovém řádku. */
-export const wordcount: Plugin = {
-  name: 'wordcount',
+export interface WordcountOptions {
+  /** Doporučená délka. Překročení se jen ukáže a ohlásí, nic se neusekne. */
+  maxChars?: number;
+}
 
-  setup(editor) {
-    const update = (): void => {
-      const text = editor.getText();
-      editor.ui.setStatus(
-        'wordcount',
-        countWords(text) + ' slov · ' + text.replace(/\s/g, '').length + ' znaků',
-      );
-    };
+/**
+ * Popisek do stavového řádku.
+ *
+ * S limitem se počítá všechno včetně mezer, stejně jako u `maxlength` —
+ * limity bývají kvůli místu, kam text půjde (perex, meta popis), a tam
+ * zabírá místo i mezera. Bez limitu zůstává původní počet bez mezer.
+ */
+export function wordcountLabel(text: string, maxChars?: number): { label: string; count: number; over: boolean } {
+  const words = countWords(text) + ' slov · ';
+  if (maxChars === undefined) {
+    const count = text.replace(/\s/g, '').length;
+    return { label: words + count + ' znaků', count, over: false };
+  }
+  const count = text.length;
+  return { label: words + count + ' / ' + maxChars + ' znaků', count, over: count > maxChars };
+}
 
-    update();
-    const off = editor.on('change', update);
-    const offSet = editor.on('setcontent', update);
+/** Počet slov a znaků ve stavovém řádku, případně proti limitu. */
+export function createWordcountPlugin(options: WordcountOptions = {}): Plugin {
+  return {
+    name: 'wordcount',
 
-    return () => { off(); offSet(); editor.ui.setStatus('wordcount', null); };
-  },
-};
+    setup(editor) {
+      const max = options.maxChars;
+      let wasOver = false;
+
+      const update = (): void => {
+        const { label, count, over } = wordcountLabel(editor.getText(), max);
+        editor.ui.setStatus('wordcount', label, over ? 'over' : 'normal');
+
+        // Jen při přechodu: formulář si podle toho zapne nebo vypne odeslání
+        // a nemá dostávat stejnou zprávu po každém úhozu.
+        if (max !== undefined && over !== wasOver) {
+          wasOver = over;
+          editor.dispatch('limit', { count, max, over });
+        }
+      };
+
+      update();
+      const off = editor.on('change', update);
+      const offSet = editor.on('setcontent', update);
+
+      return () => { off(); offSet(); editor.ui.setStatus('wordcount', null); };
+    },
+  };
+}
+
+export const wordcount: Plugin = createWordcountPlugin();
 
 // ---------------------------------------------------------------- celá obrazovka
 

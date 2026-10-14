@@ -37,7 +37,7 @@ export type {
   ButtonSpec, SelectSpec, ColorSpec, MenuSpec, MenuItem, GridSpec,
   ControlSpec, ContextToolbarSpec,
   DialogSpec, DialogField, DialogFieldType, DialogAction, DialogHandler,
-  NotifyHandler, StatusHandler,
+  NotifyHandler, StatusHandler, StatusTone,
 } from './ui/Registry.js';
 export {
   registerBlockCommands, insertParagraph, deleteInDirection, closestQuote,

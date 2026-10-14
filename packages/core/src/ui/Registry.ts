@@ -199,7 +199,8 @@ export interface DialogSpec {
   onClose?: () => void;
 }
 
-export type StatusHandler = (name: string, text: string | null) => void;
+export type StatusTone = 'normal' | 'over';
+export type StatusHandler = (name: string, text: string | null, tone: StatusTone) => void;
 export type DialogHandler = (spec: DialogSpec) => Promise<Record<string, unknown> | null>;
 export type NotifyHandler = (text: string, level: 'info' | 'warn' | 'error') => void;
 
@@ -212,6 +213,7 @@ export class UIRegistry {
   private notifyHandler: NotifyHandler | null = null;
   private statusHandler: StatusHandler | null = null;
   private readonly status = new Map<string, string>();
+  private readonly tones = new Map<string, StatusTone>();
 
   addButton(name: string, spec: Omit<ButtonSpec, 'kind'>): this {
     this.controls.set(name, { ...spec, kind: 'button' });
@@ -304,14 +306,14 @@ export class UIRegistry {
     this.statusHandler = handler;
     // Nová obsluha dostane, co už je nastavené — jinak by stavový řádek
     // po připojení zůstal prázdný, dokud se obsah nezmění.
-    for (const [name, text] of this.status) handler?.(name, text);
+    for (const [name, text] of this.status) handler?.(name, text, this.tones.get(name) ?? 'normal');
   }
 
-  /** Zapíše nebo smaže políčko ve stavovém řádku. */
-  setStatus(name: string, text: string | null): void {
-    if (text === null) this.status.delete(name);
-    else this.status.set(name, text);
-    this.statusHandler?.(name, text);
+  /** Zapíše nebo smaže políčko ve stavovém řádku. Tón `over` ho obarví jako varování. */
+  setStatus(name: string, text: string | null, tone: StatusTone = 'normal'): void {
+    if (text === null) { this.status.delete(name); this.tones.delete(name); }
+    else { this.status.set(name, text); this.tones.set(name, tone); }
+    this.statusHandler?.(name, text, tone);
   }
 
   getStatus(): ReadonlyMap<string, string> {

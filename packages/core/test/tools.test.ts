@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseWindow } from './dom.js';
-import { countWords, findMatches, pastedHref } from '../../plugins/src/tools.js';
+import { countWords, findMatches, pastedHref, wordcountLabel } from '../../plugins/src/tools.js';
 
 describe('počítání slov', () => {
   it.each([
@@ -68,5 +68,20 @@ describe('adresa ve schránce', () => {
     'javascript:alert(1)',
   ])('%j není adresa', (text) => {
     expect(pastedHref(text)).toBeNull();
+  });
+});
+
+describe('popisek počítadla', () => {
+  it('bez limitu jako dosud', () => {
+    expect(wordcountLabel('ahoj světe')).toEqual({ label: '2 slov · 9 znaků', count: 9, over: false });
+  });
+
+  it('s limitem počítá i mezery', () => {
+    expect(wordcountLabel('ahoj světe', 160)).toEqual({ label: '2 slov · 10 / 160 znaků', count: 10, over: false });
+  });
+
+  it('přes limit', () => {
+    expect(wordcountLabel('abcdef', 5).over).toBe(true);
+    expect(wordcountLabel('abcde', 5).over).toBe(false);
   });
 });
