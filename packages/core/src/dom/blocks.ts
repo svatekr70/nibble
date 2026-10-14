@@ -4,6 +4,8 @@ const BLOCKS = new Set([
   // `dt` a `dd` ano, `dl` ne — stejný důvod jako u `ul`/`ol`: `closestBlock`
   // má vracet prvek, do kterého se píše, ne obal kolem celého seznamu.
   'dt', 'dd',
+  // `summary` je řádek, do kterého se píše; `details` je obal jako citace.
+  'summary',
 ]);
 
 /** Bloky, do kterých se dá psát a které jde navzájem přepínat. */

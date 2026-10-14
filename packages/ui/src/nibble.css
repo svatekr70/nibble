@@ -341,6 +341,22 @@
 .nb-content li > ul,
 .nb-content li > ol { margin: .2em 0; }
 
+/* Rozbalovací blok: v editoru vždy rozbalený, sbalení je věc webu. */
+.nb-content details {
+  border: 1px solid var(--nb-border, #d0d4da);
+  border-radius: 6px;
+  padding: .3em .8em;
+  margin: .6em 0;
+}
+.nb-content details::details-content { content-visibility: visible; display: block; }
+.nb-content summary { font-weight: 600; cursor: text; }
+.nb-content details:not([open]) > summary::after {
+  content: ' · na webu sbalený';
+  font-weight: 400;
+  color: var(--nb-muted, #8a8f98);
+  user-select: none;
+}
+
 /*
  * Kotva.
  *

@@ -30,7 +30,7 @@ export const PASTE_ALLOWED_TAGS: ReadonlySet<string> = new Set([
   'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'sub', 'sup', 'code', 'pre',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'hr', 'a', 'img',
   'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
-  'colgroup', 'col', 'span', 'div', 'figure', 'figcaption',
+  'colgroup', 'col', 'span', 'div', 'figure', 'figcaption', 'details', 'summary',
 ]);
 
 export interface PasteResult {

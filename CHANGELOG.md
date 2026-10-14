@@ -27,6 +27,10 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   zaškrtávátka přepne stav, Enter dá nový nezaškrtnutý úkol, `[ ] ` a `[x] `
   při psaní úkol založí. CSS pro veřejný web je v README.
 - Událost `itemsplit` `{ from, to }` při dělení položky seznamu Enterem.
+- Plugin `details` — rozbalovací blok `<details><summary>`. V editoru je obsah
+  vždy vidět a klik na nadpis nic nesbaluje; jestli bude blok na webu
+  rozbalený, se přepíná v kontextové liště. `details` a `summary` projdou
+  vložením ze schránky.
 
 ### Změněno
 
