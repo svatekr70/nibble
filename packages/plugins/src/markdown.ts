@@ -155,8 +155,18 @@ function applyBlock(editor: Editor, block: Element, range: Range, rule: BlockSho
       asOneStep(editor, () => { dropPrefix(editor, block, range); editor.exec('blockquote'); });
       return true;
     case 'task':
-      // Doplní Úkol 5 — bez pluginu úkolů zůstane text, jak je.
-      return false;
+      // Bez pluginu úkolů zůstane `[ ] ` textem.
+      if (!editor.can('tasklist')) return false;
+      asOneStep(editor, () => {
+        dropPrefix(editor, block, range);
+        editor.exec('tasklist');
+        if (rule.checked) {
+          const at = editor.selection.getRange()?.startContainer ?? null;
+          const li = at && (at.nodeType === 1 ? at as Element : at.parentElement)?.closest('li');
+          li?.setAttribute('data-checked', 'true');
+        }
+      });
+      return true;
   }
 }
 

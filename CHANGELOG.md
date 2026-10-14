@@ -22,6 +22,15 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   `1. `, `> `, `---`+Enter, ```` ``` ````+Enter, `**tučně**`, `*kurzíva*`,
   `_kurzíva_`, `` `kód` `` a `~~přeškrtnutí~~`. První Ctrl+Z převod vrátí.
   V kódu a v odkazech se nespouští.
+- Plugin `tasks` — seznam úkolů se zaškrtávátky (`<ul data-type="taskList">`,
+  `<li data-type="taskItem" data-checked>`, formát jako TipTap). Klik do
+  zaškrtávátka přepne stav, Enter dá nový nezaškrtnutý úkol, `[ ] ` a `[x] `
+  při psaní úkol založí. CSS pro veřejný web je v README.
+- Událost `itemsplit` `{ from, to }` při dělení položky seznamu Enterem.
+
+### Změněno
+
+- `History.transact` jde vnořit.
 
 ## [0.5.1] — 2026-09-20
 

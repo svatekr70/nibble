@@ -20,7 +20,7 @@ const MERGE_WINDOW_MS = 700;
 export class History {
   private readonly undoStack: Snapshot[] = [];
   private readonly redoStack: Snapshot[] = [];
-  private locked = false;
+  private depth = 0;
 
   constructor(initial: Snapshot) {
     this.undoStack.push(initial);
@@ -29,11 +29,16 @@ export class History {
   get canUndo(): boolean { return this.undoStack.length > 1; }
   get canRedo(): boolean { return this.redoStack.length > 0; }
 
-  /** Zamkne zásobník na dobu, kdy sám obnovuje obsah. */
-  get isLocked(): boolean { return this.locked; }
+  /**
+   * Zamkne zásobník na dobu, kdy sám obnovuje obsah.
+   *
+   * Počítadlo, ne příznak: plugin může v `transact` spustit příkaz, který si
+   * `transact` volá sám — a vnitřní konec by jinak zámek uvolnil předčasně.
+   */
+  get isLocked(): boolean { return this.depth > 0; }
 
   push(snapshot: Snapshot): void {
-    if (this.locked) return;
+    if (this.depth > 0) return;
 
     const top = this.undoStack[this.undoStack.length - 1];
     if (top && top.html === snapshot.html) return;
@@ -68,7 +73,7 @@ export class History {
   }
 
   transact<T>(fn: () => T): T {
-    this.locked = true;
-    try { return fn(); } finally { this.locked = false; }
+    this.depth++;
+    try { return fn(); } finally { this.depth--; }
   }
 }

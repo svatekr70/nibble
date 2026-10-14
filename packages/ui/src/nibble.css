@@ -309,6 +309,34 @@
 }
 .nb-content ul,
 .nb-content ol { padding-left: 1.6em; margin: .6em 0; }
+/* Úkoly. Pravidla stojí na položce, ne na seznamu: položka nese stav, a když
+   se seznam rozdělí, nový obal atribut `data-type` mít nemusí. */
+.nb-content ul[data-type="taskList"] { padding-left: .2em; }
+.nb-content li[data-type="taskItem"] {
+  list-style: none;
+  position: relative;
+  padding-left: 1.7em;
+}
+.nb-content li[data-type="taskItem"]::before {
+  content: '';
+  position: absolute;
+  left: .1em;
+  top: .3em;
+  width: 1em;
+  height: 1em;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  opacity: .6;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.nb-content li[data-type="taskItem"][data-checked="true"]::before {
+  opacity: 1;
+  background: var(--nb-accent) center / 80% no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+  border-color: var(--nb-accent);
+}
+.nb-content li[data-type="taskItem"][data-checked="true"] { color: var(--nb-muted, #8a8f98); }
 .nb-content li { margin: .2em 0; }
 .nb-content li > ul,
 .nb-content li > ol { margin: .2em 0; }

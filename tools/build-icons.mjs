@@ -6,7 +6,7 @@ import { writeFile } from 'node:fs/promises';
  *
  * Ikony se do repozitáře zapisují, nečtou se za běhu — Nibble tak nemá žádnou
  * runtime závislost a `@iconify-json/*` zůstává jen vývojovým nástrojem.
- * Do balíčku jde 54 ikon, ne celá sada.
+ * Do balíčku jde 55 ikon, ne celá sada.
  *
  *     node tools/build-icons.mjs            aktivní sada (ACTIVE)
  *     node tools/build-icons.mjs tabler     jiná sada
@@ -40,6 +40,7 @@ const LABELS = {
   removeformat: 'Zrušit formátování',
   bullist: 'Odrážkový seznam',
   numlist: 'Číslovaný seznam',
+  tasklist: 'Úkoly',
   deflist: 'Seznam definic',
   listprops: 'Vlastnosti seznamu',
   indent: 'Zanořit',
@@ -100,7 +101,7 @@ const SETS = {
       alignleft: 'align-left', aligncenter: 'align-center',
       alignright: 'align-right', alignjustify: 'align-justify',
       hr: 'minus', removeformat: 'remove-formatting',
-      bullist: 'list', numlist: 'list-ordered',
+      bullist: 'list', numlist: 'list-ordered', tasklist: 'list-checks',
       deflist: 'list-collapse', listprops: 'list-filter',
       indent: 'indent-increase', outdent: 'indent-decrease',
       link: 'link', anchor: 'anchor', unlink: 'unlink', openlink: 'external-link',
@@ -134,7 +135,7 @@ const SETS = {
       alignleft: 'align-left', aligncenter: 'align-center',
       alignright: 'align-right', alignjustify: 'align-justified',
       hr: 'minus', removeformat: 'clear-formatting',
-      bullist: 'list', numlist: 'list-numbers',
+      bullist: 'list', numlist: 'list-numbers', tasklist: 'list-check',
       deflist: 'list-details', listprops: 'adjustments-horizontal',
       indent: 'indent-increase', outdent: 'indent-decrease',
       link: 'link', anchor: 'anchor', unlink: 'link-off', openlink: 'external-link',
@@ -168,7 +169,7 @@ const SETS = {
       alignleft: 'text-align-left', aligncenter: 'text-align-center',
       alignright: 'text-align-right', alignjustify: 'text-align-justify',
       hr: 'minus', removeformat: 'text-t-slash',
-      bullist: 'list-bullets', numlist: 'list-numbers',
+      bullist: 'list-bullets', numlist: 'list-numbers', tasklist: 'list-checks',
       deflist: 'list-dashes', listprops: 'sliders-horizontal',
       indent: 'text-indent', outdent: 'text-outdent',
       link: 'link', anchor: 'anchor', unlink: 'link-break', openlink: 'arrow-square-out',

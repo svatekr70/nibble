@@ -267,6 +267,9 @@ export function insertParagraphInList(editor: Editor, li: Element): boolean {
 
   range.deleteContents();
   const next = splitListItem(li, range, editor.document);
+  // Položka se dělí s atributy — pluginy, které v nich drží stav (úkol a jeho
+  // zaškrtnutí), si novou položku srovnají dřív, než se zapíše do historie.
+  editor.dispatch('itemsplit', { from: li, to: next });
   editor.selection.collapseTo(itemContent(next), 0);
   editor.commit('split');
   return true;

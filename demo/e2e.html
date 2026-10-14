@@ -20,7 +20,7 @@ import { attachToolbar } from '/dist/ui/src/index.js';
 import {
   link, createImagePlugin, table, media, emoji, charmap, code, autolink,
   wordcount, fullscreen, searchreplace, typography, fonts, createWordcountPlugin,
-  markdownShortcuts,
+  markdownShortcuts, tasks,
 } from '/dist/plugins/src/index.js';
 
 window.plugins = { createWordcountPlugin };
@@ -45,7 +45,7 @@ window.mount = async (html, opts = {}) => {
     plugins: opts.plugins ?? [
       link, imagePlugin, table, media, emoji, charmap, code, autolink,
       wordcount, fullscreen, searchreplace, typography, fonts,
-      markdownShortcuts,
+      markdownShortcuts, tasks,
     ],
     ...editorOpts,
   });

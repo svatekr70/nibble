@@ -95,7 +95,7 @@ export const DEFAULT_MENUBAR: readonly MenubarMenu[] = [
       {
         label: 'Seznam',
         items: [
-          { control: 'bullist' }, { control: 'numlist' },
+          { control: 'bullist' }, { control: 'numlist' }, { control: 'tasklist' },
           { control: 'deflist' },
           { ...S(), control: 'listprops' },
         ],

@@ -760,6 +760,7 @@ platí, jen když je vzor celý začátek odstavce:
 | `-`, `*` | mezera | odrážkový seznam |
 | `1.` (libovolné číslo) | mezera | číslovaný seznam (číslo ≠ 1 nastaví `start`) |
 | `>` | mezera | citace |
+| `[ ]`, `[x]` | mezera | úkol, nezaškrtnutý / zaškrtnutý (jen s pluginem `tasks`) |
 | `---` | Enter | `<hr>` a za ním nový odstavec |
 | ```` ``` ```` | Enter | `<pre>` |
 
@@ -769,6 +770,32 @@ mezerou (`2 * 3 * 4` je násobení) a `_` uprostřed slova nic nespustí
 (`snake_case_name` zůstane textem). V kódu a v odkazech se zkratky nespouštějí.
 
 První Ctrl+Z převod vrátí a nechá napsaný text.
+
+## Úkoly
+
+Plugin `tasks` přidá tlačítko `tasklist`: seznam úkolů se zaškrtávátky.
+Formát je stejný jako v TipTapu, takže úkoly zkopírované z aplikací na něm
+se po vložení poznají samy:
+
+```html
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="true">koupit mléko</li>
+  <li data-type="taskItem" data-checked="false">zavolat do servisu</li>
+</ul>
+```
+
+Zaškrtávátko kreslí jen CSS editoru — v uloženém HTML žádný `<input>` není.
+Klik do něj přepne stav (Ctrl+Z ho vrátí), Enter na zaškrtnutém úkolu založí
+nový nezaškrtnutý a s `markdownShortcuts` úkol založí i napsané `[ ] ` nebo
+`[x] `. Na veřejném webu je bez vlastních pravidel uvidíte jako obyčejné
+odrážky; nejjednodušší podoba:
+
+```css
+/* Úkoly z Nibble na webu */
+li[data-type="taskItem"] { list-style: none; }
+li[data-type="taskItem"]::before { content: '☐ '; }
+li[data-type="taskItem"][data-checked="true"]::before { content: '☑ '; }
+```
 
 ## Editor ukazuje, jak to bude vypadat
 

@@ -31,7 +31,7 @@ const DEFAULT_LAYOUT = [
   ['blocks', 'fontfamily', 'fontsize', 'lineheight'],
   ['bold', 'italic', 'underline', 'strike'],
   ['forecolor', 'backcolor'],
-  ['bullist', 'numlist'],
+  ['bullist', 'numlist', 'tasklist'],
   ['alignleft', 'aligncenter', 'alignright', 'alignjustify'],
   ['link', 'image', 'media', 'table', 'emoji', 'charmap'],
   ['blockquote', 'hr', 'removeformat'],
