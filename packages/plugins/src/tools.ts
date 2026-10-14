@@ -1,7 +1,8 @@
 import {
-  htmlIndexForTextOffset, positionAtTextOffset, textOffsetForHtmlIndex, textOffsetOf,
+  closestBlock, htmlIndexForTextOffset, positionAtTextOffset, textOffsetForHtmlIndex, textOffsetOf,
   type Editor, type Plugin,
 } from '@nibble/core';
+import { closestLink } from './link.js';
 
 /**
  * Drobné nástroje, které v cílovém projektu chybět nemůžou: zdrojový kód (9 konfigurací),
@@ -87,6 +88,21 @@ async function openCodeDialog(editor: Editor): Promise<void> {
 
 const URL_PATTERN = /(https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)])$/i;
 const EMAIL_PATTERN = /([\w.+-]+@[\w-]+\.[\w.-]+[\w])$/i;
+const PASTED_URL = /^https?:\/\/[^\s<>"']+$/i;
+const PASTED_EMAIL = /^[\w.+-]+@[\w-]+\.[\w.-]+\w$/;
+
+/**
+ * Je celý text ze schránky jedna adresa? Vrátí `href`, nebo null.
+ *
+ * Jen celý text: věta, ve které adresa je, se vkládá jako věta — dělat z ní
+ * odkazy by bylo hádání, a to při vkládání nechceme.
+ */
+export function pastedHref(text: string): string | null {
+  const trimmed = text.trim();
+  if (PASTED_URL.test(trimmed)) return trimmed;
+  if (PASTED_EMAIL.test(trimmed)) return 'mailto:' + trimmed;
+  return null;
+}
 
 /**
  * Z napsané adresy udělá odkaz.
@@ -141,8 +157,65 @@ export const autolink: Plugin = {
       if (e.key === ' ' || e.key === 'Enter') tryLink();
     };
 
+    /**
+     * Adresa ze schránky.
+     *
+     * Běží ve fázi capture, tedy před vkládáním v jádře — to by z adresy
+     * udělalo obyčejný odstavec. Když ve schránce není jen adresa, nechá
+     * vložení jádru celé.
+     */
+    const onPaste = (event: Event): void => {
+      const e = event as ClipboardEvent;
+      if (editor.mode !== 'design' || editor.pastePlainNext) return;
+
+      const data = e.clipboardData;
+      if (!data) return;
+      if (Array.from(data.files).some((f) => f.type.startsWith('image/'))) return;
+
+      const text = data.getData('text/plain');
+      const href = pastedHref(text);
+      if (!href) return;
+
+      const range = editor.selection.getRange();
+      if (!range) return;
+
+      // Odkaz v odkazu je neplatné HTML a prohlížeč ho při dalším načtení
+      // rozbije po svém.
+      if (closestLink(range.startContainer, editor.root)
+        || closestLink(range.endContainer, editor.root)) return;
+
+      // Přes víc bloků by `<a>` musel obalit odstavce. Radši vložit normálně.
+      if (!range.collapsed
+        && closestBlock(range.startContainer, editor.root)
+          !== closestBlock(range.endContainer, editor.root)) return;
+
+      // Výběr, který odkaz celý obsahuje, by ho přenesl do nového `<a>`.
+      if (!range.collapsed && range.cloneContents().querySelector('a')) return;
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      const anchor = editor.document.createElement('a');
+      anchor.setAttribute('href', href);
+
+      if (range.collapsed) anchor.textContent = text.trim();
+      else anchor.appendChild(range.extractContents());
+
+      range.insertNode(anchor);
+
+      const after = editor.document.createRange();
+      after.setStartAfter(anchor);
+      after.collapse(true);
+      editor.selection.setRange(after);
+      editor.commit('autolink');
+    };
+
     editor.root.addEventListener('keydown', onKeyDown);
-    return () => editor.root.removeEventListener('keydown', onKeyDown);
+    editor.root.addEventListener('paste', onPaste, true);
+    return () => {
+      editor.root.removeEventListener('keydown', onKeyDown);
+      editor.root.removeEventListener('paste', onPaste, true);
+    };
   },
 };
 

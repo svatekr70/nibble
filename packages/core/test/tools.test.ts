@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseWindow } from './dom.js';
-import { countWords, findMatches } from '../../plugins/src/tools.js';
+import { countWords, findMatches, pastedHref } from '../../plugins/src/tools.js';
 
 describe('počítání slov', () => {
   it.each([
@@ -46,5 +46,27 @@ describe('hledání v obsahu', () => {
   it('překrývající se výskyty se nepočítají dvakrát', () => {
     // "aaaa" obsahuje "aa" dvakrát bez překryvu, ne třikrát.
     expect(findMatches(build('<p>aaaa</p>'), 'aa', true)).toHaveLength(2);
+  });
+});
+
+describe('adresa ve schránce', () => {
+  it.each([
+    ['https://example.com', 'https://example.com'],
+    ['  https://example.com/a?b=1#c \n', 'https://example.com/a?b=1#c'],
+    ['http://x.cz', 'http://x.cz'],
+    ['jan.novak@firma.cz', 'mailto:jan.novak@firma.cz'],
+  ])('%j → %s', (text, expected) => {
+    expect(pastedHref(text)).toBe(expected);
+  });
+
+  it.each([
+    'viz https://example.com',
+    'https://a.cz https://b.cz',
+    'example.com',
+    'ftp://example.com',
+    '',
+    'javascript:alert(1)',
+  ])('%j není adresa', (text) => {
+    expect(pastedHref(text)).toBeNull();
   });
 });

@@ -17,7 +17,7 @@ export { parseGlyphTable, glyphFor } from './glyphTable.js';
 export type { EmojiOptions } from './emoji.js';
 export {
   code, autolink, wordcount, fullscreen, searchreplace, typography,
-  countWords, findMatches,
+  countWords, findMatches, pastedHref,
 } from './tools.js';
 export {
   fonts, createFontPlugin, sameStack, sameFamily, firstFamily, familiesInContent,

@@ -3,6 +3,14 @@
 Formát podle [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/),
 verzování podle [SemVer](https://semver.org/lang/cs/).
 
+## [Unreleased]
+
+### Přidáno
+
+- Adresa nebo e-mail vložený ze schránky se rovnou stane odkazem. Když je
+  označený text, odkazem se stane on — bez dialogu. Věta, ve které adresa
+  je, se vkládá jako věta; Ctrl+Shift+V vloží vždy čistý text.
+
 ## [0.5.1] — 2026-09-20
 
 ### Přidáno
