@@ -44,6 +44,8 @@
       <a href="#lista">Lišta a nabídka</a>
       <a href="#obrazky">Obrázky a nahrávání</a>
       <a href="#vzhled">Vlastní vzhled</a>
+      <a href="#limit">Limit znaků ve formuláři</a>
+      <a href="#na-webu">Úkoly a rozbalovací bloky na webu</a>
 
       <strong>Přechod</strong>
       <a href="#z-tinymce">Z TinyMCE</a>
@@ -125,6 +127,10 @@
 
       <p>Textarea zůstává zdrojem pravdy pro odeslání formuláře — obsah se do ní zapisuje
         při každé změně. V backendu se nemění nic.</p>
+
+      <p>Má-li textarea atribut <code>placeholder</code>, editor ho převezme jako šedou
+        nápovědu v prázdném obsahu. Jiný text se nastaví volbou <code>placeholder</code>.
+        Nápovědu kreslí jen CSS, do uloženého HTML se nedostane.</p>
 
       <h3>Více editorů na stránce</h3>
       <p>Každý si drží vlastní instanci. Nastavení uživatele se odlišuje klíčem:</p>
@@ -209,6 +215,71 @@
         protože ověřovaly chování, ne vzhled.)</p>
 
       <!-- ============================================================ -->
+      <h2 id="limit">Limit znaků ve formuláři</h2>
+
+      <p>Perex nebo meta popis mívá doporučenou délku. <code>maxlength</code> na
+        textaree tu nepomůže — editor do ní zapisuje HTML, ne text. Počítadlo proto umí
+        limit samo:</p>
+
+      <pre class="code"><span class="k">import</span> { createWordcountPlugin, wordcountLabel } <span class="k">from</span> <span class="s">'@nibble/plugins'</span>
+
+<span class="k">const</span> max = <span class="n">160</span>
+<span class="k">const</span> editor = <span class="k">await</span> Nibble.<span class="t">create</span>({
+  target: <span class="s">'#perex'</span>,
+  plugins: [<span class="t">createWordcountPlugin</span>({ maxChars: max })],
+})
+<span class="k">const</span> ulozit = document.<span class="t">querySelector</span>(<span class="s">'#ulozit'</span>)
+
+<span class="c">// Stav hned po načtení — událost přijde až při přechodu přes limit.</span>
+ulozit.disabled = <span class="t">wordcountLabel</span>(editor.<span class="t">getText</span>(), max).over
+editor.<span class="t">on</span>(<span class="s">'limit'</span>, ({ over }) =&gt; { ulozit.disabled = over })</pre>
+
+      <p>Stavový řádek ukáže „152 / 160 znaků“ a po překročení zčervená. Psát jde dál
+        a nic se neusekne: uživatel, který přes limit vloží odstavec, ho má mít možnost
+        zkrátit sám, ne přijít o konec. Co s překročením udělat, rozhoduje formulář.</p>
+
+      <p>Událost <code>limit</code> chodí jen při <strong>přechodu</strong> přes hranici,
+        ne po každém úhozu. Obsah načtený už přes limit proto žádnou nevyšle — proto ten
+        řádek s <code>wordcountLabel()</code> po <code>create()</code>. Počítají se
+        i mezery, stejně jako u <code>maxlength</code>: limity bývají kvůli místu, kam
+        text půjde, a tam zabírá místo i mezera.</p>
+
+      <!-- ============================================================ -->
+      <h2 id="na-webu">Úkoly a rozbalovací bloky na webu</h2>
+
+      <p>Editor si úkoly a rozbalovací bloky kreslí vlastním CSS. Uložené HTML ale jde na
+        veřejný web, kde <code>nibble.css</code> není — a tam je potřeba myslet na dvě
+        věci.</p>
+
+      <h3>Úkoly</h3>
+      <p>Plugin <code>tasks</code> ukládá seznam ve formátu TipTapu:</p>
+
+      <pre class="code">&lt;<span class="t">ul</span> data-type=<span class="s">"taskList"</span>&gt;
+  &lt;<span class="t">li</span> data-type=<span class="s">"taskItem"</span> data-checked=<span class="s">"true"</span>&gt;koupit mléko&lt;/<span class="t">li</span>&gt;
+  &lt;<span class="t">li</span> data-type=<span class="s">"taskItem"</span> data-checked=<span class="s">"false"</span>&gt;zavolat do servisu&lt;/<span class="t">li</span>&gt;
+&lt;/<span class="t">ul</span>&gt;</pre>
+
+      <p>Žádný <code>&lt;input&gt;</code> v něm není — zaškrtávátko v editoru je jen
+        CSS. <code>&lt;input&gt;</code> uvnitř <code>contenteditable</code> dělá
+        s kurzorem neplechu a na webu by stejně potřeboval vlastní pravidla. Bez nich
+        se úkoly ukážou jako obyčejné odrážky; nejjednodušší podoba:</p>
+
+      <pre class="code"><span class="c">/* Úkoly z Nibble na webu */</span>
+<span class="t">li[data-type="taskItem"]</span> { <span class="k">list-style</span>: none; }
+<span class="t">li[data-type="taskItem"]::before</span> { <span class="k">content</span>: <span class="s">'☐ '</span>; }
+<span class="t">li[data-type="taskItem"][data-checked="true"]::before</span> { <span class="k">content</span>: <span class="s">'☑ '</span>; }</pre>
+
+      <p>Stejný formát znamená i to, že úkoly zkopírované z aplikací na TipTapu se po
+        vložení poznají samy.</p>
+
+      <h3>Rozbalovací blok</h3>
+      <p><code>&lt;details&gt;&lt;summary&gt;</code> prohlížeč umí sám, CSS není potřeba.
+        V editoru je obsah vždy rozbalený a klik na nadpis nic nesbaluje: sbalení by
+        měnilo atribut <code>open</code>, tedy uložené HTML, jen proto, že si někdo
+        klikl. Jestli bude blok na webu rozbalený, se proto přepíná vědomě — tlačítkem
+        v plovoucí liště nad blokem.</p>
+
+      <!-- ============================================================ -->
       <h2 id="z-tinymce">Z TinyMCE</h2>
 
       <div class="table-wrap">
@@ -284,14 +355,13 @@
       <p>Příkaz je jediná cesta, jak se smí změnit obsah. Díky tomu má historie co
         zaznamenat a lišta se má čeho ptát:</p>
 
-      <pre class="code">editor.commands.<span class="t">add</span>(<span class="s">'poznamka'</span>, {
-  <span class="t">exec</span>() {
-    <span class="k">return</span> editor.<span class="t">insertHTML</span>(<span class="s">'&lt;aside class="pozn"&gt;…&lt;/aside&gt;'</span>)
-  },
-  <span class="t">canExec</span>() {
-    <span class="k">return</span> editor.selection.<span class="t">getRange</span>() !== <span class="k">null</span>
-  },
-})</pre>
+      <pre class="code">editor.commands.<span class="t">add</span>(
+  <span class="s">'poznamka'</span>,
+  <span class="c">// Provedení: vrátí, jestli se něco stalo.</span>
+  (ed) =&gt; ed.<span class="t">insertHTML</span>(<span class="s">'&lt;aside class="pozn"&gt;…&lt;/aside&gt;'</span>),
+  <span class="c">// Nepovinná stráž: editor.can('poznamka') a stav tlačítka.</span>
+  (ed) =&gt; ed.selection.<span class="t">getRange</span>() !== <span class="k">null</span>,
+)</pre>
 
       <div class="callout">
         <strong>Pozor na živé rozsahy</strong>
@@ -309,8 +379,8 @@
         <thead><tr><th>Balíček</th><th>Co v něm je</th></tr></thead>
         <tbody>
           <tr><td><code>@nibble/core</code></td><td>Model (parser, serializer, sanitizer, schema), DOM utility, výběr, historie, příkazy, vstup, registr ovládání, nastavení.</td></tr>
-          <tr><td><code>@nibble/ui</code></td><td>Lišta, nabídkový pruh, plovoucí lišta, dialogy, výběr barvy, mřížka, stavový řádek, ikony, CSS.</td></tr>
-          <tr><td><code>@nibble/plugins</code></td><td>Odkazy, obrázky, tabulky, videa, zdrojový kód, autolink, počítadlo slov, celá obrazovka, hledání, typografie, písma.</td></tr>
+          <tr><td><code>@nibble/ui</code></td><td>Lišta, nabídkový pruh, plovoucí lišta, nabídka u kurzoru, dialogy, výběr barvy, mřížka, stavový řádek, ikony, CSS.</td></tr>
+          <tr><td><code>@nibble/plugins</code></td><td>Odkazy, obrázky, tabulky, videa, zdrojový kód, autolink, počítadlo slov, celá obrazovka, hledání, typografie, písma, Markdown při psaní, úkoly, rozbalovací blok, lomítkové příkazy, úchyt bloku.</td></tr>
         </tbody>
       </table>
       </div>

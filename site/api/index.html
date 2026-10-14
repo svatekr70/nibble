@@ -56,6 +56,7 @@
       <strong>Ovládání</strong>
       <a href="#attach">attachToolbar()</a>
       <a href="#registr">Registr ovládání</a>
+      <a href="#nabidka">Nabídka u kurzoru</a>
       <a href="#dialogy">Dialogy a hlášky</a>
       <a href="#nastaveni">Nastavení uživatele</a>
 
@@ -67,6 +68,7 @@
       <a href="#serializace">Serializace a round-trip</a>
       <a href="#css">CSS proměnné</a>
       <a href="#zkratky">Klávesové zkratky</a>
+      <a href="#markdown">Markdown při psaní</a>
     </nav>
 
     <article class="prose">
@@ -75,7 +77,7 @@
       <p>Nibble je rozdělený do tří balíčků: <code>@nibble/core</code> (model, výběr,
         historie, příkazy, registr ovládání), <code>@nibble/ui</code> (lišta, nabídka,
         dialogy, CSS) a <code>@nibble/plugins</code> (odkazy, obrázky, tabulky, videa,
-        nástroje, písma). Jádro běží i bez lišty — hodí se to v testech a při dávkovém
+        nástroje, písma, úkoly, Markdown při psaní). Jádro běží i bez lišty — hodí se to v testech a při dávkovém
         zpracování obsahu.</p>
 
       <!-- ============================================================ -->
@@ -202,6 +204,7 @@ editor.<span class="t">on</span>(<span class="s">'change'</span>, ({ html }) =&g
           <tr><td><code>height</code></td><td><code>number</code></td><td>Minimální výška plochy s obsahem v pixelech.</td></tr>
           <tr><td><code>readonly</code></td><td><code>boolean</code></td><td>Editor se otevře jen ke čtení. Jde přepnout přes <code>setMode()</code>.</td></tr>
           <tr><td><code>autofocus</code></td><td><code>boolean</code></td><td>Zaostřit obsah hned po vytvoření.</td></tr>
+          <tr><td><code>placeholder</code></td><td><code>string</code></td><td>Šedá nápověda v prázdném editoru. Bez uvedení se převezme z <code>&lt;textarea placeholder&gt;</code>. Je jen v CSS, do <code>getHTML()</code> se nedostane.</td></tr>
           <tr><td><code>plugins</code></td><td><code>Plugin[]</code></td><td>Hodnoty, ne jména. Bundler tak vidí, co se opravdu použije.</td></tr>
           <tr><td><code>paste</code></td><td><code>PasteOptions</code></td><td>Chování při vkládání ze schránky — viz níž.</td></tr>
           <tr><td><code>allowedEmbedHosts</code></td><td><code>string[]</code></td><td>Hostitelé, jejichž <code>&lt;iframe&gt;</code> smí být v obsahu.</td></tr>
@@ -311,7 +314,7 @@ editor.<span class="t">on</span>(<span class="s">'change'</span>, ({ html }) =&g
           <tr><td><code>editor.document</code></td><td>Dokument, ve kterém editor žije. Příkazy z něj vytvářejí uzly.</td></tr>
           <tr><td><code>editor.selection</code></td><td><code>getRange()</code>, <code>setRange()</code>, <code>collapseTo()</code>, <code>save()</code>, <code>restore()</code>.</td></tr>
           <tr><td><code>editor.schema</code></td><td>Kontrola tvaru obsahu.</td></tr>
-          <tr><td><code>editor.history</code></td><td><code>undo()</code>, <code>redo()</code>, <code>canUndo()</code>.</td></tr>
+          <tr><td><code>editor.history</code></td><td><code>undo()</code>, <code>redo()</code>, <code>canUndo()</code>, <code>transact(fn)</code> — zápisy do historie uvnitř se zahodí, takže úprava složená z více příkazů je po <code>editor.commit()</code> jeden krok. Jde vnořit.</td></tr>
           <tr><td><code>editor.formatter</code></td><td><code>apply()</code>, <code>remove()</code>, <code>toggle()</code>, <code>match()</code>, <code>queryStyle()</code>.</td></tr>
           <tr><td><code>editor.commands</code></td><td>Registr příkazů: <code>add()</code>, <code>has()</code>.</td></tr>
           <tr><td><code>editor.ui</code></td><td>Registr ovládání, dialogy, hlášky, stavový řádek.</td></tr>
@@ -339,6 +342,31 @@ editor.<span class="t">isInList</span>()         <span class="c">// 'ul' | 'ol' 
 editor.<span class="t">getAlignment</span>()     <span class="c">// 'left' | 'center' | 'right' | 'justify' | ''</span>
 editor.<span class="t">currentBlock</span>()     <span class="c">// Element | null</span></pre>
 
+      <p><code>bullist</code> a <code>numlist</code> berou nepovinné <code>{ type }</code> —
+        <code>data-type</code> nově zakládaného seznamu. Nastaví se dřív, než se seznam
+        slije se sousedy; sousední seznamy se totiž slévají jen při stejném
+        <code>data-type</code>, takže úkoly pod odrážkami zůstanou úkoly.</p>
+
+      <pre class="code">editor.<span class="t">exec</span>(<span class="s">'bullist'</span>, { type: <span class="s">'taskList'</span> })
+editor.<span class="t">exec</span>(<span class="s">'tasklist'</span>)      <span class="c">// tasks: přepne seznam úkolů</span>
+editor.<span class="t">exec</span>(<span class="s">'details'</span>)       <span class="c">// details: obalí označené bloky</span>
+editor.<span class="t">exec</span>(<span class="s">'detailsopen'</span>)   <span class="c">// přepne atribut open</span>
+editor.<span class="t">exec</span>(<span class="s">'undetails'</span>)     <span class="c">// zruší blok, obsah zůstane</span></pre>
+
+      <p>Blokové příkazy (nadpis, seznam, citace) v nadpisu rozbalovacího bloku
+        (<code>&lt;summary&gt;</code>) nic neudělají a vrátí <code>false</code> — nadpis
+        je jeden řádek.</p>
+
+      <p>Pro pluginy, které reagují na psaní:</p>
+
+      <div class="sig">textBeforeCaret(block: Element, range: Range): string</div>
+      <p>Text bloku od začátku po kurzor, i když je blok rozdělený do více uzlů
+        a značek. Na něm stojí Markdown zkratky i lomítková nabídka.</p>
+
+      <div class="sig">isEmptyDocument(root: Element): boolean</div>
+      <p>Je v editoru jen jeden prázdný odstavec? Podle toho se ukazuje
+        <code>placeholder</code>.</p>
+
       <!-- ============================================================ -->
       <h2 id="udalosti">Události</h2>
 
@@ -359,6 +387,9 @@ editor.<span class="t">currentBlock</span>()     <span class="c">// Element | nu
           <tr><td><code>modechange</code></td><td>Přepnul se režim (design / readonly).</td></tr>
           <tr><td><code>pasteclean</code></td><td>Doběhlo čištění vloženého obsahu. Nese <code>{ source, removed, html }</code>.</td></tr>
           <tr><td><code>schemaviolation</code></td><td>Do obsahu se dostalo něco, co schema nepovoluje.</td></tr>
+          <tr><td><code>limit</code></td><td>Počet znaků přešel přes <code>maxChars</code> nebo se vrátil pod něj (<code>createWordcountPlugin</code>). Nese <code>{ count, max, over }</code>. Jen při přechodu, ne po každém úhozu.</td></tr>
+          <tr><td><code>itemsplit</code></td><td>Enter rozdělil položku seznamu. Nese <code>{ from, to }</code> — původní a novou <code>&lt;li&gt;</code>.</td></tr>
+          <tr><td><code>listretag</code></td><td><code>bullist</code> / <code>numlist</code> přepnul značku existujícího seznamu. Nese <code>{ list, tag }</code>.</td></tr>
         </tbody>
       </table>
       </div>
@@ -400,7 +431,7 @@ editor.<span class="t">currentBlock</span>()     <span class="c">// Element | nu
 
       <p>Výchozí rozvržení obsahuje: <code>undo redo</code> · <code>blocks fontfamily
         fontsize lineheight</code> · <code>bold italic underline strike</code> ·
-        <code>forecolor backcolor</code> · <code>bullist numlist</code> ·
+        <code>forecolor backcolor</code> · <code>bullist numlist tasklist</code> ·
         <code>alignleft aligncenter alignright alignjustify</code> · <code>link image
         media table emoji charmap</code> · <code>blockquote hr removeformat</code> · <code>code
         searchreplace fullscreen</code>. Tlačítko, jehož plugin není načtený, se
@@ -417,8 +448,8 @@ editor.<span class="t">currentBlock</span>()     <span class="c">// Element | nu
   tooltip: <span class="s">'Zvýraznit'</span>,
   shortcut: <span class="s">'Ctrl+H'</span>,
   onAction: () =&gt; editor.<span class="t">exec</span>(<span class="s">'zvyraznit'</span>),
-  isActive: () =&gt; editor.<span class="t">is</span>(<span class="s">'zvyraznit'</span>),
-  isEnabled: () =&gt; editor.<span class="t">can</span>(<span class="s">'zvyraznit'</span>),
+  active: (ed) =&gt; ed.<span class="t">is</span>(<span class="s">'zvyraznit'</span>),
+  enabled: (ed) =&gt; ed.<span class="t">can</span>(<span class="s">'zvyraznit'</span>),
 })</pre>
 
       <div class="table-wrap">
@@ -431,9 +462,48 @@ editor.<span class="t">currentBlock</span>()     <span class="c">// Element | nu
           <tr><td><code>addMenu(name, spec)</code></td><td>Tlačítko s nabídkou položek.</td></tr>
           <tr><td><code>addGrid(name, spec)</code></td><td>Mřížka — používá ji výběr rozměru tabulky.</td></tr>
           <tr><td><code>addContextToolbar(name, spec)</code></td><td>Plovoucí lišta nad vybraným prvkem.</td></tr>
+          <tr><td><code>addSuggestion(name, spec)</code></td><td>Nabídka u kurzoru vyvolaná znakem (lomítkové příkazy).</td></tr>
         </tbody>
       </table>
       </div>
+
+      <h3 id="nabidka">Nabídka u kurzoru</h3>
+
+      <p><code>addSuggestion</code> je obecná verze lomítkové nabídky — jiný znak, jiné
+        položky. Fokus zůstává v editoru: psaní za spouštěčem nabídku filtruje, šipky
+        vybírají, Enter nebo Tab potvrdí, Escape zavře.</p>
+
+      <pre class="code"><span class="k">import</span> { filterSuggestions } <span class="k">from</span> <span class="s">'@nibble/core'</span>
+
+editor.ui.<span class="t">addSuggestion</span>(<span class="s">'mention'</span>, {
+  trigger: <span class="s">'@'</span>,
+  items: (ed, query) =&gt; <span class="t">filterSuggestions</span>(lide, query),
+  onPick: (ed, item) =&gt; ed.<span class="t">exec</span>(<span class="s">'mention'</span>, item.id),
+})</pre>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Položka <code>SuggestionSpec</code></th><th>Význam</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger</code></td><td>Znak, který nabídku otevře.</td></tr>
+          <tr><td><code>startOfBlock</code></td><td>Jen na začátku bloku, jako lomítko. Jinak stačí mezera před spouštěčem.</td></tr>
+          <tr><td><code>items(editor, query)</code></td><td>Položky pro napsaný dotaz. Prázdné pole nabídku schová.</td></tr>
+          <tr><td><code>onPick(editor, item)</code></td><td>Vybraná položka. Napsaný dotaz už je smazaný.</td></tr>
+          <tr><td><code>opensDialog(item)</code></td><td>Otevírá položka dialog? Smazání dotazu se pak zapíše jako samostatný krok, takže zavřený dialog nechá prázdný řádek.</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p>Položka (<code>SuggestionItem</code>) má <code>id</code>, <code>label</code>
+        a nepovinně <code>icon</code> a <code>keywords</code>.
+        <code>filterSuggestions(items, query)</code> hledá bez ohledu na diakritiku
+        a velikost písmen a dává napřed položky, jejichž popisek dotazem začíná.
+        <code>suggestionQuery(textBefore, trigger, startOfBlock)</code> vrátí dotaz za
+        spouštěčem, nebo <code>null</code>, když nabídka otevřená být nemá.</p>
+
+      <p>Data jsou v jádře, vykresluje je <code>bindCaretMenu(editor)</code>
+        z <code>@nibble/ui</code>. <code>attachToolbar()</code> ho zapojí sám; ručně je
+        potřeba jen bez lišty. Vrací funkci pro úklid.</p>
 
       <p><code>editor.ui.get(name)</code> vrátí přihlášený prvek, <code>names()</code>
         seznam všech. Toho využívá i nastavení, aby nenabízelo tlačítka, jejichž plugin
@@ -474,9 +544,10 @@ editor.<span class="t">currentBlock</span>()     <span class="c">// Element | nu
       </div>
 
       <div class="sig">editor.ui.notify(text: string, level?: 'info' | 'warn' | 'error'): void</div>
-      <div class="sig">editor.ui.setStatus(name: string, text: string | null): void</div>
+      <div class="sig">editor.ui.setStatus(name: string, text: string | null, tone?: 'normal' | 'over'): void</div>
       <p>Stav se ukládá i tehdy, když stavový řádek zrovna neexistuje. Když si ho uživatel
-        zapne, hodnoty se do něj přehrají — plugin se nemusí spouštět znovu.</p>
+        zapne, hodnoty se do něj přehrají — plugin se nemusí spouštět znovu.
+        <code>'over'</code> položku zbarví jako překročenou; tak počítadlo ukazuje limit.</p>
 
       <!-- ============================================================ -->
       <h2 id="nastaveni">Nastavení uživatele</h2>
@@ -532,12 +603,17 @@ ui.prefs.<span class="t">onChange</span>(fn)               <span class="c">// vr
           <tr><td><code>emoji</code> / <code>createEmojiPlugin({ emoji })</code></td><td>Emotikony: mřížka s kategoriemi a hledáním, česky. Vkládá znak, ne obrázek.</td></tr>
           <tr><td><code>charmap</code> / <code>createCharmapPlugin({ chars })</code></td><td>Mapa speciálních znaků v téže mřížce: interpunkce, mezery, měny, matematika, zlomky, šipky, diakritika, řecká abeceda, symboly. Hledá i podle <code>U+00A9</code>.</td></tr>
           <tr><td><code>code</code></td><td>Editace zdrojového HTML se zvýrazněnou syntaxí a pamatováním pozice kurzoru.</td></tr>
-          <tr><td><code>autolink</code></td><td>Z napsané adresy udělá odkaz po mezeře nebo Enteru.</td></tr>
-          <tr><td><code>wordcount</code></td><td>Počet slov a znaků do stavového řádku.</td></tr>
+          <tr><td><code>autolink</code></td><td>Z napsané adresy udělá odkaz po mezeře nebo Enteru. Adresa nebo e-mail vložený ze schránky je rovnou odkaz; vložený na označený text z něj udělá odkaz bez dialogu. V <code>&lt;pre&gt;</code> a <code>&lt;code&gt;</code> zůstane textem.</td></tr>
+          <tr><td><code>wordcount</code> / <code>createWordcountPlugin({ maxChars })</code></td><td>Počet slov a znaků do stavového řádku. S <code>maxChars</code> ukáže „152 / 160 znaků“ (včetně mezer, jako <code>maxlength</code>), po překročení zčervená a vyšle <code>limit</code>. Nic neusekne. Stejný výpočet je veřejný jako <code>wordcountLabel(text, maxChars?)</code> → <code>{ label, count, over }</code>.</td></tr>
           <tr><td><code>fullscreen</code></td><td>Editor přes celou obrazovku, F11.</td></tr>
           <tr><td><code>searchreplace</code></td><td>Hledání a nahrazování v textu, ne ve značkách. Ctrl+F.</td></tr>
           <tr><td><code>typography</code></td><td>České uvozovky, výpustka, pomlčka — při psaní.</td></tr>
           <tr><td><code>fonts</code></td><td>Rodina a velikost písma včetně webových písem z Google Fonts.</td></tr>
+          <tr><td><code>markdownShortcuts</code></td><td>Markdown při psaní: <code>## </code> udělá nadpis, <code>**slovo**</code> tučné slovo. První Ctrl+Z převod vrátí. Seznam zkratek je <a href="#markdown">níž</a>.</td></tr>
+          <tr><td><code>tasks</code></td><td>Tlačítko a příkaz <code>tasklist</code>: seznam úkolů <code>&lt;ul data-type="taskList"&gt;</code> s <code>&lt;li data-type="taskItem" data-checked&gt;</code>, formát jako TipTap. Zaškrtávátko kreslí jen CSS editoru.</td></tr>
+          <tr><td><code>details</code></td><td>Rozbalovací blok <code>&lt;details&gt;&lt;summary&gt;</code>: příkazy <code>details</code>, <code>detailsopen</code>, <code>undetails</code> a plovoucí lišta. V editoru je obsah vždy rozbalený.</td></tr>
+          <tr><td><code>slash</code></td><td><code>/</code> na začátku řádku otevře nabídku: nadpisy, seznamy, úkoly, citace, kód, čára, tabulka, obrázek, video, rozbalovací blok. Ukazuje jen to, co je v editoru zapnuté.</td></tr>
+          <tr><td><code>dragHandle</code></td><td>Úchyt ⠿ vlevo u bloku: tažením blok přesune, klikem ho označí. Přesun je jeden krok historie a blok se nemění. Na dotyku se neukazuje.</td></tr>
         </tbody>
       </table>
       </div>
@@ -555,11 +631,8 @@ ui.prefs.<span class="t">onChange</span>(fn)               <span class="c">// vr
   name: <span class="s">'poznamka'</span>,
 
   <span class="t">setup</span>(editor) {
-    editor.commands.<span class="t">add</span>(<span class="s">'poznamka'</span>, {
-      <span class="t">exec</span>() {
-        <span class="k">return</span> editor.<span class="t">insertHTML</span>(<span class="s">'&lt;aside class="pozn"&gt;…&lt;/aside&gt;'</span>)
-      },
-    })
+    editor.commands.<span class="t">add</span>(<span class="s">'poznamka'</span>, (ed) =&gt;
+      ed.<span class="t">insertHTML</span>(<span class="s">'&lt;aside class="pozn"&gt;…&lt;/aside&gt;'</span>))
 
     editor.ui.<span class="t">addButton</span>(<span class="s">'poznamka'</span>, {
       icon: <span class="s">'blockquote'</span>,
@@ -643,10 +716,41 @@ ui.prefs.<span class="t">onChange</span>(fn)               <span class="c">// vr
           <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Hledat a nahradit.</td></tr>
           <tr><td><kbd>F11</kbd></td><td>Celá obrazovka.</td></tr>
           <tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>V seznamu zanoří a vysune položku, v tabulce přejde na další buňku.</td></tr>
-          <tr><td><kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>Nový blok / zalomení řádku.</td></tr>
+          <tr><td><kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>Nový blok / zalomení řádku. V nadpisu rozbalovacího bloku skočí do obsahu.</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></td><td>Vložit jako čistý text — i adresu, ze které by jinak byl odkaz.</td></tr>
+          <tr><td><kbd>/</kbd> na začátku řádku</td><td>Lomítková nabídka (<code>slash</code>). Psaní filtruje, šipky vybírají, <kbd>Enter</kbd> / <kbd>Tab</kbd> potvrdí, <kbd>Esc</kbd> zavře a text nechá.</td></tr>
+          <tr><td>klik do zaškrtávátka</td><td>Přepne úkol (<code>tasks</code>). <kbd>Enter</kbd> na zaškrtnutém úkolu založí nový nezaškrtnutý.</td></tr>
+          <tr><td><kbd>Esc</kbd> při tažení bloku</td><td>Zruší přesun (<code>dragHandle</code>).</td></tr>
         </tbody>
       </table>
       </div>
+
+      <h3 id="markdown">Markdown při psaní</h3>
+
+      <p>S pluginem <code>markdownShortcuts</code>. Blokové zkratky platí, jen když je vzor
+        celý začátek odstavce:</p>
+
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Napíšu</th><th>Spouští</th><th>Výsledek</th></tr></thead>
+        <tbody>
+          <tr><td><code>#</code>–<code>######</code></td><td>mezera</td><td>nadpis <code>h1</code>–<code>h6</code></td></tr>
+          <tr><td><code>-</code>, <code>*</code></td><td>mezera</td><td>odrážkový seznam</td></tr>
+          <tr><td><code>1.</code> (libovolné číslo)</td><td>mezera</td><td>číslovaný seznam; číslo ≠ 1 nastaví <code>start</code></td></tr>
+          <tr><td><code>&gt;</code></td><td>mezera</td><td>citace</td></tr>
+          <tr><td><code>[ ]</code>, <code>[x]</code></td><td>mezera</td><td>úkol nezaškrtnutý / zaškrtnutý (jen s <code>tasks</code>)</td></tr>
+          <tr><td><code>---</code></td><td><kbd>Enter</kbd></td><td><code>&lt;hr&gt;</code> a pod ním nový odstavec</td></tr>
+          <tr><td><code>```</code></td><td><kbd>Enter</kbd></td><td><code>&lt;pre&gt;</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p>Řádkové se spouštějí zavírací značkou: <code>**x**</code> tučně,
+        <code>*x*</code> a <code>_x_</code> kurzíva, <code>`x`</code> kód,
+        <code>~~x~~</code> přeškrtnutí. Obsah nesmí začínat ani končit mezerou
+        (<code>2 * 3 * 4</code> je násobení) a <code>_</code> uprostřed slova nic
+        nespustí. V kódu a v odkazech se zkratky nespouštějí. První <kbd>Ctrl</kbd>+<kbd>Z</kbd>
+        převod vrátí a nechá napsaný text.</p>
 
       <p>Zkratky pluginů se objevují i v nabídkovém pruhu vedle názvu položky, takže se
         dají odkoukat bez čtení dokumentace.</p>

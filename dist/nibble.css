@@ -50,7 +50,8 @@
 .nb-grid, .nb-grid *,
 .nb-dialog, .nb-dialog *,
 .nb-picker, .nb-picker *,
-.nb-menu, .nb-menu * { box-sizing: border-box; }
+.nb-menu, .nb-menu *,
+.nb-caret-menu, .nb-caret-menu * { box-sizing: border-box; }
 
 /*
  * `overflow: hidden` tady schválně není.
@@ -283,6 +284,16 @@
 .nb-content:focus-visible { outline: none; }
 .nb-content > :first-child { margin-top: 0; }
 .nb-content > :last-child { margin-bottom: 0; }
+/* Nápověda v prázdném editoru. Plovoucí s nulovou výškou: kurzor stojí na
+   začátku řádku přes ni a text ji při prvním písmenu nahradí. */
+.nb-content.nb-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--nb-muted);
+  pointer-events: none;
+  user-select: none;
+}
 .nb-content table { border-collapse: collapse; }
 .nb-content blockquote {
   margin: 1em 0;
@@ -299,9 +310,53 @@
 }
 .nb-content ul,
 .nb-content ol { padding-left: 1.6em; margin: .6em 0; }
+/* Úkoly. Pravidla stojí na položce, ne na seznamu: položka nese stav, a když
+   se seznam rozdělí, nový obal atribut `data-type` mít nemusí. */
+.nb-content ul[data-type="taskList"] { padding-left: .2em; }
+.nb-content li[data-type="taskItem"] {
+  list-style: none;
+  position: relative;
+  padding-left: 1.7em;
+}
+.nb-content li[data-type="taskItem"]::before {
+  content: '';
+  position: absolute;
+  left: .1em;
+  top: .3em;
+  width: 1em;
+  height: 1em;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  opacity: .6;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.nb-content li[data-type="taskItem"][data-checked="true"]::before {
+  opacity: 1;
+  background: var(--nb-accent) center / 80% no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+  border-color: var(--nb-accent);
+}
+.nb-content li[data-type="taskItem"][data-checked="true"] { color: var(--nb-muted, #8a8f98); }
 .nb-content li { margin: .2em 0; }
 .nb-content li > ul,
 .nb-content li > ol { margin: .2em 0; }
+
+/* Rozbalovací blok: v editoru vždy rozbalený, sbalení je věc webu. */
+.nb-content details {
+  border: 1px solid var(--nb-border, #d0d4da);
+  border-radius: 6px;
+  padding: .3em .8em;
+  margin: .6em 0;
+}
+.nb-content details::details-content { content-visibility: visible; display: block; }
+.nb-content summary { font-weight: 600; cursor: text; }
+.nb-content details:not([open]) > summary::after {
+  content: ' · na webu sbalený';
+  font-weight: 400;
+  color: var(--nb-muted, #8a8f98);
+  user-select: none;
+}
 
 /*
  * Kotva.
@@ -375,6 +430,33 @@
 
 /* Táhlo šířky sloupce nic nepřidává do obsahu — mění se jen kurzor. */
 .nb-content.nb-col-resize { cursor: col-resize; }
+
+/* Úchyt bloku v levém okraji obsahu. */
+.nb-drag-handle {
+  position: absolute;
+  width: 14px;
+  height: 22px;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--nb-muted, #8a8f98);
+  font-size: 14px;
+  line-height: 22px;
+  cursor: grab;
+  user-select: none;
+  z-index: 5;
+}
+.nb-drag-handle:hover { background: var(--nb-hover); }
+.nb-drag-handle.nb-dragging { cursor: grabbing; }
+.nb-drop-line {
+  position: absolute;
+  height: 2px;
+  background: var(--nb-accent);
+  pointer-events: none;
+  z-index: 5;
+}
 
 /* ---------- plovoucí lišta ---------- */
 
@@ -884,7 +966,7 @@
   flex: none;
 }
 
-.nb-menu {
+.nb-menu, .nb-caret-menu {
   position: absolute;
   z-index: 110;
   max-height: min(60vh, 380px);
@@ -938,6 +1020,11 @@
   margin: 4px 6px;
   background: var(--nb-border);
 }
+
+/* Nabídka u kurzoru vychází z `.nb-menu`; navíc ikona vlevo. */
+.nb-caret-menu { min-width: 200px; max-height: 280px; }
+.nb-caret-menu-icon { flex: none; display: inline-flex; width: 18px; height: 18px; opacity: .8; }
+.nb-caret-menu-icon svg { width: 18px; height: 18px; }
 
 /* ---------- výběr barvy ---------- */
 
@@ -1144,6 +1231,7 @@
 .nb-path-sep { opacity: .5; }
 
 .nb-status-slots { display: flex; gap: 14px; flex: none; }
+.nb-status-over { color: var(--nb-danger, #c62828); font-weight: 600; }
 
 /* Úchyt pro změnu velikosti. Vlastní prvek, ne `resize` — výsledek se ukládá. */
 .nb-grip {

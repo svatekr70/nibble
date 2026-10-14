@@ -60,6 +60,15 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   všechny a odrážka pod úkoly se přidala do úkolů.
 - Seznam rozdělený Enterem v prázdné položce si v odštěpené části nechá
   atributy (`class`, `data-type` úkolů, styl) — kromě `id` a `start`.
+- Web: API, průvodce, úvodní stránka a demo popisují a zapínají nové pluginy.
+  Průvodce má nové sekce o limitu znaků ve formuláři a o tom, jak úkoly
+  a rozbalovací bloky ukázat na webu.
+
+### Opraveno
+
+- Příklady v dokumentaci odpovídají skutečnému API: `commands.add(name, run, guard?)`
+  místo neexistujícího `{ exec, canExec }` a `active`/`enabled` u `addButton`
+  místo `isActive`/`isEnabled`.
 
 ## [0.5.1] — 2026-09-20
 

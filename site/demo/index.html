@@ -46,7 +46,10 @@
       <p class="editor-note">Zkuste psát (uvozovky se sázejí česky), obarvit slovo,
         napsat adresu a dát mezeru, klepnout do tabulky a táhnout za okraj sloupce,
         otevřít zdrojový kód — nebo sem něco vložit z Google Docs a sledovat, kolik
-        bloků se změní. Ozubené kolo vpravo nahoře otevře nastavení.</p>
+        bloků se změní. Na prázdném řádku napište <code>/</code> pro nabídku nebo
+        <code>## </code> pro nadpis, <code>[ ] </code> založí úkol. Blok jde přetáhnout
+        za úchyt ⠿ vlevo. Počítadlo dole hlídá limit 5000 znaků. Ozubené kolo vpravo
+        nahoře otevře nastavení.</p>
     </div>
   </section>
 
@@ -89,7 +92,8 @@ import { Nibble, normalizeNewlines } from '../dist/core/src/index.js';
 import { attachToolbar } from '../dist/ui/src/index.js';
 import {
   link, image, table, media, code, autolink,
-  wordcount, fullscreen, searchreplace, typography, fonts,
+  createWordcountPlugin, fullscreen, searchreplace, typography, fonts,
+  markdownShortcuts, tasks, details, slash, dragHandle,
 } from '../dist/plugins/src/index.js';
 
 const FIXTURES = ['001', '004', '012', '020', '033'];
@@ -113,9 +117,13 @@ async function loadSample(id) {
 
   editor = await Nibble.create({
     target: host, content: original, schema: 'legacy', height: 360,
+    placeholder: 'Začněte psát…',
     plugins: [
       link, image, table, media, code, autolink,
-      wordcount, fullscreen, searchreplace, typography, fonts,
+      // Limit jen ukazuje, jak vypadá počítadlo proti délce — nic neusekne.
+      createWordcountPlugin({ maxChars: 5000 }),
+      fullscreen, searchreplace, typography, fonts,
+      markdownShortcuts, tasks, details, slash, dragHandle,
     ],
   });
 

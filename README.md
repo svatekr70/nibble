@@ -982,8 +982,8 @@ formuláře — stačí tedy vyměnit jeden řádek a odesílání funguje dál.
 
 ```bash
 npm install
-npm test           # 457 jednotkových testů (vitest + linkedom)
-npm run e2e        # 287 testů v Chromiu (Playwright)
+npm test           # 759 jednotkových testů (vitest + linkedom)
+npm run e2e        # 597 testů v Chromiu (Playwright)
 npm run test:all   # obojí
 npm run typecheck
 npm run build      # bundly do demo/dist + velikost
