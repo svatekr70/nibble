@@ -809,7 +809,8 @@ až dotaz, pro který nic nesedí — typicky mezera za obyčejným slovem. Hned
 lomítkem mezera nabídku zavře. V nadpisu rozbalovacího bloku se neotevírá.
 
 Nabídka ukazuje jen to, co v editoru opravdu je: bez pluginu tabulek žádná
-Tabulka, bez `media` žádné Video. Výběr nahradí napsané `/dotaz` a první
+Tabulka, bez `media` žádné Video. Nenabízí ani formát, ve kterém kurzor už
+je — seznamy a citace se přepínají, takže `/odr` v odrážce by seznam zrušil. Výběr nahradí napsané `/dotaz` a první
 Ctrl+Z vrátí právě ten text. U položek s dialogem (obrázek, video) je smazání
 dotazu samostatný krok — zavřený dialog tak nechá prázdný řádek.
 
@@ -824,6 +825,60 @@ editor.ui.addSuggestion('mention', {
   onPick: (ed, item) => ed.exec('mention', item.id),
 });
 ```
+
+## Adresa ze schránky je odkaz
+
+S pluginem `autolink` se vložená adresa nebo e-mail rovnou stane odkazem
+(`jan@firma.cz` dostane `mailto:`). Když je označený text, odkazem se stane
+on — bez dialogu, adresa jde do `href`. Platí to jen pro schránku, ve které
+není nic než adresa: věta s adresou uprostřed se vloží jako věta. Odkaz
+v odkazu nevznikne, v `<pre>` a `<code>` zůstane adresa textem a Ctrl+Shift+V
+vloží vždy čistý text. Vložení je jeden krok historie.
+
+## Limit znaků
+
+`createWordcountPlugin({ maxChars })` počítá proti doporučené délce — perex,
+meta popis. Stavový řádek ukáže „152 / 160 znaků“ a po překročení zčervená.
+Limit jen varuje: psát jde dál a nic se neusekne. Počítají se i mezery, jako
+u `maxlength`; bez `maxChars` zůstává původní „N slov · M znaků“ bez mezer.
+
+Při překročení a při návratu pod limit editor vyšle událost `limit`
+s `{ count, max, over }`. Jen při **přechodu**, ne po každém úhozu — obsah
+načtený už přes limit proto žádnou událost nevyšle. Stav po `create()` si
+formulář přečte sám:
+
+```js
+import { createWordcountPlugin, wordcountLabel } from '@nibble/plugins';
+
+const max = 160;
+const editor = await Nibble.create({ target: '#perex', plugins: [createWordcountPlugin({ maxChars: max })] });
+const submit = document.querySelector('#ulozit');
+
+submit.disabled = wordcountLabel(editor.getText(), max).over;
+editor.on('limit', ({ over }) => { submit.disabled = over; });
+```
+
+## Rozbalovací blok
+
+Plugin `details` přidá tlačítko `details`: označené bloky obalí do
+`<details><summary>Nadpis</summary>…</details>` — typicky FAQ. V editoru je
+obsah vždy vidět a klik na nadpis nic nesbaluje; jestli bude blok na webu
+rozbalený (`open`), se přepíná v kontextové liště. Nadpis je jeden řádek:
+blokové příkazy (seznam, citace, nadpis) ho nechají být a Enter v něm skočí
+do obsahu. `details` a `summary` projdou i vložením ze schránky.
+
+## Úchyt bloku
+
+Plugin `dragHandle`: při najetí myší na blok nejvyšší úrovně se vlevo ukáže
+úchyt ⠿. Tažením se blok přesune (čára ukazuje, kam dopadne), klikem se
+označí celý, Escape tažení zruší. Blok se přesouvá beze změny a přesun je
+jeden krok historie. Úchyt se nedostane do `getHTML()`, na dotykových
+zařízeních se neukazuje a mimo režim návrhu je schovaný.
+
+Přesouvají se jen prvky — bílé znaky mezi bloky zůstanou, kde jsou. Ručně
+formátované HTML (bloky na vlastních řádcích s odsazením) proto může po
+přesunu v uloženém zdroji vypadat nerovně: zalomení, které patřilo za blok,
+zůstane na jeho starém místě. Na vykreslení to vliv nemá.
 
 ## Editor ukazuje, jak to bude vypadat
 

@@ -68,7 +68,8 @@ import { Nibble, normalizeNewlines } from '/dist/core/src/index.js';
 import { attachToolbar } from '/dist/ui/src/index.js';
 import {
   link, image, table, media, emoji, charmap, code, autolink,
-  wordcount, fullscreen, searchreplace, typography, fonts,
+  createWordcountPlugin, fullscreen, searchreplace, typography, fonts,
+  markdownShortcuts, tasks, details, slash, dragHandle,
 } from '/dist/plugins/src/index.js';
 
 const FIXTURES = ['001', '004', '012', '020', '033'];
@@ -92,9 +93,13 @@ async function loadSample(id) {
 
   editor = await Nibble.create({
     target: host, content: original, schema: 'legacy', height: 320,
+    placeholder: 'Začněte psát…',
     plugins: [
       link, image, table, media, emoji, charmap, code, autolink,
-      wordcount, fullscreen, searchreplace, typography, fonts,
+      // Limit jen ukazuje, jak vypadá počítadlo proti délce — nic neusekne.
+      createWordcountPlugin({ maxChars: 5000 }),
+      fullscreen, searchreplace, typography, fonts,
+      markdownShortcuts, tasks, details, slash, dragHandle,
     ],
   });
   attachToolbar(editor, { menubar: true });

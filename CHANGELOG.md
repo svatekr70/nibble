@@ -54,6 +54,7 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
 ### Změněno
 
 - `History.transact` jde vnořit.
+- Demo (`npm run demo`) zapíná nové pluginy, nápovědu a počítadlo s limitem.
 - Sousední seznamy se slévají jen při stejném `data-type` (chybějící je
   vlastní druh). Úkol založený hned pod odrážkami z nich dřív udělal úkoly
   všechny a odrážka pod úkoly se přidala do úkolů.
