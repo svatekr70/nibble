@@ -31,6 +31,12 @@ verzování podle [SemVer](https://semver.org/lang/cs/).
   vždy vidět a klik na nadpis nic nesbaluje; jestli bude blok na webu
   rozbalený, se přepíná v kontextové liště. `details` a `summary` projdou
   vložením ze schránky.
+- Plugin `slash` — `/` na začátku řádku otevře nabídku (nadpisy, seznamy,
+  úkoly, citace, kód, čára, tabulka, obrázek, video, rozbalovací blok).
+  Psaní filtruje i bez diakritiky, Enter vybere, Escape zavře. Ukazuje jen
+  to, co je v editoru zapnuté.
+- `ui.addSuggestion(name, spec)` — obecná nabídka u kurzoru vyvolaná znakem.
+  Vykresluje ji `@nibble/ui` (`bindCaretMenu`), fokus zůstává v editoru.
 
 ### Změněno
 

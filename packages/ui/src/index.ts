@@ -1,4 +1,5 @@
 import { Prefs, type EditorPrefs, type Editor, type Layout } from '@nibble/core';
+import { bindCaretMenu } from './CaretMenu.js';
 import { ContextToolbar } from './ContextToolbar.js';
 import { renderControl } from './controls.js';
 import { openDialog } from './Dialog.js';
@@ -9,6 +10,7 @@ import { Toolbar } from './Toolbar.js';
 
 export { Toolbar } from './Toolbar.js';
 export { ContextToolbar } from './ContextToolbar.js';
+export { bindCaretMenu } from './CaretMenu.js';
 export { openDialog } from './Dialog.js';
 export { buildCodeField, highlightHtml } from './CodeField.js';
 export { openColorPicker, toHex, DEFAULT_SWATCHES } from './ColorPicker.js';
@@ -138,6 +140,7 @@ export function attachToolbar(
   shell.appendChild(foot);
 
   const contextToolbar = new ContextToolbar(editor, surface);
+  const releaseCaretMenu = bindCaretMenu(editor);
 
   let menubar: Menubar | null = null;
   let toolbarTop: Toolbar | null = null;
@@ -296,6 +299,7 @@ export function attachToolbar(
       toolbarTop?.destroy();
       toolbarBottom?.destroy();
       contextToolbar.destroy();
+      releaseCaretMenu();
       shell.replaceWith(editor.root);
     },
   };

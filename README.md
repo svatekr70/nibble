@@ -797,6 +797,32 @@ li[data-type="taskItem"]::before { content: '☐ '; }
 li[data-type="taskItem"][data-checked="true"]::before { content: '☑ '; }
 ```
 
+## Lomítkové příkazy
+
+Plugin `slash`: `/` na začátku řádku otevře u kurzoru nabídku — nadpisy,
+odrážky, číslovaný seznam, úkoly, citace, blok kódu, čára, tabulka, obrázek,
+video a rozbalovací blok. Fokus zůstává v editoru: psaní za lomítkem nabídku
+filtruje (bez ohledu na diakritiku, `/odraz` najde Odrážky), šipky vybírají,
+Enter nebo Tab potvrdí, Escape zavře a napsaný text nechá. Mezera, pro kterou
+nic nesedí, nabídku zavře taky. V nadpisu rozbalovacího bloku se neotevírá.
+
+Nabídka ukazuje jen to, co v editoru opravdu je: bez pluginu tabulek žádná
+Tabulka, bez `media` žádné Video. Výběr nahradí napsané `/dotaz` a první
+Ctrl+Z vrátí právě ten text. U položek s dialogem (obrázek, video) je smazání
+dotazu samostatný krok — zavřený dialog tak nechá prázdný řádek.
+
+Nabídka je obecná: `editor.ui.addSuggestion(name, spec)` přihlásí jinou,
+vyvolanou jiným znakem. Data jsou v jádře, vykresluje je `@nibble/ui`
+(`bindCaretMenu`, zapojené v `attachToolbar`):
+
+```js
+editor.ui.addSuggestion('mention', {
+  trigger: '@',
+  items: (ed, query) => filterSuggestions(people, query),
+  onPick: (ed, item) => ed.exec('mention', item.id),
+});
+```
+
 ## Editor ukazuje, jak to bude vypadat
 
 Tabulka s vlastním `border` nebo `style` se v editoru vykreslí přesně tak, jak

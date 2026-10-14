@@ -1,5 +1,6 @@
 import type { Editor } from '../Editor.js';
 import type { GlyphCategory, GlyphEntry } from './glyphs.js';
+import type { SuggestionSpec } from './suggest.js';
 
 /**
  * Registr ovládacích prvků.
@@ -209,6 +210,7 @@ export class UIRegistry {
 
   private readonly controls = new Map<string, ControlSpec>();
   private readonly contextToolbars = new Map<string, ContextToolbarSpec>();
+  private readonly suggestionSpecs = new Map<string, SuggestionSpec>();
   private dialogHandler: DialogHandler | null = null;
   private notifyHandler: NotifyHandler | null = null;
   private statusHandler: StatusHandler | null = null;
@@ -243,6 +245,16 @@ export class UIRegistry {
   addContextToolbar(name: string, spec: ContextToolbarSpec): this {
     this.contextToolbars.set(name, spec);
     return this;
+  }
+
+  /** Nabídka u kurzoru vyvolaná znakem — např. lomítkové příkazy. */
+  addSuggestion(name: string, spec: SuggestionSpec): this {
+    this.suggestionSpecs.set(name, spec);
+    return this;
+  }
+
+  suggestions(): ReadonlyMap<string, SuggestionSpec> {
+    return this.suggestionSpecs;
   }
 
   get(name: string): ControlSpec | undefined {

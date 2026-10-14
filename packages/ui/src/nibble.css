@@ -50,7 +50,8 @@
 .nb-grid, .nb-grid *,
 .nb-dialog, .nb-dialog *,
 .nb-picker, .nb-picker *,
-.nb-menu, .nb-menu * { box-sizing: border-box; }
+.nb-menu, .nb-menu *,
+.nb-caret-menu, .nb-caret-menu * { box-sizing: border-box; }
 
 /*
  * `overflow: hidden` tady schválně není.
@@ -938,7 +939,7 @@
   flex: none;
 }
 
-.nb-menu {
+.nb-menu, .nb-caret-menu {
   position: absolute;
   z-index: 110;
   max-height: min(60vh, 380px);
@@ -992,6 +993,11 @@
   margin: 4px 6px;
   background: var(--nb-border);
 }
+
+/* Nabídka u kurzoru vychází z `.nb-menu`; navíc ikona vlevo. */
+.nb-caret-menu { min-width: 200px; max-height: 280px; }
+.nb-caret-menu-icon { flex: none; display: inline-flex; width: 18px; height: 18px; opacity: .8; }
+.nb-caret-menu-icon svg { width: 18px; height: 18px; }
 
 /* ---------- výběr barvy ---------- */
 
