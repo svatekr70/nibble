@@ -53,8 +53,14 @@ export const dragHandle: Plugin = {
     let current: Element | null = null;
     let drag: { block: Element; from: number; to: number; moved: boolean; startY: number } | null = null;
 
-    // Jen prvky: bílé textové uzly mezi bloky zůstanou, kde jsou.
-    const blocks = (): Element[] => Array.from(root.children);
+    // Jen prvky: bílé textové uzly mezi bloky zůstanou, kde jsou. A jen
+    // blokové: starší obsah mívá `<b>` nebo `<img>` přímo v kořeni a takový
+    // prvek je kus věty — přesunem by se z ní vytrhl.
+    const isDraggable = (el: Element): boolean => {
+      const display = win.getComputedStyle(el).display;
+      return display !== 'inline' && display !== 'inline-block' && display !== 'contents';
+    };
+    const blocks = (): Element[] => Array.from(root.children).filter(isDraggable);
 
     const hide = (): void => {
       handle.hidden = true;
@@ -78,7 +84,9 @@ export const dragHandle: Plugin = {
       if (drag || editor.mode !== 'design') return;
       let node = event.target as Node | null;
       while (node && node.parentNode !== root) node = node.parentNode;
-      if (node && node.nodeType === 1 && (node !== current || handle.hidden)) place(node as Element);
+      if (!node || node.nodeType !== 1) return;
+      if (!isDraggable(node as Element)) { hide(); return; }
+      if (node !== current || handle.hidden) place(node as Element);
     };
 
     const onLeave = (event: Event): void => {
@@ -90,15 +98,16 @@ export const dragHandle: Plugin = {
 
     // Psaní posouvá bloky, takže úchyt by stál vedle jiného místa. Klávesy se
     // jinak nechávají být — patří ostatním pluginům.
-    const onKeyDown = (event: Event): void => {
-      if (drag) {
-        if ((event as KeyboardEvent).key === 'Escape') {
-          event.preventDefault();
-          finish(false);
-        }
-        return;
-      }
-      hide();
+    const onKeyDown = (): void => {
+      if (!drag) hide();
+    };
+
+    // Escape během tažení se poslouchá na celém dokumentu: stisk úchytu fokus
+    // nepřesouvá, takže editor ho mít nemusí a na kořen by klávesa nedošla.
+    const onDragKeyDown = (event: KeyboardEvent): void => {
+      if (!drag || event.key !== 'Escape') return;
+      event.preventDefault();
+      finish(false);
     };
 
     const showLine = (to: number): void => {
@@ -119,6 +128,7 @@ export const dragHandle: Plugin = {
     const finish = (commit: boolean): void => {
       const state = drag;
       drag = null;
+      doc.removeEventListener('keydown', onDragKeyDown, true);
       line.hidden = true;
       handle.classList.remove('nb-dragging');
       // Zrušené tažení (Escape, pointercancel) nemá nic označit ani přesunout.
@@ -147,12 +157,14 @@ export const dragHandle: Plugin = {
 
     const onPointerDown = (event: Event): void => {
       const e = event as PointerEvent;
-      if (!current || !current.isConnected || e.button !== 0 || editor.mode !== 'design') return;
+      if (!current || e.button !== 0 || editor.mode !== 'design') return;
+      const from = blocks().indexOf(current);
+      if (from < 0) return;
       // Bez toho by prohlížeč začal označovat text a vzal editoru fokus.
       e.preventDefault();
       handle.setPointerCapture(e.pointerId);
-      const from = blocks().indexOf(current);
       drag = { block: current, from, to: from, moved: false, startY: e.clientY };
+      doc.addEventListener('keydown', onDragKeyDown, true);
       handle.classList.add('nb-dragging');
     };
 
@@ -169,6 +181,13 @@ export const dragHandle: Plugin = {
       showLine(drag.to);
     };
 
+    // Mimo režim návrhu se bloky nepřesouvají: úchyt zmizí a tažení se zruší.
+    const offMode = editor.on('modechange', (payload: { mode: string }) => {
+      if (payload.mode === 'design') return;
+      finish(false);
+      hide();
+    });
+
     root.addEventListener('mousemove', onMouseMove);
     root.addEventListener('mouseleave', onLeave);
     root.addEventListener('keydown', onKeyDown);
@@ -179,6 +198,8 @@ export const dragHandle: Plugin = {
     handle.addEventListener('mouseleave', onLeave);
 
     return () => {
+      finish(false);
+      offMode();
       root.removeEventListener('mousemove', onMouseMove);
       root.removeEventListener('mouseleave', onLeave);
       root.removeEventListener('keydown', onKeyDown);
