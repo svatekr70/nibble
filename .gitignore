@@ -19,3 +19,7 @@ samples/
 # Stránky kolem ikon: generuje je tools/build-icons.mjs (--preview a --live).
 demo/icons.html
 demo/icons-live.html
+
+# Pracovní kopie a zápisky agentů.
+.claude/worktrees/
+.superpowers/
