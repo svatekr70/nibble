@@ -1,5 +1,5 @@
 import type { Editor, Plugin } from '@nibble/core';
-import { closestBlock, fillIfEmpty, isEmptyBlock, textBeforeCaret } from '@nibble/core';
+import { closestBlock, closestQuote, fillIfEmpty, isEmptyBlock, textBeforeCaret } from '@nibble/core';
 
 /**
  * Markdown zkratky při psaní.
@@ -56,8 +56,10 @@ const INLINE: ReadonlyArray<[RegExp, InlineShortcut['tag'], number]> = [
   [/(^|[^*])\*\*([^*\s](?:[^*]*[^*\s])?)\*\*$/, 'strong', 2],
   [/(^|[^~])~~([^~\s](?:[^~]*[^~\s])?)~~$/, 's', 2],
   [/(^|[^`])`([^`\s](?:[^`]*[^`\s])?)`$/, 'code', 1],
-  [/(^|[^*\w])\*([^*\s](?:[^*]*[^*\s])?)\*$/, 'em', 1],
-  [/(^|[^_\w])_([^_\s](?:[^_]*[^_\s])?)_$/, 'em', 1],
+  // `\p{L}`, ne `\w`: `\w` zná jen ASCII, takže `proměnná_délka_` by
+  // kurzívu spustilo hned za „á“.
+  [/(^|[^*\p{L}\p{N}_])\*([^*\s](?:[^*]*[^*\s])?)\*$/u, 'em', 1],
+  [/(^|[^_\p{L}\p{N}])_([^_\s](?:[^_]*[^_\s])?)_$/u, 'em', 1],
 ];
 
 export function matchInlineShortcut(textBefore: string): InlineShortcut | null {
@@ -81,6 +83,32 @@ function insideLiteral(node: Node, root: Element): boolean {
 function convertible(block: Element): boolean {
   const tag = block.tagName.toLowerCase();
   return tag === 'p' || tag === 'div';
+}
+
+/** Leží uzel uvnitř prvku s daným tagem, v mezích kořene? */
+function within(node: Node, root: Element, tag: string): boolean {
+  for (let cur: Node | null = node; cur && cur !== root; cur = cur.parentNode) {
+    if (cur.nodeType === 1 && (cur as Element).tagName.toLowerCase() === tag) return true;
+  }
+  return false;
+}
+
+/**
+ * Je blok už ve formátu, do kterého by zkratka převáděla?
+ *
+ * Příkazy jádra jsou přepínače: `blockquote` v citaci citaci zruší, `bullist`
+ * v odrážkách seznam rozpustí a `numlist` z nich udělá číslovaný. Kdo v citaci
+ * napíše `> `, chce ten znak, ne přijít o citaci — zkratka tu proto mlčí.
+ * Seznam v citaci je ale jiný formát, ten projde.
+ */
+function alreadyIn(block: Element, root: Element, rule: BlockShortcut): boolean {
+  switch (rule.kind) {
+    case 'heading': return within(block, root, 'h' + rule.level);
+    case 'quote': return closestQuote(block, root) !== null;
+    case 'bullist':
+    case 'numlist':
+    case 'task': return within(block, root, 'li');
+  }
 }
 
 /** Smaže začátek bloku po kurzor a postaví kurzor na začátek bloku. */
@@ -162,7 +190,7 @@ export const markdownShortcuts: Plugin = {
 
       if (data === ' ' && convertible(block)) {
         const rule = matchBlockShortcut(textBeforeCaret(block, range));
-        if (rule && applyBlock(editor, block, range, rule)) return;
+        if (rule && !alreadyIn(block, editor.root, rule) && applyBlock(editor, block, range, rule)) return;
       }
 
       const inline = matchInlineShortcut(text.data.slice(0, range.startOffset));
@@ -178,7 +206,10 @@ export const markdownShortcuts: Plugin = {
 
     const onKeyDown = (event: Event): void => {
       const e = event as KeyboardEvent;
-      if (e.key !== 'Enter' || e.shiftKey || e.isComposing || editor.mode !== 'design') return;
+      // Enter s modifikátorem patří jiným zkratkám a `defaultPrevented` znamená,
+      // že ho už zpracoval někdo dřív (třeba nabídka u kurzoru).
+      if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing || editor.mode !== 'design') return;
+      if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
 
       const range = editor.selection.getRange();
       if (!range || !range.collapsed) return;
@@ -192,13 +223,12 @@ export const markdownShortcuts: Plugin = {
       asOneStep(editor, () => {
         dropPrefix(editor, block, range);
         if (rule === 'pre') { editor.exec('formatBlock', 'pre'); return; }
-        // Čára nahradí odstavec a za ní vznikne nový, do kterého se píše dál.
-        // Příkaz `hr` vkládá čáru *za* prázdný blok — tady má být místo něj,
-        // jinak by nad čarou zůstal prázdný odstavec po smazaném `---`.
-        editor.exec('hr');
-        if (block.isConnected && isEmptyBlock(block) && block.nextElementSibling?.tagName === 'HR') {
-          block.remove();
-        }
+        // Čára se vloží před vyprázdněný blok a ten zůstane jako nový odstavec
+        // pod ní. Příkaz `hr` se na to nehodí: v prázdném bloku dá čáru *za* něj
+        // a kurzor pošle do následujícího bloku, takže by se psalo do cizího
+        // odstavce místo do nového.
+        block.parentNode!.insertBefore(editor.document.createElement('hr'), block);
+        editor.selection.collapseTo(block, 0);
       });
     };
 

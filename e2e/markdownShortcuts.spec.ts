@@ -82,6 +82,67 @@ test.describe('Markdown zkratky', () => {
     await page.keyboard.type('**x** ');
     expect(await html(page)).toBe('<pre>**x** </pre>');
   });
+
+  test('--- a Enter před dalším odstavcem založí nový odstavec', async ({ page }) => {
+    await mount(page, '<p>---</p><p>dál</p>');
+    await caret(page, 0, 3);
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('x');
+    expect(await html(page)).toBe('<hr><p>x</p><p>dál</p>');
+  });
+
+  // Zkratka do formátu, ve kterém blok už je, nesmí formát vypnout.
+  test('> v citaci nic nedělá', async ({ page }) => {
+    await mount(page, '<blockquote><p><br></p></blockquote>');
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      ed.selection.collapseTo(ed.root.querySelector('p'), 0);
+      ed.root.focus();
+    });
+    await page.keyboard.type('> c');
+    expect(await html(page)).toBe('<blockquote><p>&gt; c</p></blockquote>');
+  });
+
+  test('- v položce seznamu nic nedělá', async ({ page }) => {
+    await mount(page, '<ul><li><p><br></p></li></ul>');
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      ed.selection.collapseTo(ed.root.querySelector('p'), 0);
+      ed.root.focus();
+    });
+    await page.keyboard.type('- a');
+    expect(await html(page)).toBe('<ul><li><p>- a</p></li></ul>');
+  });
+
+  test('1. v odrážkovém seznamu nic nedělá', async ({ page }) => {
+    await mount(page, '<ul><li><p><br></p></li></ul>');
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      ed.selection.collapseTo(ed.root.querySelector('p'), 0);
+      ed.root.focus();
+    });
+    await page.keyboard.type('1. a');
+    expect(await html(page)).toBe('<ul><li><p>1. a</p></li></ul>');
+  });
+
+  test('- v citaci udělá seznam v citaci', async ({ page }) => {
+    await mount(page, '<blockquote><p><br></p></blockquote>');
+    await page.evaluate(() => {
+      const ed = (window as any).ed;
+      ed.selection.collapseTo(ed.root.querySelector('p'), 0);
+      ed.root.focus();
+    });
+    await page.keyboard.type('- a');
+    expect(await html(page)).toContain('<li>a</li>');
+    expect(await html(page)).toMatch(/^<blockquote>/);
+  });
+
+  test('Ctrl+Enter na --- čáru nedělá', async ({ page }) => {
+    await mount(page, '<p>---</p>');
+    await caret(page, 0, 3);
+    await page.keyboard.press('Control+Enter');
+    expect(await html(page)).not.toContain('<hr>');
+  });
 });
 
 // Sem, ne do vitestu: linkedom nemá `Range.setStart`.

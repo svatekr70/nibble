@@ -45,6 +45,8 @@ describe('řádkové zkratky', () => {
     ['kód `a+b`', { tag: 'code', start: 4, inner: 'a+b' }],
     ['~~pryč~~', { tag: 's', start: 0, inner: 'pryč' }],
     ['a **dvě slova**', { tag: 'strong', start: 2, inner: 'dvě slova' }],
+    ['ž _kurzíva_', { tag: 'em', start: 2, inner: 'kurzíva' }],
+    ['(*šikmo*', { tag: 'em', start: 1, inner: 'šikmo' }],
   ])('%j', (text, expected) => {
     expect(matchInlineShortcut(text)).toEqual(expected);
   });
@@ -57,6 +59,10 @@ describe('řádkové zkratky', () => {
     '2 * 3 * 4',
     '****',
     'a*b*',
+    // Uprostřed slova s diakritikou taky ne — `\w` české znaky nezná.
+    'proměnná_délka_',
+    'č*a*',
+    'délka2_x_',
   ])('%j nic', (text) => {
     expect(matchInlineShortcut(text)).toBeNull();
   });
