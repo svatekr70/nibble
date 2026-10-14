@@ -2,7 +2,7 @@ import type { Editor } from '../Editor.js';
 import {
   atBlockEnd, atBlockStart, blocksInRange, closestBlock, convertBlock,
   ensureBlock, fillIfEmpty, isBlock, isEmptyBlock, mergeBlocks, normalizeContainer,
-  pruneEmptyInline, splitBlock, TEXT_BLOCKS,
+  pruneEmptyInline, splitBlock, TEXT_BLOCKS, touchesSummary,
 } from '../dom/blocks.js';
 import { closestListItem } from '../dom/lists.js';
 import { captureCaret, restoreCaret, withCaret } from '../selection/caret.js';
@@ -51,7 +51,7 @@ export function closestQuote(node: Node | null, root: Element): Element | null {
  */
 function toggleBlockquote(editor: Editor): boolean {
   const range = editor.selection.getRange();
-  if (!range) return false;
+  if (!range || touchesSummary(range, editor.root)) return false;
 
   const doc = editor.document;
 
@@ -157,7 +157,7 @@ export function registerBlockCommands(editor: Editor): void {
     if (tag === 'blockquote') return toggleBlockquote(ed);
 
     const range = ed.selection.getRange();
-    if (!range) return false;
+    if (!range || touchesSummary(range, ed.root)) return false;
 
     const mark = ed.selection.save();
     const blocks = blocksInRange(range, ed.root);
@@ -230,7 +230,7 @@ export function registerBlockCommands(editor: Editor): void {
 
   commands.add('hr', (ed) => {
     const range = ed.selection.getRange();
-    if (!range) return false;
+    if (!range || touchesSummary(range, ed.root)) return false;
 
     range.deleteContents();
     const block = ensureBlock(range.startContainer, ed.root, ed.document);

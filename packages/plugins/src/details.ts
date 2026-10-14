@@ -1,5 +1,5 @@
 import type { Editor, Plugin } from '@nibble/core';
-import { blocksInRange, closestBlock, fillIfEmpty, textBeforeCaret } from '@nibble/core';
+import { atBlockEnd, blocksInRange, closestBlock, fillIfEmpty, isBlock, textBeforeCaret } from '@nibble/core';
 
 /**
  * Rozbalovací blok `<details>`.
@@ -15,6 +15,10 @@ export function closestDetails(node: Node | null, root: Element): HTMLDetailsEle
     if (cur.nodeType === 1 && (cur as Element).tagName.toLowerCase() === 'details') return cur as HTMLDetailsElement;
   }
   return null;
+}
+
+function isSummary(node: Node | null): boolean {
+  return node?.nodeType === 1 && (node as Element).tagName.toLowerCase() === 'summary';
 }
 
 function closestSummary(node: Node | null, root: Element): Element | null {
@@ -51,17 +55,39 @@ export function unwrapDetails(details: Element): Node | null {
       node = p;
     }
     parent.insertBefore(node, details);
-    first ??= node;
+    // Kurzor patří do prvního bloku, ne do zalomení řádku mezi značkami,
+    // které v načteném HTML bývá před `<summary>`.
+    if (node.nodeType === 1) first ??= node;
   }
   details.remove();
   return first;
 }
 
-/** Bloky nejvyšší úrovně v rámci rodiče, kterých se výběr dotýká. */
+/**
+ * První blok, do kterého se dá psát, počínaje prvkem `el`.
+ *
+ * Obsah bloku nemusí začínat odstavcem: u seznamu nebo tabulky by kurzor
+ * postavený přímo do `<ul>` skončil mezi položkami a napsaný text by vypadl
+ * ze struktury. Sestupuje se proto k nejhlubšímu bloku bez dalších bloků.
+ */
+function firstTextBlock(el: Element): Element | null {
+  for (const child of Array.from(el.children)) {
+    const found = firstTextBlock(child);
+    if (found) return found;
+  }
+  return isBlock(el) ? el : null;
+}
+
+/**
+ * Bloky nejvyšší úrovně v rámci rodiče, kterých se výběr dotýká.
+ *
+ * Nadpis existujícího bloku mezi nimi být nesmí — přestěhovaný do nového
+ * bloku by starý zůstal bez nadpisu a nový by měl dva.
+ */
 function topLevelBlocks(editor: Editor, range: Range): Element[] {
-  const blocks = blocksInRange(range, editor.root);
+  const blocks = blocksInRange(range, editor.root).filter((b) => !isSummary(b));
   const start = blocks[0] ?? closestBlock(range.startContainer, editor.root);
-  if (!start) return [];
+  if (!start || isSummary(start)) return [];
   const parent = start.parentNode;
   return (blocks.length ? blocks : [start]).filter((b) => b.parentNode === parent);
 }
@@ -148,18 +174,23 @@ export const details: Plugin = {
       // Enter v nadpisu skočí do obsahu, nový nadpis nevzniká.
       if (e.key === 'Enter' && summary) {
         e.preventDefault();
-        let body = summary.nextElementSibling;
-        if (!body) {
-          body = editor.document.createElement('p');
-          fillIfEmpty(body, editor.document);
-          summary.parentNode!.appendChild(body);
-          editor.selection.collapseTo(body, 0);
-          editor.commit('details');
-          return;
-        }
-        editor.selection.collapseTo(body, 0);
+        const body = summary.nextElementSibling;
+        const target = body && firstTextBlock(body);
+        if (target) { editor.selection.collapseTo(target, 0); return; }
+
+        // Obsah chybí, nebo nemá kam psát (třeba začíná obrázkem):
+        // nový odstavec hned pod nadpis.
+        const p = editor.document.createElement('p');
+        fillIfEmpty(p, editor.document);
+        summary.parentNode!.insertBefore(p, body);
+        editor.selection.collapseTo(p, 0);
+        editor.commit('details');
         return;
       }
+
+      // Delete na konci nadpisu by do něj vlil obsah — stejný důvod jako
+      // u Backspace níž.
+      if (e.key === 'Delete' && summary && atBlockEnd(range, summary)) { e.preventDefault(); return; }
 
       if (e.key !== 'Backspace') return;
 

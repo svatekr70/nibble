@@ -257,6 +257,21 @@ export function blocksInRange(range: Range, root: Element): Element[] {
   return span.filter((block) => !span.some((other) => other !== block && block.contains(other)));
 }
 
+/**
+ * Dotýká se rozsah nadpisu rozbalovacího bloku (`summary`)?
+ *
+ * Blokové příkazy (nadpis, citace, seznam, oddělovač) na něj sahat nesmí.
+ * Nadpisem je pro prohlížeč jen `summary`, který je přímým potomkem
+ * `details` — přepsaný na `<h2>` nebo zabalený do citace či seznamu by
+ * blok o nadpis připravil. Příkaz proto raději neudělá nic.
+ */
+export function touchesSummary(range: Range, root: Element): boolean {
+  const isSummary = (b: Element | null): boolean => b?.tagName.toLowerCase() === 'summary';
+  return isSummary(closestBlock(range.startContainer, root))
+    || isSummary(closestBlock(range.endContainer, root))
+    || blocksInRange(range, root).some(isSummary);
+}
+
 /** Inline obaly, které se dají zahodit, když v nich po úpravě nic nezbude. */
 const INLINE_WRAPPERS = new Set([
   'strong', 'em', 'b', 'i', 'u', 's', 'strike', 'span', 'a', 'code',

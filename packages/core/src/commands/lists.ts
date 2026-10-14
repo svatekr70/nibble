@@ -1,6 +1,7 @@
 import type { Editor } from '../Editor.js';
 import {
   blocksInRange, closestBlock, ensureBlock, fillIfEmpty, isEmptyBlock, pruneEmptyInline,
+  touchesSummary,
 } from '../dom/blocks.js';
 import { contentBlock } from './blocks.js';
 import {
@@ -62,7 +63,8 @@ function makeItem(block: Element, doc: Document, caret: CaretRef | null): HTMLLI
  */
 function toggleList(editor: Editor, tag: ListTag): boolean {
   const range = editor.selection.getRange();
-  if (!range) return false;
+  // Nadpis rozbalovacího bloku do seznamu nepatří — viz `touchesSummary`.
+  if (!range || touchesSummary(range, editor.root)) return false;
 
   const doc = editor.document;
 
